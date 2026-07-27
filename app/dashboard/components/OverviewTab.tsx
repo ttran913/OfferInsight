@@ -1,4 +1,16 @@
+import { useEffect, useState } from 'react';
 import { FileText, Users, GitBranch, Code } from 'lucide-react';
+
+type OpenSourceStatusChangeItem = {
+  id: number;
+  entryId: number;
+  cardLabel: string;
+  fromStatus: string;
+  toStatus: string;
+  fromStatusLabel: string;
+  toStatusLabel: string;
+  createdAt: string;
+};
 
 type OverviewTabProps = {
   openSourceCriteria: {
@@ -36,6 +48,8 @@ type OverviewTabProps = {
   };
   eventsAllTimeCount: number;
   handleHabitCardClick: (cardId: string) => void;
+  /** When set, show instructor-only Open Source column-move log for this student */
+  instructorViewUserId?: string | null;
 };
 
 function openSourceCriteriaDotClass(completed: number, total: number): string {
@@ -47,6 +61,20 @@ function openSourceCriteriaDotClass(completed: number, total: number): string {
   return 'bg-green-500';
 }
 
+function formatMoveTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 export default function OverviewTab({
   openSourceCriteria,
   leetCodeStats,
@@ -55,9 +83,50 @@ export default function OverviewTab({
   eventsMetrics,
   eventsAllTimeCount,
   handleHabitCardClick,
+  instructorViewUserId,
 }: OverviewTabProps) {
   const { completedCriteria, totalCriteria } = openSourceCriteria;
   const osDot = openSourceCriteriaDotClass(completedCriteria, totalCriteria);
+
+  const [statusChanges, setStatusChanges] = useState<OpenSourceStatusChangeItem[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logError, setLogError] = useState('');
+
+  useEffect(() => {
+    if (!instructorViewUserId) {
+      setStatusChanges([]);
+      setLogError('');
+      return;
+    }
+
+    let cancelled = false;
+    setLogLoading(true);
+    setLogError('');
+
+    fetch(`/api/instructor/opensource-status-changes?userId=${encodeURIComponent(instructorViewUserId)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load activity log');
+        }
+        if (!cancelled) {
+          setStatusChanges(data.changes ?? []);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLogError(err instanceof Error ? err.message : 'Failed to load activity log');
+          setStatusChanges([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLogLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [instructorViewUserId]);
 
   return (
     <div>
@@ -194,6 +263,42 @@ export default function OverviewTab({
           )}
         </div>
       </div>
+
+      {instructorViewUserId && (
+        <div className="mt-8 bg-gray-800 border border-light-steel-blue rounded-lg p-6">
+          <div className="mb-4">
+            <h4 className="text-white font-semibold text-lg">Open Source column moves</h4>
+            <p className="text-sm text-gray-400 mt-1">Last 3 months</p>
+          </div>
+
+          {logLoading ? (
+            <p className="text-sm text-gray-400">Loading activity…</p>
+          ) : logError ? (
+            <p className="text-sm text-red-300">{logError}</p>
+          ) : statusChanges.length === 0 ? (
+            <p className="text-sm text-gray-400">No Open Source column moves in the last 3 months</p>
+          ) : (
+            <ul className="space-y-3 max-h-80 overflow-y-auto">
+              {statusChanges.map((change) => (
+                <li
+                  key={change.id}
+                  className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 border-b border-gray-700/80 pb-3 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <div className="text-white text-sm font-medium">{change.cardLabel}</div>
+                    <div className="text-sm text-gray-300 mt-0.5">
+                      <span className="text-gray-400">{change.fromStatusLabel}</span>
+                      <span className="mx-2 text-electric-blue">→</span>
+                      <span>{change.toStatusLabel}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 shrink-0">{formatMoveTime(change.createdAt)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
