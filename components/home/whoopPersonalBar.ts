@@ -12,20 +12,20 @@ export const WHOOP_PERSONAL_BAR_CRITERIA: readonly PersonalBarCriterion[] = [
     id: 'problem-solving',
     heading: 'Problem-solving skills',
     subheading: 'Experience solving real-life engineering problems',
-    detail: '6 issues solved',
+    detail: '6 issues solved on a respected open source project.',
   },
   {
     id: 'coachability',
     heading: 'Coachability',
     subheading: 'Can take critical feedback',
     detail:
-      '2 examples of a pull request which received critical feedback which was then followed up with a resubmission that was eventually accepted.',
+      '2 pull requests which received critical feedback followed up with a resubmission that was accepted.',
   },
   {
     id: 'closer',
     heading: 'Closer',
     subheading: 'Follows through on a task until it is fully done',
     detail:
-      'Time to completion (from the moment an issue is started to the moment it is merged into the codebase) averages to 3 months or less.',
+      'Time to completion for each contribution averages to 1 month or less.',
   },
 ];
