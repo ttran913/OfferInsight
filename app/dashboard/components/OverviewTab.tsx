@@ -278,7 +278,7 @@ export default function OverviewTab({
           ) : statusChanges.length === 0 ? (
             <p className="text-sm text-gray-400">No Open Source column moves in the last 3 months</p>
           ) : (
-            <ul className="space-y-3 max-h-80 overflow-y-auto">
+            <ul className="show-scrollbar space-y-3 max-h-80 overflow-y-scroll pr-2">
               {statusChanges.map((change) => (
                 <li
                   key={change.id}

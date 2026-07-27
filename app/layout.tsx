@@ -19,6 +19,11 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{
           __html: `
             ::-webkit-scrollbar { display: none; }
+            .show-scrollbar { scrollbar-width: thin; scrollbar-color: #6b7280 #1f2937; }
+            .show-scrollbar::-webkit-scrollbar { display: block; width: 8px; }
+            .show-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+            .show-scrollbar::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
+            .show-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
             html, body { font-family: 'Inter', sans-serif; width: 100%; margin: 0; padding: 0; overflow-x: hidden; }
           `
         }} />
