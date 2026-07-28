@@ -144,14 +144,17 @@ model OpenSourceEntry {
   user            User      @relation(fields: [userId], references: [id])
 }
 
-// Forward-looking log of Open Source board column moves (drag + edit status changes)
+// Forward-looking log of Open Source activity (column moves + field edits)
 model OpenSourceStatusChange {
   id         Int      @id @default(autoincrement())
   userId     String
   entryId    Int
   cardLabel  String
-  fromStatus String
-  toStatus   String
+  eventType  String   @default("column_move") // "column_move" | "field_edit"
+  fromStatus String?
+  toStatus   String?
+  fieldLabel String?
+  fieldValue String?  @db.Text
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

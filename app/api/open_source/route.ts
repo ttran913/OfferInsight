@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
 import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-user-helper";
 import {
+  diffOpenSourceResponseEdits,
   formatOpenSourceCardLabel,
-  logOpenSourceStatusChange,
+  logOpenSourceColumnMove,
+  logOpenSourceFieldEdits,
 } from "@/app/lib/open-source-status-log";
 
 // GET: Fetch all open source entries for a user
@@ -135,15 +137,30 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    const updatedCardLabel = formatOpenSourceCardLabel(entry);
+
     if (data.status && data.status !== existing.status) {
-      await logOpenSourceStatusChange({
+      await logOpenSourceColumnMove({
         userId,
         entryId: entry.id,
-        cardLabel: formatOpenSourceCardLabel(entry),
+        cardLabel: updatedCardLabel,
         fromStatus: existing.status,
         toStatus: data.status,
       });
     }
+
+    const fieldEdits = diffOpenSourceResponseEdits(existing, {
+      planResponses: data.planResponses,
+      babyStepResponses: data.babyStepResponses,
+      proofResponses: data.proofResponses,
+    });
+
+    await logOpenSourceFieldEdits({
+      userId,
+      entryId: entry.id,
+      cardLabel: updatedCardLabel,
+      edits: fieldEdits,
+    });
 
     return NextResponse.json(entry);
   } catch (error) {
@@ -244,7 +261,7 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    await logOpenSourceStatusChange({
+    await logOpenSourceColumnMove({
       userId,
       entryId: entry.id,
       cardLabel: formatOpenSourceCardLabel(entry),
