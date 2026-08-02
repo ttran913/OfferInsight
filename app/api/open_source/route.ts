@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
 import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-user-helper";
+import {
+  diffOpenSourceResponseEdits,
+  formatOpenSourceCardLabel,
+  logOpenSourceColumnMove,
+  logOpenSourceFieldEdits,
+} from "@/app/lib/open-source-status-log";
 
 // GET: Fetch all open source entries for a user
 export async function GET(request: NextRequest) {
@@ -105,6 +111,14 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json();
 
+    const existing = await prisma.openSourceEntry.findFirst({
+      where: { id: data.id, userId },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
     const entry = await prisma.openSourceEntry.update({
       where: { id: data.id, userId: userId },
       data: {
@@ -121,6 +135,31 @@ export async function PUT(request: NextRequest) {
         proofResponses: data.proofResponses,
         dateModified: new Date(),
       },
+    });
+
+    const updatedCardLabel = formatOpenSourceCardLabel(entry);
+
+    if (data.status && data.status !== existing.status) {
+      await logOpenSourceColumnMove({
+        userId,
+        entryId: entry.id,
+        cardLabel: updatedCardLabel,
+        fromStatus: existing.status,
+        toStatus: data.status,
+      });
+    }
+
+    const fieldEdits = diffOpenSourceResponseEdits(existing, {
+      planResponses: data.planResponses,
+      babyStepResponses: data.babyStepResponses,
+      proofResponses: data.proofResponses,
+    });
+
+    await logOpenSourceFieldEdits({
+      userId,
+      entryId: entry.id,
+      cardLabel: updatedCardLabel,
+      edits: fieldEdits,
     });
 
     return NextResponse.json(entry);
@@ -205,12 +244,29 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "ID and status are required" }, { status: 400 });
     }
 
+    const entryId = parseInt(id, 10);
+    const existing = await prisma.openSourceEntry.findFirst({
+      where: { id: entryId, userId },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
     const entry = await prisma.openSourceEntry.update({
-      where: { id: parseInt(id), userId: userId },
+      where: { id: entryId, userId: userId },
       data: {
         status: status,
         dateModified: new Date(),
       },
+    });
+
+    await logOpenSourceColumnMove({
+      userId,
+      entryId: entry.id,
+      cardLabel: formatOpenSourceCardLabel(entry),
+      fromStatus: existing.status,
+      toStatus: status,
     });
 
     return NextResponse.json(entry);

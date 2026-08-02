@@ -1686,6 +1686,7 @@ const hasSeededMockDataRef = useRef(false);
             eventsMetrics={eventsMetrics}
             eventsAllTimeCount={eventsAllTimeCount}
             handleHabitCardClick={handleHabitCardClick}
+            instructorViewUserId={isInstructor && userIdParam ? userIdParam : null}
           />
         )}
 

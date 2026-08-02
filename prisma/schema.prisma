@@ -94,6 +94,7 @@ model User {
   inPersonEventsPerMonth Int?
   careerFairsPerYear     Int?
   partnerships           UserPartnership[]
+  openSourceStatusChanges OpenSourceStatusChange[]
   lastInactivityWarningSent DateTime?
   inactivityWarningCount    Int       @default(0)
   removedFromResumeBook     Boolean   @default(false)
@@ -141,6 +142,23 @@ model OpenSourceEntry {
   dateModified    DateTime?
   userId          String
   user            User      @relation(fields: [userId], references: [id])
+}
+
+// Forward-looking log of Open Source activity (column moves + field edits)
+model OpenSourceStatusChange {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  entryId    Int
+  cardLabel  String
+  eventType  String   @default("column_move") // "column_move" | "field_edit"
+  fromStatus String?
+  toStatus   String?
+  fieldLabel String?
+  fieldValue String?  @db.Text
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model VerificationToken {
