@@ -1771,13 +1771,13 @@ export default function OpenSourceTab({
               </div>
 
               {/* Progress Column - Partnership Requirements */}
-              <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg p-4 border-2 border-electric-blue/30 shadow-lg flex flex-col h-full">
-                <div className="mb-4 pb-3 border-b border-electric-blue/20 flex-shrink-0">
+              <div className="bg-gray-100 rounded-lg p-4 border border-gray-200 flex flex-col h-full">
+                <div className="mb-4 pb-3 border-b border-gray-200 flex-shrink-0">
                   <h5 className="text-gray-900 font-bold text-lg flex items-center mb-1">
-                    <div className="w-4 h-4 bg-electric-blue rounded-full mr-2 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                    <div className="w-4 h-4 bg-electric-blue rounded-full mr-2"></div>
                     Partnership Progress
                   </h5>
-                  <p className="text-xs text-gray-400 mt-1">{selectedPartnership ? `${selectedPartnership}'s Criteria` : 'Track your requirements'}</p>
+                  <p className="text-xs text-gray-500 mt-1">{selectedPartnership ? `${selectedPartnership}'s Criteria` : 'Track your requirements'}</p>
                 </div>
                 <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
                   {/* Completed Partnerships - fancy flourished section with medal (at top for visibility) */}
@@ -1858,7 +1858,7 @@ export default function OpenSourceTab({
                       const isComplete = completedCount >= requiredCount;
                       
                       return (
-                        <div key={`${criteria.type}-${index}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-electric-blue/50 transition-colors">
+                        <div key={`${criteria.type}-${index}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-electric-blue/50 transition-colors">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-900 truncate flex-1" title={displayName}>
                               {shortName}
@@ -1869,12 +1869,12 @@ export default function OpenSourceTab({
                               {completedCount}/{requiredCount}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                             <div
                               className={`h-2.5 rounded-full transition-all ${
                                 isComplete 
-                                  ? 'bg-gradient-to-r from-green-500 to-green-400 shadow-[0_0_8px_rgba(34,197,94,0.4)]' 
-                                  : 'bg-gradient-to-r from-electric-blue to-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                                  ? 'bg-gradient-to-r from-green-500 to-green-400' 
+                                  : 'bg-gradient-to-r from-electric-blue to-blue-400'
                               }`}
                               style={{ width: `${Math.min(progressPercent, 100)}%` }}
                             />
@@ -1889,7 +1889,7 @@ export default function OpenSourceTab({
                       );
                     }).filter(Boolean)
                   ) : !viewingCompletedPartnershipName ? (
-                    <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-200">
                       <div className="text-sm mb-1">
                         {selectedPartnership ? (
                           'No requirements defined'
@@ -1903,7 +1903,7 @@ export default function OpenSourceTab({
                   {/* Overall criteria progress - hidden when viewing completed */}
                   {!viewingCompletedPartnershipName && activePartnershipCriteria && activePartnershipCriteria.length > 0 && totalCriteriaProgress.total > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div className="bg-white rounded-lg p-3 border border-gray-200">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium text-gray-600 uppercase tracking-wider">
                             Overall Criteria Progress
@@ -1912,9 +1912,9 @@ export default function OpenSourceTab({
                             {totalCriteriaProgress.completed}/{totalCriteriaProgress.total}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden relative">
+                        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden relative">
                           <div
-                            className="h-4 rounded-full transition-all bg-gradient-to-r from-electric-blue to-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+                            className="h-4 rounded-full transition-all bg-gradient-to-r from-electric-blue to-blue-400"
                             style={{ width: `${Math.min(100, (totalCriteriaProgress.completed / totalCriteriaProgress.total) * 100)}%` }}
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
