@@ -79,9 +79,9 @@ export default function Page1() {
 
   if (loading) {
     return (
-      <div data-onboarding-page="page1" className="min-h-screen min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-        <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-7 w-[700px] max-w-4xl">
-          <div className="flex flex-col items-center justify-center py-32 text-gray-300">
+      <div data-onboarding-page="page1" className="min-h-screen min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-7 w-[700px] max-w-4xl">
+          <div className="flex flex-col items-center justify-center py-32 text-gray-600">
             <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
             <p className="mt-4 text-sm">Loading...</p>
           </div>
@@ -91,17 +91,17 @@ export default function Page1() {
   }
 
   return (
-    <div data-onboarding-page="page1" className="min-h-screen min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-      <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-7 w-[700px] max-w-4xl">
+    <div data-onboarding-page="page1" className="min-h-screen min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-lg p-7 w-[700px] max-w-4xl">
         {/* Header */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl font-bold text-white">Welcome Aboard!</h2>
-          <p className="text-gray-300 mt-1 text-sm">Let's set up your profile</p>
+          <h2 className="text-2xl font-bold text-gray-900">Welcome Aboard!</h2>
+          <p className="text-gray-600 mt-1 text-sm">Let's set up your profile</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div className="form-group">
-            <label className="block text-white font-semibold mb-1.5 text-sm flex items-center">
+            <label className="block text-gray-900 font-semibold mb-1.5 text-sm flex items-center">
               <User className="text-electric-blue mr-2 h-4 w-4 shrink-0" />
               Full Name
             </label>
@@ -110,14 +110,14 @@ export default function Page1() {
               name="fullName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-3.5 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
               placeholder="Enter your full name"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="block text-white font-semibold mb-1.5 text-sm flex items-center">
+            <label className="block text-gray-900 font-semibold mb-1.5 text-sm flex items-center">
               <GraduationCap className="text-electric-blue mr-2 h-4 w-4 shrink-0" />
               School / University
             </label>
@@ -126,14 +126,14 @@ export default function Page1() {
               name="school"
               value={school}
               onChange={(e) => setSchool(e.target.value)}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-3.5 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
               placeholder="e.g., Stanford University, MIT, UC Berkeley"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="block text-white font-semibold mb-1.5 text-sm flex items-center">
+            <label className="block text-gray-900 font-semibold mb-1.5 text-sm flex items-center">
               <GraduationCap className="text-electric-blue mr-2 h-4 w-4 shrink-0" />
               Major / Field of Study
             </label>
@@ -142,14 +142,14 @@ export default function Page1() {
               name="major"
               value={major}
               onChange={(e) => setMajor(e.target.value)}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-3.5 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all" 
               placeholder="e.g., Computer Science, Business Administration"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="block text-white font-semibold mb-1.5 text-sm flex items-center">
+            <label className="block text-gray-900 font-semibold mb-1.5 text-sm flex items-center">
               <Code className="text-electric-blue mr-2 h-4 w-4 shrink-0" />
               LeetCode username
             </label>
@@ -158,7 +158,7 @@ export default function Page1() {
               name="leetCodeUserName"
               value={leetCodeUserName}
               onChange={(e) => setLeetCodeUserName(e.target.value)}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-3.5 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all"
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all"
               placeholder="e.g., your_handle (leetcode.com/u/…)"
               autoComplete="username"
             />
@@ -166,18 +166,18 @@ export default function Page1() {
           </div>
 
           <div className="form-group">
-            <label className="block text-white font-semibold mb-1.5 text-sm flex items-center">
+            <label className="block text-gray-900 font-semibold mb-1.5 text-sm flex items-center">
               <Calendar className="text-electric-blue mr-2 h-4 w-4 shrink-0" />
               Expected Graduation Date
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-gray-300 text-xs mb-1">Month</label>
+                <label className="block text-gray-600 text-xs mb-1">Month</label>
                 <select 
                   name="graduationMonth"
                   value={graduationMonth}
                   onChange={(e) => setGraduationMonth(e.target.value)}
-                  className="w-full bg-gray-800 border border-light-steel-blue rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-electric-blue"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-electric-blue"
                   required
                 >
                   <option value="">Select month</option>
@@ -189,12 +189,12 @@ export default function Page1() {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-300 text-xs mb-1">Year</label>
+                <label className="block text-gray-600 text-xs mb-1">Year</label>
                 <select 
                   name="graduationYear"
                   value={graduationYear}
                   onChange={(e) => setGraduationYear(e.target.value)}
-                  className="w-full bg-gray-800 border border-light-steel-blue rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-electric-blue"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-electric-blue"
                   required
                 >
                   <option value="">Select year</option>
@@ -233,8 +233,8 @@ export default function Page1() {
           <div className="flex items-center justify-center mt-3">
             <div className="flex space-x-2">
               <div className="w-3 h-3 bg-electric-blue rounded-full"></div>
-              <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
-              <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
             </div>
             <span className="text-gray-400 ml-3 text-sm">Step 1 of 3</span>
           </div>

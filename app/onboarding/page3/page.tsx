@@ -249,46 +249,46 @@ function Page3Content() {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-      <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-10 w-[700px] max-w-4xl">
+    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-lg p-10 w-[700px] max-w-4xl">
         {/* Header (condensed) */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Fine-tune Your Action Plan</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Fine-tune Your Action Plan</h2>
         </div>
 
         {/* Form */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-300">
+          <div className="flex flex-col items-center justify-center py-32 text-gray-600">
             <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
             <p className="mt-4 text-sm">Loading your action plan...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
           {/* Target Outcome */}
-          <div className="bg-gray-700/30 border border-light-steel-blue rounded-lg p-6 mb-8">
-            <h3 className="text-white font-bold text-lg mb-6 flex items-center justify-center">
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 mb-8">
+            <h3 className="text-gray-900 font-bold text-lg mb-6 flex items-center justify-center">
               <Target className="text-electric-blue mr-3" />
               Target Outcome with Your Custom Plan
             </h3>
             <div className="flex flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
-              <div className="text-center bg-gray-800/50 rounded-lg p-6 min-w-[180px]">
+              <div className="text-center bg-gray-50 rounded-lg p-6 min-w-[180px]">
                 <div className="text-3xl font-bold text-electric-blue mb-2">
                   {formatDateWithFullMonth(targetOfferDate)}
                 </div>
-                <div className="text-gray-300 text-sm font-medium">Target Offer Date</div>
+                <div className="text-gray-600 text-sm font-medium">Target Offer Date</div>
               </div>
-              <div className="text-center bg-gray-800/50 rounded-lg p-6 min-w-[180px]">
+              <div className="text-center bg-gray-50 rounded-lg p-6 min-w-[180px]">
                 <div className="text-3xl font-bold text-electric-blue mb-2">{calculateWeeklyHours(appsPerWeek, interviewsPerWeek, eventsPerMonth, fairsPerYear)}</div>
-                <div className="text-gray-300 text-sm font-medium">Hours per Week</div>
+                <div className="text-gray-600 text-sm font-medium">Hours per Week</div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-8">
             {/* Applications */}
-            <div className="bg-gray-700 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
+            <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-white font-bold text-lg flex items-center">
+                <h4 className="text-gray-900 font-bold text-lg flex items-center">
                   <FileText className="text-electric-blue mr-3" />
                   High Quality Applications
                 </h4>
@@ -296,12 +296,12 @@ function Page3Content() {
               </div>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300">Target per week:</span>
-                  <span className="text-white font-bold text-xl">{appsPerWeek}</span>
+                  <span className="text-gray-600">Target per week:</span>
+                  <span className="text-gray-900 font-bold text-xl">{appsPerWeek}</span>
                 </div>
                 <input
                   type="range"
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer slider"
                   min={1}
                   max={15}
                   value={appsPerWeek}
@@ -315,9 +315,9 @@ function Page3Content() {
             </div>
 
             {/* Coffee Chats */}
-            <div className="bg-gray-700 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
+            <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-white font-bold text-lg flex items-center">
+                <h4 className="text-gray-900 font-bold text-lg flex items-center">
                   <Coffee className="text-electric-blue mr-3" />
                   Coffee Chats
                 </h4>
@@ -325,12 +325,12 @@ function Page3Content() {
               </div>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300">Target per week:</span>
-                  <span className="text-white font-bold text-xl">{interviewsPerWeek}</span>
+                  <span className="text-gray-600">Target per week:</span>
+                  <span className="text-gray-900 font-bold text-xl">{interviewsPerWeek}</span>
                 </div>
                 <input
                   type="range"
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer slider"
                   min={0}
                   max={8}
                   value={interviewsPerWeek}
@@ -344,9 +344,9 @@ function Page3Content() {
             </div>
 
             {/* Events */}
-            <div className="bg-gray-700 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
+            <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-white font-bold text-lg flex items-center">
+                <h4 className="text-gray-900 font-bold text-lg flex items-center">
                   <Users className="text-electric-blue mr-3" />
                   In-Person Events
                 </h4>
@@ -354,12 +354,12 @@ function Page3Content() {
               </div>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300">Target per month:</span>
-                  <span className="text-white font-bold text-xl">{eventsPerMonth}</span>
+                  <span className="text-gray-600">Target per month:</span>
+                  <span className="text-gray-900 font-bold text-xl">{eventsPerMonth}</span>
                 </div>
                 <input
                   type="range"
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer slider"
                   min={0}
                   max={10}
                   value={eventsPerMonth}
@@ -373,9 +373,9 @@ function Page3Content() {
             </div>
 
             {/* Career Fairs */}
-            <div className="bg-gray-700 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
+            <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 hover:border-electric-blue/50 transition-colors">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-white font-bold text-lg flex items-center">
+                <h4 className="text-gray-900 font-bold text-lg flex items-center">
                   <Building2 className="text-electric-blue mr-3" />
                   Career Fairs
                 </h4>
@@ -383,12 +383,12 @@ function Page3Content() {
               </div>
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300">Total per year:</span>
-                  <span className="text-white font-bold text-xl">{fairsPerYear}</span>
+                  <span className="text-gray-600">Total per year:</span>
+                  <span className="text-gray-900 font-bold text-xl">{fairsPerYear}</span>
                 </div>
                 <input
                   type="range"
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer slider"
                   min={0}
                   max={8}
                   value={fairsPerYear}
@@ -403,9 +403,9 @@ function Page3Content() {
           </div>
 
         {/* Plan Start Date */}
-        <div className="bg-gray-700 border border-light-steel-blue rounded-lg p-6 mb-8">
+        <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-white font-bold text-lg flex items-center">
+            <h4 className="text-gray-900 font-bold text-lg flex items-center">
               <CalendarCheck className="text-electric-blue mr-3" />
               Plan Start Date
             </h4>
@@ -413,9 +413,9 @@ function Page3Content() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-300 mb-2">Month</label>
+              <label className="block text-sm text-gray-600 mb-2">Month</label>
               <select
-                className="w-full bg-gray-800 border border-light-steel-blue rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-electric-blue"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-electric-blue"
                 value={selectedMonth}
                 onChange={handleMonthChange}
               >
@@ -427,9 +427,9 @@ function Page3Content() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-300 mb-2">Day</label>
+              <label className="block text-sm text-gray-600 mb-2">Day</label>
               <select
-                className="w-full bg-gray-800 border border-light-steel-blue rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-electric-blue"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-electric-blue"
                 value={selectedDay}
                 onChange={handleDayChange}
               >
@@ -441,9 +441,9 @@ function Page3Content() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-300 mb-2">Year</label>
+              <label className="block text-sm text-gray-600 mb-2">Year</label>
               <select
-                className="w-full bg-gray-800 border border-light-steel-blue rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-electric-blue"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-electric-blue"
                 value={selectedYear}
                 onChange={handleYearChange}
               >
@@ -460,7 +460,7 @@ function Page3Content() {
           {/* Buttons */}
           <div className={`flex space-x-4 ${fromDashboard ? 'justify-center' : ''}`}>
             {!fromDashboard && (
-              <button type="button" onClick={handleBack} className="flex-1 bg-gray-700 hover:bg-gray-600 border border-light-steel-blue text-white py-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
+              <button type="button" onClick={handleBack} className="flex-1 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-900 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
                 <ArrowLeft className="mr-2" />
                 Back
               </button>
@@ -492,9 +492,9 @@ function Page3Content() {
 export default function Page3() {
   return (
     <Suspense fallback={
-      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-        <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-10 w-[700px] max-w-4xl">
-          <div className="flex flex-col items-center justify-center py-32 text-gray-300">
+      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-10 w-[700px] max-w-4xl">
+          <div className="flex flex-col items-center justify-center py-32 text-gray-600">
             <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
             <p className="mt-4 text-sm">Loading...</p>
           </div>

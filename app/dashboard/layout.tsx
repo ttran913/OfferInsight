@@ -8,7 +8,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const instructor = await getInstructorSession()
   if (instructor) {
     // Instructor is viewing a user's dashboard - allow access
-    return <div className="bg-gray-900 text-white">{children}</div>
+    return <div className="bg-white text-gray-900">{children}</div>
   }
   
   // Normal user session check
@@ -33,5 +33,5 @@ export default async function Layout({ children }: { children: React.ReactNode }
       break
   }
 
-  return <div className="bg-gray-900 text-white">{children}</div>
+  return <div className="bg-white text-gray-900">{children}</div>
 }

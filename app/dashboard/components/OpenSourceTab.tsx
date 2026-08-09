@@ -101,14 +101,14 @@ function SortableOpenSourceCard(props: {
       {...(props.readOnly ? {} : attributes)} 
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-gray-600 border border-light-steel-blue rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="text-white font-medium mb-1">{props.card.metric || 'Untitled'}</div>
+          <div className="text-gray-900 font-medium mb-1">{props.card.metric || 'Untitled'}</div>
           {props.card.selectedExtras && (props.card.selectedExtras as string[]).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
-              <span className="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30 font-bold uppercase tracking-wider">
+              <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded border border-purple-300 font-bold uppercase tracking-wider">
                 +{(props.card.selectedExtras as string[]).length} Extra{(props.card.selectedExtras as string[]).length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -367,7 +367,7 @@ function OpenSourceModal({
     return (
       <div key={index} className="space-y-2">
         <div className="flex justify-between items-center gap-4">
-          <label className="block text-white font-semibold">{requirement.text}</label>
+          <label className="block text-gray-900 font-semibold">{requirement.text}</label>
           {requirement.helper_video && (
             <a 
               href={requirement.helper_video} 
@@ -393,7 +393,7 @@ function OpenSourceModal({
               }
             }}
             disabled={disabled}
-            className={`w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            className={`w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             placeholder="Paste link — https:// added automatically"
           />
         )}
@@ -404,9 +404,9 @@ function OpenSourceModal({
               checked={!!value}
               onChange={(e) => handleProofResponseChange(requirement.text, e.target.checked, forcedStatus)}
               disabled={disabled}
-              className={`w-5 h-5 rounded border-light-steel-blue bg-gray-700 text-electric-blue focus:ring-electric-blue ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             />
-            <span className="text-gray-300">Done</span>
+            <span className="text-gray-600">Done</span>
           </div>
         )}
         {requirement.type === 'text' && (
@@ -414,7 +414,7 @@ function OpenSourceModal({
             value={value}
             onChange={(e) => handleProofResponseChange(requirement.text, e.target.value, forcedStatus)}
             disabled={disabled}
-            className={`w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 min-h-[80px] ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            className={`w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px] ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             placeholder="Write your response here..."
           />
         )}
@@ -543,12 +543,12 @@ function OpenSourceModal({
     <ModalOverlay onClose={onClose}>
       <ModalPanel size="2xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-gray-900">
             {entry ? 'Edit Open Source Criteria' : 'Create New Open Source Criteria'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
           >
             <X size={24} />
           </button>
@@ -556,9 +556,9 @@ function OpenSourceModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-white font-semibold mb-2">Metric</label>
-            <div className="w-full bg-gray-700/50 border border-light-steel-blue/30 rounded-lg px-4 py-3 text-gray-300 italic">
-              <div className={formData.criteriaType === 'issue' && formData.selectedExtras.length > 0 ? 'pb-2 border-b border-gray-600 mb-2 font-medium text-white' : ''}>
+            <label className="block text-gray-900 font-semibold mb-2">Metric</label>
+            <div className="w-full bg-gray-100 border border-gray-200/30 rounded-lg px-4 py-3 text-gray-600 italic">
+              <div className={formData.criteriaType === 'issue' && formData.selectedExtras.length > 0 ? 'pb-2 border-b border-gray-300 mb-2 font-medium text-gray-900' : ''}>
                 {formData.metric || 'No metric defined'}
               </div>
               {formData.criteriaType === 'issue' && formData.selectedExtras.map(extraType => {
@@ -577,14 +577,14 @@ function OpenSourceModal({
 
           {/* Extras selection - Visible in all columns, collapsible, only for 'issue' type cards */}
           {formData.criteriaType === 'issue' && activePartnershipCriteria.some(c => !c.is_primary && c.type !== 'multiple_choice') && (
-            <div className="bg-gray-700/50 rounded-lg border border-light-steel-blue/30 my-6">
+            <div className="bg-gray-100 rounded-lg border border-gray-200/30 my-6">
               <button
                 type="button"
                 onClick={() => toggleSection('extras')}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-600/50 transition-colors rounded-t-lg"
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors rounded-t-lg"
               >
                 <div className="flex flex-col items-start">
-                  <label className="block text-white font-semibold text-sm">Knock two birds with one stone</label>
+                  <label className="block text-gray-900 font-semibold text-sm">Knock two birds with one stone</label>
                   <p className="text-xs text-gray-400 italic">Select additional requirements you plan to complete while working on the issue.</p>
                 </div>
                 {collapsedSections.extras ? (
@@ -597,7 +597,7 @@ function OpenSourceModal({
                 <div className="space-y-3 p-4 pt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     {activePartnershipCriteria.filter(c => !c.is_primary && c.type !== 'multiple_choice').map(extra => (
-                      <label key={extra.type} className="flex items-center gap-3 p-2 hover:bg-gray-600 rounded cursor-pointer transition-colors border border-transparent hover:border-light-steel-blue/20">
+                      <label key={extra.type} className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded cursor-pointer transition-colors border border-transparent hover:border-gray-200/20">
                         <input
                           type="checkbox"
                           checked={formData.selectedExtras.includes(extra.type)}
@@ -614,10 +614,10 @@ function OpenSourceModal({
                               }));
                             }
                           }}
-                          className="w-4 h-4 rounded border-light-steel-blue bg-gray-700 text-electric-blue focus:ring-electric-blue"
+                          className="w-4 h-4 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue"
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm text-gray-200">
+                          <span className="text-sm text-gray-800">
                             {extra.metric || extra.type}
                           </span>
                           <span className="text-[10px] text-gray-400 italic">
@@ -640,11 +640,11 @@ function OpenSourceModal({
                 const isCollapsed = collapsedSections[sectionKey] || false;
                 const isBlurred = formData.status === 'plan';
                 return (
-                  <div key={gIdx} className={`${isBlurred ? 'blur-sm' : ''} bg-gray-700/30 rounded-lg border border-gray-600`}>
+                  <div key={gIdx} className={`${isBlurred ? 'blur-sm' : ''} bg-gray-100 rounded-lg border border-gray-300`}>
                     <button
                       type="button"
                       onClick={() => toggleSection(sectionKey)}
-                      className="w-full flex items-center justify-between p-4 transition-colors rounded-t-lg hover:bg-gray-600/50 text-left"
+                      className="w-full flex items-center justify-between p-4 transition-colors rounded-t-lg hover:bg-gray-50 text-left"
                     >
                       <h4 className="text-electric-blue font-bold uppercase tracking-wider text-xs">
                         Baby Step for {group.name}
@@ -669,11 +669,11 @@ function OpenSourceModal({
 
           {/* Plan Column Fields - Visible in all columns, blurred when not in plan, always editable */}
           {effectivePlan.length > 0 && (
-            <div className="border-y border-gray-700 py-6 my-6">
+            <div className="border-y border-gray-200 py-6 my-6">
               <button
                 type="button"
                 onClick={() => toggleSection('plan')}
-                className="w-full flex items-center justify-between hover:bg-gray-700/50 transition-colors rounded-lg p-2 -m-2 text-left"
+                className="w-full flex items-center justify-between hover:bg-gray-100 transition-colors rounded-lg p-2 -m-2 text-left"
               >
                 <h4 className={`text-electric-blue font-bold flex items-center gap-2 text-xs uppercase tracking-wider ${formData.status !== 'plan' ? 'blur-sm' : ''}`}>
                   Plan
@@ -694,20 +694,20 @@ function OpenSourceModal({
 
           {/* Proof of Work Fields - Visible in babyStep/inProgress/done, blurred/disabled in babyStep, editable in inProgress/done. Title like Metric; each field collapsible like baby steps. */}
           {effectiveProofOfWork.length > 0 && formData.status !== 'plan' && (
-            <div className={`relative group border-y border-gray-700 py-6 my-6 ${formData.status === 'babyStep' ? 'blur-sm' : ''}`}>
-              <label className="block text-white font-semibold mb-2">Proof of Work</label>
+            <div className={`relative group border-y border-gray-200 py-6 my-6 ${formData.status === 'babyStep' ? 'blur-sm' : ''}`}>
+              <label className="block text-gray-900 font-semibold mb-2">Proof of Work</label>
               <div className="space-y-4">
                 {proofOfWorkFlat.map((req, index) => {
                   const sectionKey = `proofOfWork-${index}`;
                   const isCollapsed = collapsedSections[sectionKey] ?? false;
                   const isDisabled = formData.status === 'babyStep';
                   return (
-                    <div key={index} className="bg-gray-700/30 rounded-lg border border-gray-600">
+                    <div key={index} className="bg-gray-100 rounded-lg border border-gray-300">
                       <button
                         type="button"
                         onClick={() => !isDisabled && toggleSection(sectionKey)}
                         disabled={isDisabled}
-                        className={`w-full flex items-center justify-between p-4 transition-colors rounded-t-lg text-left ${isDisabled ? 'pointer-events-none cursor-not-allowed' : 'hover:bg-gray-600/50'}`}
+                        className={`w-full flex items-center justify-between p-4 transition-colors rounded-t-lg text-left ${isDisabled ? 'pointer-events-none cursor-not-allowed' : 'hover:bg-gray-50'}`}
                       >
                         <h4 className="text-electric-blue font-bold uppercase tracking-wider text-xs">
                           {formatDisplayName(req.groupName)}: {req.text}
@@ -752,7 +752,7 @@ function OpenSourceModal({
                                       }
                                     }}
                                     disabled={isDisabled}
-                                    className={`w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                    className={`w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                     placeholder="Paste link — https:// added automatically"
                                   />
                                 )}
@@ -763,9 +763,9 @@ function OpenSourceModal({
                                       checked={!!value}
                                       onChange={(e) => handleProofResponseChange(req.text, e.target.checked, undefined)}
                                       disabled={isDisabled}
-                                      className={`w-5 h-5 rounded border-light-steel-blue bg-gray-700 text-electric-blue focus:ring-electric-blue ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                      className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                     />
-                                    <span className="text-gray-300">Done</span>
+                                    <span className="text-gray-600">Done</span>
                                   </div>
                                 )}
                                 {req.type === 'text' && (
@@ -773,7 +773,7 @@ function OpenSourceModal({
                                     value={value}
                                     onChange={(e) => handleProofResponseChange(req.text, e.target.value, undefined)}
                                     disabled={isDisabled}
-                                    className={`w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 min-h-[80px] ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                    className={`w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px] ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                     placeholder="Write your response here..."
                                   />
                                 )}
@@ -793,28 +793,28 @@ function OpenSourceModal({
           {ENABLE_DATE_FIELD_EDITING && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Date Created (Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Created (Debug)</label>
                 <input
                   type="date"
                   value={formData.dateCreated}
                   onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2">Date Modified (Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Modified (Debug)</label>
                 <input
                   type="date"
                   value={formData.dateModified}
                   onChange={(e) => setFormData({ ...formData, dateModified: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
             </div>
           )}
 
           {entry && (
-            <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+            <div className="text-xs text-gray-400 pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span>Created: {formatModalDate(entry.dateCreated)}</span>
                 <span>Modified: {formatModalDate(entry.dateModified)}</span>
@@ -822,7 +822,7 @@ function OpenSourceModal({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-700">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-200">
             <div className="order-2 sm:order-1">
               {!readOnly && entry?.criteriaType === 'issue' && onDelete && (
                 <button
@@ -843,7 +843,7 @@ function OpenSourceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -1151,11 +1151,11 @@ export default function OpenSourceTab({
   const handleCompleteAndSelectNewPartnership = () => handleCompletePartnership(true);
 
   return (
-    <section className="bg-gray-800 border border-light-steel-blue rounded-lg p-4 sm:p-6">
+    <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       {hasSavedSelection && (
         <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3 flex-wrap">
-            <h4 className="text-xl font-bold text-white">Open Source Contributions</h4>
+            <h4 className="text-xl font-bold text-gray-900">Open Source Contributions</h4>
             {viewingCompletedPartnershipName && activePartnershipDbId && selectedPartnership && setViewingCompletedPartnershipName ? (
               <button
                 onClick={() => setViewingCompletedPartnershipName?.(null)}
@@ -1169,25 +1169,25 @@ export default function OpenSourceTab({
               <button
                 type="button"
                 onClick={() => setShowCongratsModal(true)}
-                className="relative flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-900/60 via-yellow-900/40 to-amber-950/60 shadow-[0_0_16px_rgba(245,158,11,0.2)] hover:from-amber-800/70 hover:via-yellow-800/50 hover:to-amber-900/70 hover:border-amber-400/60 hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all overflow-hidden"
+                className="relative flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 shadow-sm hover:from-amber-100 hover:via-yellow-50 hover:to-amber-100 hover:border-amber-400 transition-all overflow-hidden"
               >
-                <span className="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-transparent to-amber-500/10 pointer-events-none" />
+                <span className="absolute inset-0 bg-gradient-to-br from-amber-200/20 via-transparent to-amber-300/20 pointer-events-none" />
                 <div className="relative flex items-center gap-2">
-                  <PartyPopper className="w-5 h-5 text-amber-300" strokeWidth={2.5} />
-                  <span className="text-amber-100 font-bold text-sm uppercase tracking-wider">Partnership complete! - Click here to choose a new partnership!</span>
-                  <Medal className="w-5 h-5 text-amber-300" strokeWidth={2.5} />
+                  <PartyPopper className="w-5 h-5 text-amber-600" strokeWidth={2.5} />
+                  <span className="text-amber-900 font-bold text-sm uppercase tracking-wider">Partnership complete! - Click here to choose a new partnership!</span>
+                  <Medal className="w-5 h-5 text-amber-600" strokeWidth={2.5} />
                 </div>
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-300">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>Show:</span>
             <button
               onClick={() => setOpenSourceFilter('modifiedThisMonth')}
               className={`px-3 py-1 rounded-md border transition-colors ${
                 openSourceFilter === 'modifiedThisMonth'
                   ? 'bg-electric-blue text-white border-electric-blue'
-                  : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                  : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
               }`}
             >
               This Month
@@ -1197,7 +1197,7 @@ export default function OpenSourceTab({
               className={`px-3 py-1 rounded-md border transition-colors ${
                 openSourceFilter === 'allTime'
                   ? 'bg-electric-blue text-white border-electric-blue'
-                  : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                  : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
               }`}
             >
               All Time
@@ -1211,7 +1211,7 @@ export default function OpenSourceTab({
         <div className="flex flex-col items-center justify-center py-16 min-h-[400px]">
           <div className="w-full max-w-md">
             <div className="flex flex-col items-center justify-center gap-1 mb-4 text-center">
-              <label className="text-white font-semibold text-2xl">Choose Partnership Agreement</label>
+              <label className="text-gray-900 font-semibold text-2xl">Choose Partnership Agreement</label>
               <a
                 href="https://docs.google.com/spreadsheets/d/1L0T7Xr7xQTlSKHR2_VB47gU5Nkyc454A_O6w7xJy8Go/"
                 target="_blank"
@@ -1225,7 +1225,7 @@ export default function OpenSourceTab({
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-3 text-white flex items-center justify-between hover:border-electric-blue transition-colors"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 flex items-center justify-between hover:border-electric-blue transition-colors"
               >
                 <span>{tempSelection || '<none selected>'}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1236,15 +1236,15 @@ export default function OpenSourceTab({
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsDropdownOpen(false)}
                   />
-                  <div className="absolute z-20 mt-1 w-full bg-gray-700 border border-light-steel-blue rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     <button
                       onClick={() => {
                         setTempSelection(null);
                         setMultipleChoiceSelections({});
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors ${
-                        tempSelection === null ? 'bg-gray-600 text-electric-blue' : 'text-white'
+                      className={`w-full text-left px-4 py-2 hover:bg-gray-200 transition-colors ${
+                        tempSelection === null ? 'bg-blue-50 text-electric-blue' : 'text-gray-900'
                       }`}
                     >
                       &lt;none selected&gt;
@@ -1257,8 +1257,8 @@ export default function OpenSourceTab({
                           setMultipleChoiceSelections({});
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors ${
-                          tempSelection === partnership.name ? 'bg-gray-600 text-electric-blue' : 'text-white'
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-200 transition-colors ${
+                          tempSelection === partnership.name ? 'bg-blue-50 text-electric-blue' : 'text-gray-900'
                         }`}
                       >
                         <span>{partnership.name}</span>
@@ -1287,8 +1287,8 @@ export default function OpenSourceTab({
               if (mcBlocks.length === 0) return null;
 
               return (
-                <div className="space-y-4 mt-6 p-4 bg-gray-700/50 rounded-lg border border-light-steel-blue/30">
-                  <p className="text-white font-semibold text-sm mb-2 italic">This partnership has a multiple-choice option.  Please select <b>one</b> of the following options:</p>
+                <div className="space-y-4 mt-6 p-4 bg-gray-100 rounded-lg border border-gray-200/30">
+                  <p className="text-gray-900 font-semibold text-sm mb-2 italic">This partnership has a multiple-choice option.  Please select <b>one</b> of the following options:</p>
                   {mcBlocks.map((block, idx) => (
                     <div key={idx} className="space-y-2">
                       <label className="block text-electric-blue text-xs uppercase tracking-wider font-bold">
@@ -1305,7 +1305,7 @@ export default function OpenSourceTab({
                             className={`text-left px-3 py-2 rounded border transition-colors text-sm ${
                               multipleChoiceSelections[idx] === choice.type
                                 ? 'bg-electric-blue border-electric-blue text-white'
-                                : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-light-steel-blue'
+                                : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-200'
                             }`}
                           >
                             <div className="font-medium">{choice.label}</div>
@@ -1333,7 +1333,7 @@ export default function OpenSourceTab({
                   const mcBlocks = selectedP.criteria?.filter(c => c.type === 'multiple_choice') || [];
                   return mcBlocks.some((_, idx) => !multipleChoiceSelections[idx]);
                 })()
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'bg-white text-gray-400 cursor-not-allowed'
                   : 'bg-electric-blue hover:bg-blue-600 text-white'
               }`}
             >
@@ -1345,8 +1345,8 @@ export default function OpenSourceTab({
         <>
           {/* Instructor Partnership Selector - Show at top when instructor is viewing */}
           {isInstructor && userIdParam && (
-            <div className="mb-6 p-4 bg-gray-700/50 rounded-lg border border-light-steel-blue/30">
-              <label className="block text-white font-semibold mb-3 text-sm">
+            <div className="mb-6 p-4 bg-gray-100 rounded-lg border border-gray-200/30">
+              <label className="block text-gray-900 font-semibold mb-3 text-sm">
                 {readOnly ? 'Student partnership (read-only)' : 'Select Partnership for Student'}
               </label>
               {readOnly && (
@@ -1359,7 +1359,7 @@ export default function OpenSourceTab({
                   type="button"
                   disabled={readOnly}
                   onClick={readOnly ? undefined : () => setIsDropdownOpen(!isDropdownOpen)}
-                  className={`w-full max-w-md bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-3 text-white flex items-center justify-between transition-colors ${
+                  className={`w-full max-w-md bg-gray-100 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 flex items-center justify-between transition-colors ${
                     readOnly ? 'opacity-70 cursor-not-allowed' : 'hover:border-electric-blue'
                   }`}
                 >
@@ -1372,15 +1372,15 @@ export default function OpenSourceTab({
                       className="fixed inset-0 z-10" 
                       onClick={() => setIsDropdownOpen(false)}
                     />
-                    <div className="absolute z-20 mt-1 w-full max-w-md bg-gray-700 border border-light-steel-blue rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-20 mt-1 w-full max-w-md bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       <button
                         onClick={() => {
                           setTempSelection(null);
                           setMultipleChoiceSelections({});
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors ${
-                          (tempSelection || selectedPartnership) === null ? 'bg-gray-600 text-electric-blue' : 'text-white'
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-200 transition-colors ${
+                          (tempSelection || selectedPartnership) === null ? 'bg-blue-50 text-electric-blue' : 'text-gray-900'
                         }`}
                       >
                         &lt;none selected&gt;
@@ -1393,8 +1393,8 @@ export default function OpenSourceTab({
                             setMultipleChoiceSelections({});
                             setIsDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2 hover:bg-gray-600 transition-colors ${
-                            (tempSelection || selectedPartnership) === partnership.name ? 'bg-gray-600 text-electric-blue' : 'text-white'
+                          className={`w-full text-left px-4 py-2 hover:bg-gray-200 transition-colors ${
+                            (tempSelection || selectedPartnership) === partnership.name ? 'bg-blue-50 text-electric-blue' : 'text-gray-900'
                           }`}
                         >
                           <span>{partnership.name}</span>
@@ -1423,8 +1423,8 @@ export default function OpenSourceTab({
                 if (mcBlocks.length === 0) return null;
 
                 return (
-                  <div className="space-y-4 mt-4 p-4 bg-gray-700/50 rounded-lg border border-light-steel-blue/30">
-                    <p className="text-white font-semibold text-sm mb-2 italic">This partnership has a multiple-choice option.  Please select <b>one</b> of the following options:</p>
+                  <div className="space-y-4 mt-4 p-4 bg-gray-100 rounded-lg border border-gray-200/30">
+                    <p className="text-gray-900 font-semibold text-sm mb-2 italic">This partnership has a multiple-choice option.  Please select <b>one</b> of the following options:</p>
                     {mcBlocks.map((block, idx) => (
                       <div key={idx} className="space-y-2">
                         <label className="block text-electric-blue text-xs uppercase tracking-wider font-bold">
@@ -1441,7 +1441,7 @@ export default function OpenSourceTab({
                               className={`text-left px-3 py-2 rounded border transition-colors text-sm ${
                                 multipleChoiceSelections[idx] === choice.type
                                   ? 'bg-electric-blue border-electric-blue text-white'
-                                  : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-light-steel-blue'
+                                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-200'
                               }`}
                             >
                               <div className="font-medium">{choice.label}</div>
@@ -1481,7 +1481,7 @@ export default function OpenSourceTab({
                       const mcBlocks = selectedP.criteria?.filter(c => c.type === 'multiple_choice') || [];
                       return mcBlocks.some((_, idx) => !multipleChoiceSelections[idx]);
                     })()
-                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      ? 'bg-white text-gray-400 cursor-not-allowed'
                       : 'bg-electric-blue hover:bg-blue-600 text-white'
                   }`}
                 >
@@ -1493,7 +1493,7 @@ export default function OpenSourceTab({
                   <button
                     onClick={() => setShowAbandonConfirmation(true)}
                     disabled={isAbandoning || isSaving}
-                    className="px-4 py-2 rounded-lg font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-lg font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     {isAbandoning ? 'Abandoning...' : 'Abandon Partnership'}
                   </button>
@@ -1507,9 +1507,9 @@ export default function OpenSourceTab({
           {showSwitchConfirmation && !readOnly && (
             <ModalOverlay onClose={() => setShowSwitchConfirmation(false)}>
               <ModalPanel size="md">
-                <h3 className="text-xl font-bold text-white mb-4">Switch Partnership</h3>
-                <p className="text-gray-300 mb-2">
-                  Are you sure you want to switch from <span className="font-semibold text-white">{selectedPartnership}</span> to <span className="font-semibold text-white">{tempSelection}</span>?
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Switch Partnership</h3>
+                <p className="text-gray-600 mb-2">
+                  Are you sure you want to switch from <span className="font-semibold text-gray-900">{selectedPartnership}</span> to <span className="font-semibold text-gray-900">{tempSelection}</span>?
                 </p>
                 <p className="text-red-400 text-sm mb-6 font-semibold">
                   ⚠️ This will delete ALL existing cards and reset all progress for this student. This action cannot be undone.
@@ -1517,14 +1517,14 @@ export default function OpenSourceTab({
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setShowSwitchConfirmation(false)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={performSaveSelection}
                     disabled={isSaving}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     {isSaving ? 'Switching...' : 'Yes, Switch Partnership'}
                   </button>
@@ -1537,9 +1537,9 @@ export default function OpenSourceTab({
           {showAbandonConfirmation && !readOnly && (
             <ModalOverlay onClose={() => setShowAbandonConfirmation(false)}>
               <ModalPanel size="md">
-                <h3 className="text-xl font-bold text-white mb-4">Abandon Partnership</h3>
-                <p className="text-gray-300 mb-2">
-                  Are you sure you want to abandon <span className="font-semibold text-white">{selectedPartnership}</span> for this student?
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Abandon Partnership</h3>
+                <p className="text-gray-600 mb-2">
+                  Are you sure you want to abandon <span className="font-semibold text-gray-900">{selectedPartnership}</span> for this student?
                 </p>
                 <p className="text-red-400 text-sm mb-6 font-semibold">
                   ⚠️ This will delete ALL existing cards and reset all progress. The student will have no active partnership. This action cannot be undone.
@@ -1547,14 +1547,14 @@ export default function OpenSourceTab({
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setShowAbandonConfirmation(false)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAbandonPartnership}
                     disabled={isAbandoning}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     {isAbandoning ? 'Abandoning...' : 'Yes, Abandon Partnership'}
                   </button>
@@ -1567,7 +1567,7 @@ export default function OpenSourceTab({
           {partnershipError && (
             <ModalOverlay onClose={() => setPartnershipError(null)}>
               <ModalPanel size="md">
-                <h3 className="text-xl font-bold text-white mb-4">Partnership Error</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Partnership Error</h3>
                 <p className="text-amber-400 text-sm mb-6 font-medium">
                   {partnershipError}
                 </p>
@@ -1587,7 +1587,7 @@ export default function OpenSourceTab({
           {showProofOfWorkWarning && setShowProofOfWorkWarning && (
             <ModalOverlay onClose={() => setShowProofOfWorkWarning(false)}>
               <ModalPanel size="md">
-                <h3 className="text-xl font-bold text-white mb-4">Proof of Work Required</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Proof of Work Required</h3>
                 <p className="text-amber-400 text-sm mb-6 font-semibold">
                   Please complete the proof of work fields first!
                 </p>
@@ -1608,9 +1608,9 @@ export default function OpenSourceTab({
             <ModalOverlay onClose={() => handleCompletePartnership(false)}>
               <ModalPanel size="md">
                 <div className="flex flex-col items-center text-center mb-6">
-                  <PartyPopper className="w-16 h-16 text-green-400 mb-4" />
-                  <h3 className="text-2xl font-bold text-white mb-2">Congratulations!</h3>
-                  <p className="text-gray-300">
+                  <PartyPopper className="w-16 h-16 text-green-600 mb-4" />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Congratulations!</h3>
+                  <p className="text-gray-600">
                     You&apos;ve completed all criteria for your current partnership. Great work!
                   </p>
                 </div>
@@ -1621,14 +1621,14 @@ export default function OpenSourceTab({
                   <button
                     onClick={() => handleCompletePartnership(false)}
                     disabled={isCompletingPartnership}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     {isCompletingPartnership ? 'Loading...' : 'No'}
                   </button>
                   <button
                     onClick={handleCompleteAndSelectNewPartnership}
                     disabled={isCompletingPartnership}
-                    className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     {isCompletingPartnership ? 'Loading...' : 'Yes'}
                   </button>
@@ -1643,8 +1643,8 @@ export default function OpenSourceTab({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleOpenSourceDragStart} onDragOver={handleOpenSourceDragOver} onDragEnd={handleOpenSourceDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-5 gap-3 min-w-[800px] items-stretch">
-              <div className="bg-gray-700 rounded-lg p-2 flex flex-col">
-                <h5 className="text-white font-semibold mb-4 flex items-center flex-shrink-0">
+              <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
+                <h5 className="text-gray-900 font-semibold mb-4 flex items-center flex-shrink-0">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                   Plan ({filteredOpenSourceColumns.plan.length})
                 </h5>
@@ -1686,8 +1686,8 @@ export default function OpenSourceTab({
                 </button>}
               </div>
 
-              <div className="bg-gray-700 rounded-lg p-2 flex flex-col">
-                <h5 className="text-white font-semibold mb-4 flex items-center flex-shrink-0">
+              <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
+                <h5 className="text-gray-900 font-semibold mb-4 flex items-center flex-shrink-0">
                   <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                   Baby Step ({filteredOpenSourceColumns.babyStep.length})
                 </h5>
@@ -1716,8 +1716,8 @@ export default function OpenSourceTab({
                 </div>
               </div>
 
-              <div className="bg-gray-700 rounded-lg p-2 flex flex-col">
-                <h5 className="text-white font-semibold mb-4 flex items-center flex-shrink-0">
+              <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
+                <h5 className="text-gray-900 font-semibold mb-4 flex items-center flex-shrink-0">
                   <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
                   In Progress ({filteredOpenSourceColumns.inProgress.length})
                 </h5>
@@ -1743,8 +1743,8 @@ export default function OpenSourceTab({
                 </div>
               </div>
 
-              <div className="bg-gray-700 rounded-lg p-2 flex flex-col">
-                <h5 className="text-white font-semibold mb-4 flex items-center flex-shrink-0">
+              <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
+                <h5 className="text-gray-900 font-semibold mb-4 flex items-center flex-shrink-0">
                   <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                   Done ({filteredOpenSourceColumns.done.length})
                 </h5>
@@ -1773,7 +1773,7 @@ export default function OpenSourceTab({
               {/* Progress Column - Partnership Requirements */}
               <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-lg p-4 border-2 border-electric-blue/30 shadow-lg flex flex-col h-full">
                 <div className="mb-4 pb-3 border-b border-electric-blue/20 flex-shrink-0">
-                  <h5 className="text-white font-bold text-lg flex items-center mb-1">
+                  <h5 className="text-gray-900 font-bold text-lg flex items-center mb-1">
                     <div className="w-4 h-4 bg-electric-blue rounded-full mr-2 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                     Partnership Progress
                   </h5>
@@ -1783,24 +1783,24 @@ export default function OpenSourceTab({
                   {/* Completed Partnerships - fancy flourished section with medal (at top for visibility) */}
                   {completedPartnerships.length > 0 && (
                     <div className="pb-4 border-b-2 border-amber-500/30">
-                      <div className="relative bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-amber-950/50 rounded-xl p-4 border-2 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.15)] overflow-hidden">
+                      <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 rounded-xl p-4 border-2 border-amber-300 shadow-sm overflow-hidden">
                         {/* Decorative flourish corners */}
-                        <div className="absolute top-0 left-0 w-12 h-12 border-l-2 border-t-2 border-amber-400/50 rounded-tl-lg" />
-                        <div className="absolute top-0 right-0 w-12 h-12 border-r-2 border-t-2 border-amber-400/50 rounded-tr-lg" />
-                        <div className="absolute bottom-0 left-0 w-12 h-12 border-l-2 border-b-2 border-amber-400/50 rounded-bl-lg" />
-                        <div className="absolute bottom-0 right-0 w-12 h-12 border-r-2 border-b-2 border-amber-400/50 rounded-br-lg" />
+                        <div className="absolute top-0 left-0 w-12 h-12 border-l-2 border-t-2 border-amber-400/60 rounded-tl-lg" />
+                        <div className="absolute top-0 right-0 w-12 h-12 border-r-2 border-t-2 border-amber-400/60 rounded-tr-lg" />
+                        <div className="absolute bottom-0 left-0 w-12 h-12 border-l-2 border-b-2 border-amber-400/60 rounded-bl-lg" />
+                        <div className="absolute bottom-0 right-0 w-12 h-12 border-r-2 border-b-2 border-amber-400/60 rounded-br-lg" />
                         {/* Subtle shimmer overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/5 via-transparent to-amber-500/5 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/20 via-transparent to-amber-300/20 pointer-events-none" />
                         <div className="relative flex flex-col items-center">
                           <div className="flex items-center gap-2 mb-3">
-                            <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-[0_0_12px_rgba(245,158,11,0.5)]">
-                              <Medal className="w-6 h-6 text-amber-100" strokeWidth={2.5} />
+                            <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm">
+                              <Medal className="w-6 h-6 text-white" strokeWidth={2.5} />
                             </div>
-                            <h6 className="text-sm font-bold text-amber-200 uppercase tracking-[0.2em]">
+                            <h6 className="text-sm font-bold text-amber-900 uppercase tracking-[0.2em]">
                               Completed Partnerships
                             </h6>
-                            <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-[0_0_12px_rgba(245,158,11,0.5)]">
-                              <Medal className="w-6 h-6 text-amber-100" strokeWidth={2.5} />
+                            <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm">
+                              <Medal className="w-6 h-6 text-white" strokeWidth={2.5} />
                             </div>
                           </div>
                           <ul className="w-full space-y-2">
@@ -1811,11 +1811,11 @@ export default function OpenSourceTab({
                                   onClick={() => setViewingCompletedPartnershipName?.(p.partnershipName)}
                                   className={`w-full flex items-center gap-2 py-2 px-3 rounded-lg border text-left font-medium text-sm transition-colors ${
                                     viewingCompletedPartnershipName === p.partnershipName
-                                      ? 'bg-amber-500/30 border-amber-400 text-amber-100 ring-2 ring-amber-400/50'
-                                      : 'bg-amber-950/30 border-amber-500/20 text-amber-100 hover:bg-amber-900/40 hover:border-amber-400/40'
+                                      ? 'bg-amber-200 border-amber-400 text-amber-900 ring-2 ring-amber-300'
+                                      : 'bg-white border-amber-200 text-amber-900 hover:bg-amber-50 hover:border-amber-300'
                                   }`}
                                 >
-                                  <span className="text-amber-400">✦</span>
+                                  <span className="text-amber-500">✦</span>
                                   <span className="flex-1 truncate">{p.partnershipName}</span>
                                 </button>
                               </li>
@@ -1858,18 +1858,18 @@ export default function OpenSourceTab({
                       const isComplete = completedCount >= requiredCount;
                       
                       return (
-                        <div key={`${criteria.type}-${index}`} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50 hover:border-electric-blue/50 transition-colors">
+                        <div key={`${criteria.type}-${index}`} className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-electric-blue/50 transition-colors">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-white truncate flex-1" title={displayName}>
+                            <span className="text-sm font-medium text-gray-900 truncate flex-1" title={displayName}>
                               {shortName}
                             </span>
                             <span className={`ml-2 flex-shrink-0 font-bold text-base ${
-                              isComplete ? 'text-green-400' : 'text-electric-blue'
+                              isComplete ? 'text-green-600' : 'text-electric-blue'
                             }`}>
                               {completedCount}/{requiredCount}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                             <div
                               className={`h-2.5 rounded-full transition-all ${
                                 isComplete 
@@ -1880,7 +1880,7 @@ export default function OpenSourceTab({
                             />
                           </div>
                           {isComplete && (
-                            <div className="mt-1.5 text-xs text-green-400 flex items-center">
+                            <div className="mt-1.5 text-xs text-green-600 flex items-center">
                               <span className="mr-1">✓</span>
                               Complete
                             </div>
@@ -1889,7 +1889,7 @@ export default function OpenSourceTab({
                       );
                     }).filter(Boolean)
                   ) : !viewingCompletedPartnershipName ? (
-                    <div className="text-center py-8 text-gray-400 bg-gray-800/30 rounded-lg border border-gray-700/50">
+                    <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="text-sm mb-1">
                         {selectedPartnership ? (
                           'No requirements defined'
@@ -1902,23 +1902,23 @@ export default function OpenSourceTab({
                   
                   {/* Overall criteria progress - hidden when viewing completed */}
                   {!viewingCompletedPartnershipName && activePartnershipCriteria && activePartnershipCriteria.length > 0 && totalCriteriaProgress.total > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-700/50">
-                      <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          <span className="text-xs font-medium text-gray-600 uppercase tracking-wider">
                             Overall Criteria Progress
                           </span>
                           <span className="text-sm font-semibold text-electric-blue">
                             {totalCriteriaProgress.completed}/{totalCriteriaProgress.total}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden relative">
+                        <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden relative">
                           <div
                             className="h-4 rounded-full transition-all bg-gradient-to-r from-electric-blue to-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
                             style={{ width: `${Math.min(100, (totalCriteriaProgress.completed / totalCriteriaProgress.total) * 100)}%` }}
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-white">
+                            <span className="text-xs font-semibold text-gray-900">
                               {Math.round((totalCriteriaProgress.completed / totalCriteriaProgress.total) * 100)}%
                             </span>
                           </div>
@@ -1937,8 +1937,8 @@ export default function OpenSourceTab({
               const card = openSourceColumns[col].find(c => String(c.id) === activeOpenSourceId);
               if (!card) return null;
               return (
-                <div className="bg-gray-600 border border-light-steel-blue rounded-lg p-3" style={{ touchAction: 'none' }}>
-                  <div className="text-white font-medium mb-1">{card.metric || 'Untitled'}</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                  <div className="text-gray-900 font-medium mb-1">{card.metric || 'Untitled'}</div>
                   <div className="text-gray-400 text-xs mb-1">Partnership: {card.partnershipName}</div>
                 </div>
               );

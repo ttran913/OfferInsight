@@ -87,11 +87,11 @@ function SortableAppCard(props: {
       {...(props.readOnly ? {} : attributes)} 
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-gray-600 border border-light-steel-blue rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="text-white font-medium mb-1">{props.card.company}</div>
+          <div className="text-gray-900 font-medium mb-1">{props.card.company}</div>
           {props.card.hiringManager && (
             <div className="text-gray-400 text-xs mb-1">HM: {props.card.hiringManager}</div>
           )}
@@ -102,7 +102,7 @@ function SortableAppCard(props: {
         {!props.readOnly && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handleDelete}
-            className="p-1 hover:bg-red-600 rounded text-gray-300 hover:text-white"
+            className="p-1 hover:bg-red-600 rounded text-gray-500 hover:text-white"
             title="Delete"
           >
             <Trash2 size={14} />
@@ -110,7 +110,7 @@ function SortableAppCard(props: {
         </div>}
       </div>
       {(props.card.msgToManager || props.card.msgToRecruiter) && (
-        <div className="text-green-400 text-xs mb-2 flex flex-col">
+        <div className="text-green-600 text-xs mb-2 flex flex-col">
           {props.card.msgToManager && <span>✓ Messaged HM</span>}
           {props.card.msgToRecruiter && <span>✓ Messaged Recruiter</span>}
         </div>
@@ -148,7 +148,7 @@ function HelperMessage({ status }: { status?: ApplicationStatus | null }) {
         <button
           type="button"
           onClick={() => setIsVideoOpen(true)}
-          className="inline-flex items-center gap-2 text-white font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
+          className="inline-flex items-center gap-2 text-gray-900 font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
         >
           <PlayCircle className="w-5 h-5 text-electric-blue flex-shrink-0" />
           <span>Helper video: How to {getMessage()}</span>
@@ -276,12 +276,12 @@ function ApplicationModal({
     <ModalOverlay onClose={onClose}>
       <ModalPanel size="2xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-gray-900">
             {application ? 'Edit Application' : 'Create New Application'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
           >
             <X size={24} />
           </button>
@@ -289,24 +289,24 @@ function ApplicationModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-white font-semibold mb-2">Company *</label>
+            <label className="block text-gray-900 font-semibold mb-2">Company *</label>
             <input
               type="text"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
               placeholder="Enter company name"
               required
             />
           </div>
 
           <div>
-              <label className="block text-white font-semibold mb-2">Link to Job Posting</label>
+              <label className="block text-gray-900 font-semibold mb-2">Link to Job Posting</label>
               <input
                 type="text"
                 value={formData.linkToJobPosting}
                 onChange={(e) => setFormData({ ...formData, linkToJobPosting: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
                 placeholder="example.com/job or https://example.com/job"
               />
           </div>
@@ -321,23 +321,23 @@ function ApplicationModal({
             <div className="relative group py-4">
               <div className="blur-sm space-y-4">
                 <div className="flex items-center gap-4">
-                  <label className="font-semibold whitespace-nowrap text-white">Hiring Manager:</label>
+                  <label className="font-semibold whitespace-nowrap text-gray-900">Hiring Manager:</label>
                   <input
                     type="text"
                     value={formData.hiringManager}
                     onChange={(e) => setFormData({ ...formData, hiringManager: e.target.value })}
                     disabled={true}
-                    className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                    className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                     placeholder="Hiring manager name"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-2 text-white">Message to Hiring Manager</label>
+                  <label className="block font-semibold mb-2 text-gray-900">Message to Hiring Manager</label>
                   <textarea
                     value={formData.msgToManager}
                     onChange={(e) => setFormData({ ...formData, msgToManager: e.target.value })}
                     disabled={true}
-                    className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-700 border-light-steel-blue text-white"
+                    className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
                     placeholder="Enter message sent to hiring manager"
                   />
                 </div>
@@ -352,23 +352,23 @@ function ApplicationModal({
                 <div className="relative group py-4">
                   <div className="blur-sm space-y-4">
                     <div className="flex items-center gap-4">
-                      <label className="font-semibold whitespace-nowrap text-white">Hiring Manager:</label>
+                      <label className="font-semibold whitespace-nowrap text-gray-900">Hiring Manager:</label>
                       <input
                         type="text"
                         value={formData.hiringManager}
                         onChange={(e) => setFormData({ ...formData, hiringManager: e.target.value })}
                         disabled={true}
-                        className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                        className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                         placeholder="Hiring manager name"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-2 text-white">Message to Hiring Manager</label>
+                      <label className="block font-semibold mb-2 text-gray-900">Message to Hiring Manager</label>
                       <textarea
                         value={formData.msgToManager}
                         onChange={(e) => setFormData({ ...formData, msgToManager: e.target.value })}
                         disabled={true}
-                        className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-700 border-light-steel-blue text-white"
+                        className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
                         placeholder="Enter message sent to hiring manager"
                       />
                     </div>
@@ -379,21 +379,21 @@ function ApplicationModal({
                 // Status 'messageHiringManager' or beyond: Show Hiring Manager unblurred
                 <div className={application?.status === 'messageHiringManager' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
                   <div className="flex items-center gap-4">
-                    <label className="font-semibold whitespace-nowrap text-white">Hiring Manager:</label>
+                    <label className="font-semibold whitespace-nowrap text-gray-900">Hiring Manager:</label>
                     <input
                       type="text"
                       value={formData.hiringManager}
                       onChange={(e) => setFormData({ ...formData, hiringManager: e.target.value })}
-                      className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                      className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                       placeholder="Hiring manager name"
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold mb-2 text-white">Message to Hiring Manager</label>
+                    <label className="block font-semibold mb-2 text-gray-900">Message to Hiring Manager</label>
                     <textarea
                       value={formData.msgToManager}
                       onChange={(e) => setFormData({ ...formData, msgToManager: e.target.value })}
-                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-700 border-light-steel-blue text-white"
+                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
                       placeholder="Enter message sent to hiring manager"
                     />
                   </div>
@@ -413,23 +413,23 @@ function ApplicationModal({
                 <div className="relative group py-4">
                   <div className="blur-sm space-y-4">
                     <div className="flex items-center gap-4">
-                      <label className="font-semibold whitespace-nowrap text-white">Recruiter:</label>
+                      <label className="font-semibold whitespace-nowrap text-gray-900">Recruiter:</label>
                       <input
                         type="text"
                         value={formData.recruiter}
                         onChange={(e) => setFormData({ ...formData, recruiter: e.target.value })}
                         disabled={true}
-                        className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                        className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                         placeholder="Recruiter name"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-2 text-white">Message to Recruiter</label>
+                      <label className="block font-semibold mb-2 text-gray-900">Message to Recruiter</label>
                       <textarea
                         value={formData.msgToRecruiter}
                         onChange={(e) => setFormData({ ...formData, msgToRecruiter: e.target.value })}
                         disabled={true}
-                        className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-700 border-light-steel-blue text-white"
+                        className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
                         placeholder="Enter message sent to recruiter"
                       />
                     </div>
@@ -440,21 +440,21 @@ function ApplicationModal({
                 // Status 'messageRecruiter' or beyond: Show Recruiter unblurred
                 <div className={application?.status === 'messageRecruiter' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
                   <div className="flex items-center gap-4">
-                    <label className="font-semibold whitespace-nowrap text-white">Recruiter:</label>
+                    <label className="font-semibold whitespace-nowrap text-gray-900">Recruiter:</label>
                     <input
                       type="text"
                       value={formData.recruiter}
                       onChange={(e) => setFormData({ ...formData, recruiter: e.target.value })}
-                      className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                      className="flex-1 border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                       placeholder="Recruiter name"
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold mb-2 text-white">Message to Recruiter</label>
+                    <label className="block font-semibold mb-2 text-gray-900">Message to Recruiter</label>
                     <textarea
                       value={formData.msgToRecruiter}
                       onChange={(e) => setFormData({ ...formData, msgToRecruiter: e.target.value })}
-                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-700 border-light-steel-blue text-white"
+                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
                       placeholder="Enter message sent to recruiter"
                     />
                   </div>
@@ -472,21 +472,21 @@ function ApplicationModal({
           {ENABLE_DATE_FIELD_EDITING && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Date Created (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Created (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateCreated}
                   onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2">Date Modified (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Modified (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateModified}
                   onChange={(e) => setFormData({ ...formData, dateModified: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
             </div>
@@ -500,7 +500,7 @@ function ApplicationModal({
           )}
 
           {application && (
-            <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+            <div className="text-xs text-gray-400 pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span>Created: {formatModalDate(application.dateCreated)}</span>
                 <span>Modified: {formatModalDate(application.dateModified)}</span>
@@ -525,7 +525,7 @@ function ApplicationModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -563,17 +563,17 @@ export default function ApplicationsTab({
   readOnly = false,
 }: ApplicationsTabProps & { isDraggingAppRef: React.MutableRefObject<boolean> }) {
   return (
-    <section className="bg-gray-800 border border-light-steel-blue rounded-lg p-4 sm:p-6">
+    <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4 mb-6">
-        <h4 className="text-xl font-bold text-white">High Quality Applications</h4>
-        <div className="flex items-center gap-2 text-sm text-gray-300">
+        <h4 className="text-xl font-bold text-gray-900">High Quality Applications</h4>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>Show:</span>
           <button
             onClick={() => setApplicationsFilter('modifiedThisMonth')}
             className={`px-3 py-1 rounded-md border transition-colors ${
               applicationsFilter === 'modifiedThisMonth'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             This Month
@@ -583,7 +583,7 @@ export default function ApplicationsTab({
             className={`px-3 py-1 rounded-md border transition-colors ${
               applicationsFilter === 'allTime'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             All Time
@@ -605,8 +605,8 @@ export default function ApplicationsTab({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleApplicationsDragStart} onDragOver={handleApplicationsDragOver} onDragEnd={handleApplicationsDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-5 gap-3 min-w-[700px]">
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                 Apply ({filteredAppColumns.apply.length})
               </h5>
@@ -640,8 +640,8 @@ export default function ApplicationsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
                 Message Hiring Manager ({filteredAppColumns.messageHiringManager.length})
               </h5>
@@ -670,8 +670,8 @@ export default function ApplicationsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                 Message Recruiter ({filteredAppColumns.messageRecruiter.length})
               </h5>
@@ -699,8 +699,8 @@ export default function ApplicationsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                 Follow Up ({filteredAppColumns.followUp.length})
               </h5>
@@ -725,8 +725,8 @@ export default function ApplicationsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-pink-500 rounded-full mr-2"></div>
                 Interview ({filteredAppColumns.interview.length})
               </h5>
@@ -759,8 +759,8 @@ export default function ApplicationsTab({
               const card = appColumns[col].find(c => String(c.id) === activeAppId);
               if (!card) return null;
               return (
-                <div className="bg-gray-600 border border-light-steel-blue rounded-lg p-3" style={{ touchAction: 'none' }}>
-                  <div className="text-white font-medium mb-1">{card.company}</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                  <div className="text-gray-900 font-medium mb-1">{card.company}</div>
                   {card.hiringManager && (
                     <div className="text-gray-400 text-xs mb-1">HM: {card.hiringManager}</div>
                   )}

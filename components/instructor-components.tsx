@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardNavButton } from "./dashboard-nav-button";
-import { useNavbarTheme } from "./navbar-shell";
 import { Settings } from "lucide-react";
 
 // Instructor Authenticated Button - shown when instructor is signed in
@@ -17,7 +16,6 @@ export function InstructorAuthenticatedButton() {
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const isLightNavbar = useNavbarTheme() === 'light';
 
   useEffect(() => {
     // Fetch instructor data
@@ -78,11 +76,7 @@ export function InstructorAuthenticatedButton() {
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-            className={`flex items-center gap-2 rounded-lg p-2 transition-colors ${
-              isLightNavbar
-                ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-            }`}
+            className="flex items-center gap-2 rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
             aria-label="Settings"
           >
             <Settings className="w-5 h-5" />
@@ -90,12 +84,12 @@ export function InstructorAuthenticatedButton() {
           </button>
           
           {showSettingsDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-light-steel-blue rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg z-50">
               <div className="py-2">
                 <div className="px-4 py-2">
                   <button
                     onClick={handleSignOut}
-                    className="w-full text-left text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    className="w-full text-left text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900"
                   >
                     Sign Out
                   </button>
@@ -108,7 +102,7 @@ export function InstructorAuthenticatedButton() {
       <div className="flex items-center gap-2">
         {!loading && (
           <>
-            <span className={`hidden text-sm md:inline ${isLightNavbar ? 'text-gray-900' : 'text-white'}`}>
+            <span className="hidden text-sm text-gray-900 md:inline">
               {instructorData?.username || 'Instructor'}
             </span>
             <img 

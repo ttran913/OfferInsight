@@ -57,9 +57,9 @@ type OverviewTabProps = {
 
 function activityBadgeClass(eventType: OpenSourceActivityItem['eventType']): string {
   if (eventType === 'field_edit') {
-    return 'bg-amber-900/60 text-amber-200 border-amber-700/80';
+    return 'bg-amber-100 text-amber-800 border-amber-300';
   }
-  return 'bg-blue-900/60 text-blue-200 border-blue-700/80';
+  return 'bg-blue-100 text-blue-800 border-blue-300';
 }
 
 function activityBadgeLabel(item: OpenSourceActivityItem): string {
@@ -163,22 +163,22 @@ export default function OverviewTab({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div
           onClick={() => handleHabitCardClick('events')}
-          className="bg-gray-800 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
+          className="bg-white border border-gray-200 rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Users className="text-electric-blue text-xl" />
-              <h4 className="text-white font-semibold">Events</h4>
+              <h4 className="text-gray-900 font-semibold">Events</h4>
             </div>
             <div className={`w-3 h-3 ${eventsMetrics.statusDotClass} rounded-full`}></div>
           </div>
           <div className="flex items-end justify-between mb-1">
             <div>
-              <div className="text-3xl font-bold text-white">{eventsMetrics.totalCount ?? eventsMetrics.count}</div>
+              <div className="text-3xl font-bold text-gray-900">{eventsMetrics.totalCount ?? eventsMetrics.count}</div>
               <div className="text-sm text-gray-400">This month</div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-300">{eventsAllTimeCount}</div>
+              <div className="text-2xl font-bold text-gray-600">{eventsAllTimeCount}</div>
               <div className="text-xs text-gray-500">All Time</div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function OverviewTab({
               <span className={eventsMetrics.statusTextColor}>{eventsMetrics.statusText}</span>
             )}
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+          <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
             <div
               className={`${eventsMetrics.statusBarClass} h-2 rounded-full`}
               style={{ width: `${eventsMetrics.percentage}%` }}
@@ -198,17 +198,17 @@ export default function OverviewTab({
 
         <div
           onClick={() => handleHabitCardClick('opensource')}
-          className="bg-gray-800 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
+          className="bg-white border border-gray-200 rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <GitBranch className="text-electric-blue text-xl" />
-              <h4 className="text-white font-semibold">Open Source</h4>
+              <h4 className="text-gray-900 font-semibold">Open Source</h4>
             </div>
             <div className={`w-3 h-3 ${osDot} rounded-full`}></div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-gray-900">
               {completedCriteria}/{totalCriteria || 0}
             </div>
             <div className="text-sm text-gray-400 mt-1">Criteria</div>
@@ -217,22 +217,22 @@ export default function OverviewTab({
 
         <div
           onClick={() => handleHabitCardClick('applications')}
-          className="bg-gray-800 border border-light-steel-blue rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
+          className="bg-white border border-gray-200 rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <FileText className="text-electric-blue text-xl" />
-              <h4 className="text-white font-semibold">Applications</h4>
+              <h4 className="text-gray-900 font-semibold">Applications</h4>
             </div>
             <div className={`w-3 h-3 ${applicationsMetrics.statusDotClass} rounded-full`}></div>
           </div>
           <div className="flex items-end justify-between mb-1">
             <div>
-              <div className="text-3xl font-bold text-white">{applicationsMetrics.count}</div>
+              <div className="text-3xl font-bold text-gray-900">{applicationsMetrics.count}</div>
               <div className="text-sm text-gray-400">This month</div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-300">{applicationsAllTimeCount}</div>
+              <div className="text-2xl font-bold text-gray-600">{applicationsAllTimeCount}</div>
               <div className="text-xs text-gray-500">All Time</div>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function OverviewTab({
               <span className={applicationsMetrics.statusTextColor}>{applicationsMetrics.statusText}</span>
             )}
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+          <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
             <div
               className={`${applicationsMetrics.statusBarClass} h-2 rounded-full`}
               style={{ width: `${applicationsMetrics.percentage}%` }}
@@ -250,11 +250,11 @@ export default function OverviewTab({
           </div>
         </div>
 
-        <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Code className="text-electric-blue text-xl" />
-              <h4 className="text-white font-semibold">LeetCode</h4>
+              <h4 className="text-gray-900 font-semibold">LeetCode</h4>
             </div>
             {leetCodeStats.username && (
               <a
@@ -275,19 +275,19 @@ export default function OverviewTab({
             <div className="space-y-2">
               <div className="flex items-end justify-between">
                 <span className="text-sm text-gray-400">Solved</span>
-                <span className="text-2xl font-bold text-white">{leetCodeStats.solved}</span>
+                <span className="text-2xl font-bold text-gray-900">{leetCodeStats.solved}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-cyan-300">Easy</span>
-                <span className="text-white">{leetCodeStats.easy}</span>
+                <span className="text-gray-900">{leetCodeStats.easy}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-yellow-300">Medium</span>
-                <span className="text-white">{leetCodeStats.medium}</span>
+                <span className="text-gray-900">{leetCodeStats.medium}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-red-300">Hard</span>
-                <span className="text-white">{leetCodeStats.hard}</span>
+                <span className="text-gray-900">{leetCodeStats.hard}</span>
               </div>
             </div>
           )}
@@ -295,9 +295,9 @@ export default function OverviewTab({
       </div>
 
       {instructorViewUserId && (
-        <div className="mt-8 bg-gray-800 border border-light-steel-blue rounded-lg p-6">
+        <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
           <div className="mb-4">
-            <h4 className="text-white font-semibold text-lg">Open Source activity</h4>
+            <h4 className="text-gray-900 font-semibold text-lg">Open Source activity</h4>
             <p className="text-sm text-gray-400 mt-1">Last 3 months</p>
           </div>
 
@@ -322,10 +322,10 @@ export default function OverviewTab({
                 return (
                   <li
                     key={item.id}
-                    className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 border-b border-gray-700/80 pb-3 last:border-0 last:pb-0"
+                    className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 border-b border-gray-200/80 pb-3 last:border-0 last:pb-0"
                   >
                     <div className="min-w-0">
-                      <div className="text-white text-sm font-medium">{item.cardLabel}</div>
+                      <div className="text-gray-900 text-sm font-medium">{item.cardLabel}</div>
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         <span
                           className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${activityBadgeClass(item.eventType)}`}
@@ -333,13 +333,13 @@ export default function OverviewTab({
                           {activityBadgeLabel(item)}
                         </span>
                         {item.eventType === 'column_move' && item.fromStatusLabel && item.toStatusLabel ? (
-                          <span className="text-sm text-gray-300">
+                          <span className="text-sm text-gray-600">
                             <span className="text-gray-400">{item.fromStatusLabel}</span>
                             <span className="mx-2 text-electric-blue">→</span>
                             <span>{item.toStatusLabel}</span>
                           </span>
                         ) : item.fieldLabel ? (
-                          <span className="text-sm text-gray-300 break-words" title={fieldFullText}>
+                          <span className="text-sm text-gray-600 break-words" title={fieldFullText}>
                             <span className="text-gray-400">&quot;{item.fieldLabel}&quot;:</span>{' '}
                             {truncateForDisplay(fieldDisplay ?? '')}
                           </span>

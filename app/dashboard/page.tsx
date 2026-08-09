@@ -1338,27 +1338,27 @@ const hasSeededMockDataRef = useRef(false);
     if (goal > 0 && percentage >= 100) {
       return {
         dotClass: 'bg-purple-500',
-        textClass: 'text-purple-400',
+        textClass: 'text-purple-600',
         barClass: 'bg-purple-500',
       };
     }
     if (count <= 0) {
       return {
         dotClass: 'bg-red-500',
-        textClass: 'text-red-400',
+        textClass: 'text-red-600',
         barClass: 'bg-red-500',
       };
     }
     if (count === 1) {
       return {
         dotClass: 'bg-yellow-500',
-        textClass: 'text-yellow-400',
+        textClass: 'text-yellow-600',
         barClass: 'bg-yellow-500',
       };
     }
     return {
       dotClass: 'bg-green-500',
-      textClass: 'text-green-400',
+      textClass: 'text-green-600',
       barClass: 'bg-green-500',
     };
   }, []);
@@ -1590,18 +1590,18 @@ const hasSeededMockDataRef = useRef(false);
 
 
   return (
-    <div className="bg-gradient-to-br from-midnight-blue to-gray-900 text-white min-h-[calc(100dvh-var(--navbar-height))] w-full">
+    <div className="bg-white text-gray-900 min-h-[calc(100dvh-var(--navbar-height))] w-full">
       {/* Instructor View Banner */}
       {isInstructor && userIdParam && viewedUserName && (
-        <div className="bg-gradient-to-br from-midnight-blue to-gray-900 border-b border-light-steel-blue/40 w-full">
+        <div className="border-b border-blue-100 bg-blue-50 w-full">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="text-electric-blue font-semibold">
                   Viewing dashboard as instructor
                 </div>
-                <div className="text-gray-300">
-                  User: <span className="text-white font-medium">{viewedUserName}</span>
+                <div className="text-gray-600">
+                  User: <span className="text-gray-900 font-medium">{viewedUserName}</span>
                 </div>
               </div>
               <Link
@@ -1620,54 +1620,54 @@ const hasSeededMockDataRef = useRef(false);
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Main Navigation Tabs */}
         <section className="mb-8">
-          <div className="flex border-b border-light-steel-blue bg-gray-800 rounded-t-lg overflow-x-auto">
+          <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-x-auto">
             <div className="flex min-w-full">
               <button 
                 onClick={() => handleTabClick('overview')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-light-steel-blue transition-colors whitespace-nowrap ${
+                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'overview' 
                     ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <Gauge className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Overview
               </button>
               <button 
                 onClick={() => handleTabClick('opensource')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-light-steel-blue transition-colors whitespace-nowrap ${
+                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'opensource' 
                     ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <GitBranch className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Open Source
               </button>
               <button 
                 onClick={() => handleTabClick('applications')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-light-steel-blue transition-colors whitespace-nowrap ${
+                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'applications' 
                     ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <FileText className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Applications
               </button>
               <button 
                 onClick={() => handleTabClick('interviews')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-light-steel-blue transition-colors whitespace-nowrap ${
+                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'interviews' 
                     ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <MessageCircle className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Coffee Chats
               </button>
               <button 
                 onClick={() => handleTabClick('events')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-light-steel-blue transition-colors whitespace-nowrap ${
+                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'events' 
                     ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <Users className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Events
