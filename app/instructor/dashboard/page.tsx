@@ -233,7 +233,7 @@ export default function InstructorDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gray-900 text-white">
+      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900">
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-6">Instructor Dashboard</h1>
           <div className="text-gray-400">Loading users...</div>
@@ -243,7 +243,7 @@ export default function InstructorDashboard() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gray-900 text-white">
+    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Instructor Dashboard</h1>
         
@@ -256,7 +256,7 @@ export default function InstructorDashboard() {
               placeholder="Search by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
             />
           </div>
 
@@ -268,7 +268,7 @@ export default function InstructorDashboard() {
               placeholder="Min issues"
               value={minIssuesFilter}
               onChange={(e) => setMinIssuesFilter(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               aria-label="Minimum issues completed"
             />
           </div>
@@ -278,7 +278,7 @@ export default function InstructorDashboard() {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'name-asc' | 'name-desc' | 'issues-high' | 'issues-low')}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
             >
               <option value="name-asc">Sort: A-Z</option>
               <option value="name-desc">Sort: Z-A</option>
@@ -297,7 +297,7 @@ export default function InstructorDashboard() {
               const url = `/api/instructor/students/export${params.toString() ? `?${params.toString()}` : ''}`;
               window.open(url, '_blank', 'noopener,noreferrer');
             }}
-            className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-semibold hover:bg-gray-600 hover:border-electric-blue focus:outline-none focus:ring-1 focus:ring-electric-blue transition-colors whitespace-nowrap"
+            className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 font-semibold hover:bg-gray-200 hover:border-electric-blue focus:outline-none focus:ring-1 focus:ring-electric-blue transition-colors whitespace-nowrap"
           >
             Export CSV
           </button>
@@ -316,20 +316,20 @@ export default function InstructorDashboard() {
           {filteredAndSortedUsers.map((user) => (
             <div
               key={user.id}
-              className="bg-gray-600 border border-light-steel-blue rounded-lg px-6 py-4 hover:border-electric-blue transition-colors w-full"
+              className="bg-white border border-gray-200 rounded-lg px-6 py-4 hover:border-electric-blue transition-colors w-full"
             >
               <div className="flex gap-4 xl:gap-6 items-start">
                 <div className="w-[140px] min-w-[140px] shrink-0">
                   <Link
                     href={`/dashboard?userId=${user.id}`}
                     title={user.name}
-                    className="text-white font-medium text-lg hover:text-electric-blue transition-colors block truncate"
+                    className="text-gray-900 font-medium text-lg hover:text-electric-blue transition-colors block truncate"
                   >
                     {user.name}
                   </Link>
                   {user.removedFromResumeBook && (
                     <div className="mt-1 flex flex-col items-start gap-2">
-                      <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-red-900/50 text-red-400 border border-red-500 rounded">
+                      <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-red-50 text-red-700 border border-red-300 rounded">
                         REMOVED
                       </span>
                       {canMutateUserData && (
@@ -337,7 +337,7 @@ export default function InstructorDashboard() {
                           type="button"
                           onClick={() => handleReinstateUser(user.id)}
                           disabled={reinstatingUserId === user.id}
-                          className="px-2.5 py-1 text-xs font-semibold rounded border border-green-500 text-green-300 bg-green-900/30 hover:bg-green-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-2.5 py-1 text-xs font-semibold rounded border border-green-600 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {reinstatingUserId === user.id ? 'Reinstating...' : 'Reinstate'}
                         </button>
@@ -347,8 +347,8 @@ export default function InstructorDashboard() {
                   {!user.removedFromResumeBook && user.inactivityWarningCount > 0 && (
                     <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded border ${
                       user.inactivityWarningCount === 2
-                        ? 'bg-orange-900/50 text-orange-400 border-orange-500'
-                        : 'bg-yellow-900/50 text-yellow-400 border-yellow-500'
+                        ? 'bg-orange-50 text-orange-700 border-orange-300'
+                        : 'bg-yellow-50 text-yellow-700 border-yellow-300'
                     }`}>
                       Warning {user.inactivityWarningCount}/2
                     </span>
@@ -363,7 +363,7 @@ export default function InstructorDashboard() {
                       user.activeStatus === 1 ? 'bg-yellow-500' :
                       'bg-red-500'
                     }`} />
-                    <span className="text-gray-300 text-sm font-medium whitespace-nowrap">Active</span>
+                    <span className="text-gray-600 text-sm font-medium whitespace-nowrap">Active</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className={`w-4 h-4 rounded-full flex-shrink-0 ${
@@ -371,22 +371,22 @@ export default function InstructorDashboard() {
                       user.progressStatus === 1 ? 'bg-yellow-500' :
                       'bg-red-500'
                     }`} />
-                    <span className="text-gray-300 text-sm font-medium whitespace-nowrap">Progress</span>
+                    <span className="text-gray-600 text-sm font-medium whitespace-nowrap">Progress</span>
                   </div>
                 </div>
 
                 <div className="w-[220px] min-w-[220px] shrink-0">
-                  <div className="text-gray-300 text-sm font-medium mb-1">Open Source</div>
+                  <div className="text-gray-600 text-sm font-medium mb-1">Open Source</div>
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
                     <span>
                       Issues Completed:{' '}
-                      <span className="text-white font-medium">{user.openSource.issuesCompleted}</span>
+                      <span className="text-gray-900 font-medium">{user.openSource.issuesCompleted}</span>
                     </span>
                     <span>
                       Partnerships Completed:{' '}
-                      <span className="text-white font-medium">{user.openSource.partnershipsCompleted ?? 0}</span>
+                      <span className="text-gray-900 font-medium">{user.openSource.partnershipsCompleted ?? 0}</span>
                     </span>
-                    <div className="relative h-8 w-full bg-gray-700 rounded-full overflow-hidden">
+                    <div className="relative h-8 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-electric-blue rounded-full"
                         style={{
@@ -398,7 +398,7 @@ export default function InstructorDashboard() {
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="text-sm text-gray-100 font-medium">
                           Criteria:{' '}
-                          <span className="text-white font-semibold">
+                          <span className="text-gray-900 font-semibold">
                             {user.openSource.completedCount}/{user.openSource.totalCount}
                           </span>
                         </span>
@@ -408,33 +408,33 @@ export default function InstructorDashboard() {
                 </div>
 
                 <div className="w-[165px] min-w-[165px] shrink-0">
-                  <div className="text-gray-300 text-sm font-medium mb-1">Applications</div>
+                  <div className="text-gray-600 text-sm font-medium mb-1">Applications</div>
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
-                    <span>Last Month: <span className="text-white font-medium">{user.applications.lastMonth}</span></span>
-                    <span>All Time: <span className="text-white font-medium">{user.applications.allTime}</span></span>
+                    <span>Last Month: <span className="text-gray-900 font-medium">{user.applications.lastMonth}</span></span>
+                    <span>All Time: <span className="text-gray-900 font-medium">{user.applications.allTime}</span></span>
                   </div>
                 </div>
 
                 <div className="w-[165px] min-w-[165px] shrink-0">
-                  <div className="text-gray-300 text-sm font-medium mb-1">Events</div>
+                  <div className="text-gray-600 text-sm font-medium mb-1">Events</div>
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
-                    <span>Last Month: <span className="text-white font-medium">{user.events.lastMonth}</span></span>
-                    <span>All Time: <span className="text-white font-medium">{user.events.allTime}</span></span>
+                    <span>Last Month: <span className="text-gray-900 font-medium">{user.events.lastMonth}</span></span>
+                    <span>All Time: <span className="text-gray-900 font-medium">{user.events.allTime}</span></span>
                   </div>
                 </div>
 
                 <div className="w-[165px] min-w-[165px] shrink-0">
-                  <div className="text-gray-300 text-sm font-medium mb-1">Coffee Chats</div>
+                  <div className="text-gray-600 text-sm font-medium mb-1">Coffee Chats</div>
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
-                    <span>Last Month: <span className="text-white font-medium">{user.coffeeChats.lastMonth}</span></span>
-                    <span>All Time: <span className="text-white font-medium">{user.coffeeChats.allTime}</span></span>
+                    <span>Last Month: <span className="text-gray-900 font-medium">{user.coffeeChats.lastMonth}</span></span>
+                    <span>All Time: <span className="text-gray-900 font-medium">{user.coffeeChats.allTime}</span></span>
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg w-fit border min-w-[120px] ${
                       user.referralCount > 0
-                        ? 'bg-green-900/30 border-green-500'
-                        : 'bg-gray-800/50 border-gray-600'
+                        ? 'bg-green-50 border-green-400'
+                        : 'bg-gray-50 border-gray-300'
                     }`}>
                       <span className={`font-bold text-sm whitespace-nowrap ${
-                        user.referralCount > 0 ? 'text-green-400' : 'text-gray-500'
+                        user.referralCount > 0 ? 'text-green-600' : 'text-gray-500'
                       }`}>
                         🎉 {user.referralCount} Referral{user.referralCount !== 1 ? 's' : ''}
                       </span>

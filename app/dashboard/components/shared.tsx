@@ -45,7 +45,7 @@ export function ModalPanel({
 
   return (
     <div
-      className={`w-full rounded-lg border border-light-steel-blue bg-gray-800 p-4 sm:p-6 ${MODAL_PANEL_MAX_WIDTH[size]} ${
+      className={`w-full rounded-lg border border-gray-200 bg-white p-4 sm:p-6 ${MODAL_PANEL_MAX_WIDTH[size]} ${
         isScrollable ? 'max-h-[calc(100dvh-var(--navbar-height)-2rem)] overflow-y-auto' : ''
       }`}
       onClick={(e) => e.stopPropagation()}
@@ -66,12 +66,12 @@ export function DeleteModal({
   return (
     <ModalOverlay onClose={onCancel}>
       <ModalPanel size="md">
-        <h3 className="text-xl font-bold text-white mb-4">Delete Item</h3>
-        <p className="text-gray-300 mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Item</h3>
+        <p className="text-gray-600 mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
           >
             Cancel
           </button>
@@ -204,9 +204,9 @@ export function normalizeUrl(url: string | null | undefined): string | null {
 // Lock Tooltip Component - centered in unified blur area
 export function LockTooltip() {
   return (
-    <div className="flex md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:z-10 items-center gap-2 bg-gray-900 border border-light-steel-blue rounded-lg px-3 py-2 shadow-lg whitespace-nowrap justify-center md:pointer-events-none">
+    <div className="flex md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:z-10 items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-lg whitespace-nowrap justify-center md:pointer-events-none">
       <Lock className="w-4 h-4 text-electric-blue flex-shrink-0" />
-      <span className="text-sm text-white">Drag card to next column to unlock next step</span>
+      <span className="text-sm text-gray-900">Drag card to next column to unlock next step</span>
     </div>
   );
 }
@@ -305,7 +305,7 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
   const shouldShowLock = isEmpty && !props.onAddCard && showLock && !props.hasCardsToRight;
   
   return (
-    <div ref={setNodeRef} className={`space-y-3 min-h-64 relative ${isOver ? 'outline outline-2 outline-electric-blue/60 outline-offset-2 bg-gray-650/40' : ''}`}>
+    <div ref={setNodeRef} className={`space-y-3 min-h-64 relative ${isOver ? 'outline outline-2 outline-electric-blue/60 outline-offset-2 bg-gray-50/40' : ''}`}>
       {props.children}
       {props.onAddCard && (
         <button
@@ -313,7 +313,7 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
             e.stopPropagation();
             props.onAddCard?.();
           }}
-          className="w-full mt-2 py-2 px-3 text-sm text-gray-400 hover:text-white hover:bg-gray-600 rounded-lg border border-dashed border-gray-600 hover:border-electric-blue transition-colors flex items-center justify-center gap-2"
+          className="w-full mt-2 py-2 px-3 text-sm text-gray-400 hover:text-gray-900 hover:bg-gray-200 rounded-lg border border-dashed border-gray-300 hover:border-electric-blue transition-colors flex items-center justify-center gap-2"
         >
           <Plus size={16} />
           Add Card
@@ -330,13 +330,13 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
             <Lock className="w-12 h-12 text-gray-500" />
             {/* Tooltip - visible on hover (desktop) or when showTooltip is true (mobile toggle) */}
             <div 
-              className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 px-3 py-2 bg-gray-900 border border-light-steel-blue rounded-lg shadow-lg whitespace-nowrap z-10 pointer-events-none transition-opacity duration-200 ${
+              className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-nowrap z-10 pointer-events-none transition-opacity duration-200 ${
                 isTouchDevice
                   ? (showTooltip ? 'opacity-100 visible' : 'opacity-0 invisible')
                   : 'opacity-0 invisible md:group-hover:opacity-100 md:group-hover:visible'
               }`}
             >
-              <span className="text-sm text-white">Drag card to this column to unlock this step</span>
+              <span className="text-sm text-gray-900">Drag card to this column to unlock this step</span>
               {/* Tooltip arrow */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0 border-4 border-transparent border-b-gray-900"></div>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[1px] border-4 border-transparent border-b-light-steel-blue"></div>

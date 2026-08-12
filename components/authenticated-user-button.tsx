@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SignOut } from "./auth-components"
 import { DashboardNavButton } from "./dashboard-nav-button";
-import { useNavbarTheme } from "./navbar-shell";
 import { Settings } from "lucide-react";
 
 interface UserData {
@@ -24,7 +23,6 @@ export function AuthenticatedUserButton() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const isLightNavbar = useNavbarTheme() === 'light';
 
   useEffect(() => {
     // Fetch user data
@@ -69,11 +67,7 @@ export function AuthenticatedUserButton() {
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-            className={`flex items-center gap-2 rounded-lg p-2 transition-colors ${
-              isLightNavbar
-                ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-            }`}
+            className="flex items-center gap-2 rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
             aria-label="Settings"
           >
             <Settings className="w-5 h-5" />
@@ -81,34 +75,34 @@ export function AuthenticatedUserButton() {
           </button>
           
           {showSettingsDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-light-steel-blue rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg z-50">
               <div className="py-2">
                 <button
                   onClick={() => {
                     setShowSettingsDropdown(false);
                     router.push('/account');
                   }}
-                  className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  className="w-full px-4 py-2 text-left text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 >
                   Account
                 </button>
-                <hr className="border-light-steel-blue my-1" />
+                <hr className="my-1 border-gray-200" />
                 {/* ===== PROFILE & PREFERENCES: Commented out until features are implemented ===== */}
                 {/* Uncomment the buttons below when Profile and Preferences features are ready */}
                 {/* 
                 <button 
                   onClick={() => setShowSettingsDropdown(false)}
-                  className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center"
+                  className="w-full px-4 py-2 text-left text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 flex items-center"
                 >
                   <User className="mr-2" />Profile
                 </button>
                 <button 
                   onClick={() => setShowSettingsDropdown(false)}
-                  className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center"
+                  className="w-full px-4 py-2 text-left text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 flex items-center"
                 >
                   <Cog className="mr-2" />Preferences
                 </button>
-                <hr className="border-light-steel-blue my-1" />
+                <hr className="my-1 border-gray-200" />
                 */}
                 <div className="px-4 py-2">
                   <SignOut />
@@ -121,7 +115,7 @@ export function AuthenticatedUserButton() {
       <div className="flex items-center gap-2">
         {!loading && (
           <>
-            <span className={`hidden text-sm md:inline ${isLightNavbar ? 'text-gray-900' : 'text-white'}`}>
+            <span className="hidden text-sm text-gray-900 md:inline">
               {userData.name || 'User'}
             </span>
             <img 

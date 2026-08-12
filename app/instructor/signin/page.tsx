@@ -42,25 +42,25 @@ export default function InstructorSignIn() {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-      <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-10 w-[500px] max-w-md">
+    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-lg p-10 w-[500px] max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Instructor Sign In</h2>
-          <p className="text-gray-300 mt-2">Enter your credentials to continue</p>
+          <h2 className="text-3xl font-bold text-gray-900">Instructor Sign In</h2>
+          <p className="text-gray-600 mt-2">Enter your credentials to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error message */}
           {error && (
-            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
               {error}
             </div>
           )}
 
           {/* Username field */}
           <div className="form-group">
-            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-600 mb-2">
               Username
             </label>
             <input
@@ -69,7 +69,7 @@ export default function InstructorSignIn() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-transparent"
               placeholder="Enter your username"
               disabled={loading}
             />
@@ -77,7 +77,7 @@ export default function InstructorSignIn() {
 
           {/* Password field */}
           <div className="form-group">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-2">
               Password
             </label>
             <input
@@ -86,7 +86,7 @@ export default function InstructorSignIn() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-transparent"
               placeholder="Enter your password"
               disabled={loading}
             />

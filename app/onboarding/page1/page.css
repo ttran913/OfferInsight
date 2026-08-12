@@ -44,7 +44,7 @@ button[type="submit"]:hover:not(:disabled) {
 
 /* Skip button hover effect */
 button[type="button"]:hover {
-  color: #ffffff !important;
+  color: #111827 !important;
   text-decoration: none;
 }
 
@@ -69,17 +69,17 @@ select::-webkit-scrollbar {
 }
 
 select::-webkit-scrollbar-track {
-  background: #374151;
+  background: #f3f4f6;
   border-radius: 4px;
 }
 
 select::-webkit-scrollbar-thumb {
-  background: #6b7280;
+  background: #9ca3af;
   border-radius: 4px;
 }
 
 select::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #6b7280;
 }
 
 /* Responsive adjustments */
@@ -147,5 +147,5 @@ button {
 }
 
 .step-dot.inactive {
-  background-color: #4b5563;
+  background-color: #d1d5db;
 }

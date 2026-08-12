@@ -67,12 +67,12 @@ export default function Page2() {
   };
 
   return (
-    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gradient-to-br from-midnight-blue to-gray-900 flex items-center justify-center">
-      <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-10 w-[700px] max-w-4xl">
+    <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-lg p-10 w-[700px] max-w-4xl">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white">Cool, now let's set goals</h2>
-          <p className="text-gray-300 mt-2">How many months do you have to secure an internship?</p>
+          <h2 className="text-3xl font-bold text-gray-900">Cool, now let's set goals</h2>
+          <p className="text-gray-600 mt-2">How many months do you have to secure an internship?</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -82,10 +82,10 @@ export default function Page2() {
               <button
                 type="button"
                 onClick={() => handleOptionClick('3')}
-                className={`border-2 rounded-lg py-4 px-8 text-white font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
+                className={`border-2 rounded-lg py-4 px-8 font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
                   selectedTimeline === '3'
-                    ? 'bg-electric-blue border-electric-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-gray-700 border-light-steel-blue hover:border-electric-blue hover:bg-gray-650'
+                    ? 'bg-electric-blue border-electric-blue text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                    : 'bg-white border-gray-300 text-gray-900 hover:border-electric-blue hover:bg-gray-50'
                 }`}
               >
                 {selectedTimeline === '3' && '✓ '}
@@ -94,10 +94,10 @@ export default function Page2() {
               <button
                 type="button"
                 onClick={() => handleOptionClick('6')}
-                className={`border-2 rounded-lg py-4 px-8 text-white font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
+                className={`border-2 rounded-lg py-4 px-8 font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
                   selectedTimeline === '6'
-                    ? 'bg-electric-blue border-electric-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-gray-700 border-light-steel-blue hover:border-electric-blue hover:bg-gray-650'
+                    ? 'bg-electric-blue border-electric-blue text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                    : 'bg-white border-gray-300 text-gray-900 hover:border-electric-blue hover:bg-gray-50'
                 }`}
               >
                 {selectedTimeline === '6' && '✓ '}
@@ -106,10 +106,10 @@ export default function Page2() {
               <button
                 type="button"
                 onClick={() => handleOptionClick('9')}
-                className={`border-2 rounded-lg py-4 px-8 text-white font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
+                className={`border-2 rounded-lg py-4 px-8 font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
                   selectedTimeline === '9'
-                    ? 'bg-electric-blue border-electric-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-gray-700 border-light-steel-blue hover:border-electric-blue hover:bg-gray-650'
+                    ? 'bg-electric-blue border-electric-blue text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                    : 'bg-white border-gray-300 text-gray-900 hover:border-electric-blue hover:bg-gray-50'
                 }`}
               >
                 {selectedTimeline === '9' && '✓ '}
@@ -118,10 +118,10 @@ export default function Page2() {
               <button
                 type="button"
                 onClick={() => handleOptionClick('12')}
-                className={`border-2 rounded-lg py-4 px-8 text-white font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
+                className={`border-2 rounded-lg py-4 px-8 font-semibold transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${
                   selectedTimeline === '12'
-                    ? 'bg-electric-blue border-electric-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-gray-700 border-light-steel-blue hover:border-electric-blue hover:bg-gray-650'
+                    ? 'bg-electric-blue border-electric-blue text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                    : 'bg-white border-gray-300 text-gray-900 hover:border-electric-blue hover:bg-gray-50'
                 }`}
               >
                 {selectedTimeline === '12' && '✓ '}
@@ -133,12 +133,12 @@ export default function Page2() {
           {/* Success Calculator Preview */}
           <div className={`border rounded-lg p-6 mb-8 transition-all ${
             selectedTimeline 
-              ? 'bg-gray-700/30 border-light-steel-blue' 
-              : 'bg-gray-800/20 border-gray-700/50 opacity-60'
+              ? 'bg-gray-100 border-gray-200' 
+              : 'bg-gray-50 border-gray-200 opacity-60'
           }`}>
             <h3 className={`font-semibold text-lg mb-6 flex items-center justify-center transition-colors ${
               selectedTimeline 
-                ? 'text-white' 
+                ? 'text-gray-900' 
                 : 'text-gray-400'
             }`}>
               <Target className={`mr-3 h-4 w-4 transition-colors ${
@@ -151,12 +151,12 @@ export default function Page2() {
             <div className="grid grid-cols-2 gap-4">
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>Timeline</div>
                 <div className={`text-xl font-bold transition-colors ${
@@ -167,12 +167,12 @@ export default function Page2() {
               </div>
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 flex items-center transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>
                   <Clock className="mr-2 h-4 w-4" />
@@ -186,12 +186,12 @@ export default function Page2() {
               </div>
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 flex items-center transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>
                   <FileText className="mr-2 h-4 w-4" />
@@ -205,12 +205,12 @@ export default function Page2() {
               </div>
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 flex items-center transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>
                   <Coffee className="mr-2 h-4 w-4" />
@@ -224,12 +224,12 @@ export default function Page2() {
               </div>
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 flex items-center transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>
                   <Users className="mr-2 h-4 w-4" />
@@ -243,12 +243,12 @@ export default function Page2() {
               </div>
               <div className={`rounded-lg p-4 transition-colors ${
                 selectedTimeline 
-                  ? 'bg-gray-800/50' 
-                  : 'bg-gray-800/30'
+                  ? 'bg-gray-50' 
+                  : 'bg-gray-50'
               }`}>
                 <div className={`text-sm mb-1 flex items-center transition-colors ${
                   selectedTimeline 
-                    ? 'text-gray-300' 
+                    ? 'text-gray-600' 
                     : 'text-gray-500'
                 }`}>
                   <Building2 className="mr-2 h-4 w-4" />
@@ -268,7 +268,7 @@ export default function Page2() {
             <button 
               type="button" 
               onClick={handleBack} 
-              className="flex-1 bg-gray-700 hover:bg-gray-600 border border-light-steel-blue text-white py-4 rounded-lg font-semibold transition-colors flex items-center justify-center"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-900 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center"
             >
               <ArrowLeft className="mr-2" />
               Back
@@ -287,7 +287,7 @@ export default function Page2() {
             <div className="flex space-x-2">
               <div className="w-3 h-3 bg-electric-blue rounded-full"></div>
               <div className="w-3 h-3 bg-electric-blue rounded-full"></div>
-              <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
             </div>
             <span className="text-gray-400 ml-3 text-sm">Step 2 of 3</span>
           </div>

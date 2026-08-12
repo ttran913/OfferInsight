@@ -106,9 +106,9 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-gray-900 text-white flex items-center justify-center">
-        <div className="bg-gray-800 border border-light-steel-blue rounded-lg p-8 w-full max-w-2xl">
-          <div className="flex items-center justify-center py-20 text-gray-300">
+      <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900 flex items-center justify-center">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 w-full max-w-2xl">
+          <div className="flex items-center justify-center py-20 text-gray-600">
             <Loader2 className="h-10 w-10 animate-spin text-electric-blue" />
           </div>
         </div>
@@ -117,24 +117,24 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="bg-gray-900 text-white min-h-[calc(100dvh-var(--navbar-height))] w-full">
+    <div className="bg-white text-gray-900 min-h-[calc(100dvh-var(--navbar-height))] w-full">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-4">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
         </div>
 
-        <section className="bg-gray-800 border border-light-steel-blue rounded-lg p-5 sm:p-6">
+        <section className="bg-white border border-gray-200 rounded-lg p-5 sm:p-6">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white">Account</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Account</h1>
             <p className="text-gray-400 text-sm mt-1">Manage your profile and login details.</p>
           </div>
 
           <form onSubmit={handleSave} className="space-y-5">
             <div>
-              <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+              <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                 <User className="w-4 h-4 text-electric-blue" />
                 Full Name
               </label>
@@ -142,17 +142,17 @@ export default function AccountPage() {
                 type="text"
                 value={form.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
                 placeholder="Your full name"
               />
             </div>
 
             <div>
-              <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+              <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                 <Shield className="w-4 h-4 text-electric-blue" />
                 Login Type
               </label>
-              <div className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-sm text-gray-200">
+              <div className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-700">
                 {loginMethodsText}
               </div>
               <p className="text-xs text-gray-500 mt-1">Current auth provider(s): {email || 'No email found'}</p>
@@ -160,7 +160,7 @@ export default function AccountPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+                <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-electric-blue" />
                   School
                 </label>
@@ -168,12 +168,12 @@ export default function AccountPage() {
                   type="text"
                   value={form.school}
                   onChange={(e) => handleChange('school', e.target.value)}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
                   placeholder="School or university"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+                <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-electric-blue" />
                   Major / Field
                 </label>
@@ -181,7 +181,7 @@ export default function AccountPage() {
                   type="text"
                   value={form.major}
                   onChange={(e) => handleChange('major', e.target.value)}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
                   placeholder="Major or field of study"
                 />
               </div>
@@ -189,7 +189,7 @@ export default function AccountPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+                <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                   <Code className="w-4 h-4 text-electric-blue" />
                   LeetCode Username
                 </label>
@@ -197,12 +197,12 @@ export default function AccountPage() {
                   type="text"
                   value={form.leetCodeUserName}
                   onChange={(e) => handleChange('leetCodeUserName', e.target.value)}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
                   placeholder="leetcode.com/u/your_handle"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2 text-sm flex items-center gap-2">
+                <label className="block text-gray-900 font-semibold mb-2 text-sm flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-electric-blue" />
                   Expected Graduation Date
                 </label>
@@ -210,7 +210,7 @@ export default function AccountPage() {
                   type="date"
                   value={form.expectedGraduationDate}
                   onChange={(e) => handleChange('expectedGraduationDate', e.target.value)}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function AccountPage() {
                 Save Changes
               </button>
               {saveMessage && (
-                <span className={`text-sm ${saveMessage === 'Saved' ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`text-sm ${saveMessage === 'Saved' ? 'text-green-600' : 'text-red-600'}`}>
                   {saveMessage}
                 </span>
               )}

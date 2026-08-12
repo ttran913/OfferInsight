@@ -47,7 +47,7 @@ function HelperMessage({ status }: { status?: LinkedinOutreachStatus | null }) {
         <button
           type="button"
           onClick={() => setIsVideoOpen(true)}
-          className="inline-flex items-center gap-2 text-white font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
+          className="inline-flex items-center gap-2 text-gray-900 font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
         >
           <PlayCircle className="w-5 h-5 text-electric-blue flex-shrink-0" />
           <span>Helper video: How to {getMessage()}</span>
@@ -130,11 +130,11 @@ function SortableLinkedinOutreachCard(props: {
       {...(props.readOnly ? {} : attributes)} 
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-gray-600 border border-light-steel-blue rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="text-white font-medium mb-1">{props.card.name}</div>
+          <div className="text-gray-900 font-medium mb-1">{props.card.name}</div>
           <div className="text-gray-400 text-xs mb-1">{props.card.company}</div>
           {props.card.linkedInUrl && (
             <div className="text-xs mb-1">
@@ -153,7 +153,7 @@ function SortableLinkedinOutreachCard(props: {
         {!props.readOnly && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handleDelete}
-            className="p-1 hover:bg-red-600 rounded text-gray-300 hover:text-white"
+            className="p-1 hover:bg-red-600 rounded text-gray-500 hover:text-white"
             title="Delete"
           >
             <Trash2 size={14} />
@@ -161,7 +161,7 @@ function SortableLinkedinOutreachCard(props: {
         </div>}
       </div>
       {(props.card.firstMessage || props.card.secondMessage || props.card.notes) && (
-        <div className="text-green-400 text-xs mb-2 flex flex-col">
+        <div className="text-green-600 text-xs mb-2 flex flex-col">
           {props.card.firstMessage && <span>✓ First Message</span>}
           {props.card.secondMessage && <span>✓ Second Message</span>}
           {props.card.notes && <span>✓ Notes from coffee chat</span>}
@@ -297,12 +297,12 @@ function LinkedinOutreachModal({
     <ModalOverlay onClose={onClose}>
       <ModalPanel size="2xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-gray-900">
             {linkedinOutreach ? 'Edit Coffee Chat' : 'Create New Coffee Chat'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
           >
             <X size={24} />
           </button>
@@ -311,24 +311,24 @@ function LinkedinOutreachModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-white font-semibold mb-2">Name *</label>
+              <label className="block text-gray-900 font-semibold mb-2">Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
                 placeholder="Person's name"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-white font-semibold mb-2">Company *</label>
+              <label className="block text-gray-900 font-semibold mb-2">Company *</label>
               <input
                 type="text"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
                 placeholder="Company name"
                 required
               />
@@ -336,12 +336,12 @@ function LinkedinOutreachModal({
           </div>
 
           <div>
-            <label className="block text-white font-semibold mb-2">LinkedIn URL</label>
+            <label className="block text-gray-900 font-semibold mb-2">LinkedIn URL</label>
             <input
               type="text"
               value={formData.linkedInUrl}
               onChange={(e) => setFormData({ ...formData, linkedInUrl: e.target.value })}
-              className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
               placeholder="linkedin.com/in/... or https://linkedin.com/in/..."
             />
           </div>
@@ -356,12 +356,12 @@ function LinkedinOutreachModal({
             // Create mode: Show First Message blurred
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">First Message</label>
+                <label className="block font-semibold mb-2 text-gray-900">First Message</label>
                 <textarea
                   value={formData.firstMessage}
                   onChange={(e) => setFormData({ ...formData, firstMessage: e.target.value })}
                   disabled={true}
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                   placeholder="First message sent to the person"
                 />
               </div>
@@ -371,12 +371,12 @@ function LinkedinOutreachModal({
             // Prospects status: Show First Message blurred
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">First Message</label>
+                <label className="block font-semibold mb-2 text-gray-900">First Message</label>
                 <textarea
                   value={formData.firstMessage}
                   onChange={(e) => setFormData({ ...formData, firstMessage: e.target.value })}
                   disabled={true}
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                   placeholder="First message sent to the person"
                 />
               </div>
@@ -385,11 +385,11 @@ function LinkedinOutreachModal({
           ) : (
             // sendFirstMessage or beyond: Show First Message unblurred
             <div className={linkedinOutreach?.status === 'sendFirstMessage' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
-              <label className="block text-white font-semibold mb-2">First Message</label>
+              <label className="block text-gray-900 font-semibold mb-2">First Message</label>
               <textarea
                 value={formData.firstMessage}
                 onChange={(e) => setFormData({ ...formData, firstMessage: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 min-h-[100px]"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[100px]"
                 placeholder="First message sent to the person"
               />
               {/* Helper message inside highlighted section */}
@@ -403,11 +403,11 @@ function LinkedinOutreachModal({
           {linkedinOutreach && (linkedinOutreach.status === 'followUp' || linkedinOutreach.status === 'coffeeChat' || linkedinOutreach.status === 'askForReferral') ? (
             // Follow Up, Coffee Chat, or Ask for Referral: Show Second Message unblurred
             <div className={linkedinOutreach.status === 'followUp' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
-              <label className="block text-white font-semibold mb-2">Second Message</label>
+              <label className="block text-gray-900 font-semibold mb-2">Second Message</label>
               <textarea
                 value={formData.secondMessage}
                 onChange={(e) => setFormData({ ...formData, secondMessage: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 min-h-[100px]"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[100px]"
                 placeholder="Second message sent to the person"
               />
               {/* Helper message inside highlighted section */}
@@ -419,12 +419,12 @@ function LinkedinOutreachModal({
             // Send First Message or Request Accepted: Show Second Message blurred (unlocks in next column "Follow Up")
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">Second Message</label>
+                <label className="block font-semibold mb-2 text-gray-900">Second Message</label>
                 <textarea
                   value={formData.secondMessage}
                   onChange={(e) => setFormData({ ...formData, secondMessage: e.target.value })}
                   disabled={true}
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                   placeholder="Second message sent to the person"
                 />
               </div>
@@ -436,11 +436,11 @@ function LinkedinOutreachModal({
           {linkedinOutreach && (linkedinOutreach.status === 'coffeeChat' || linkedinOutreach.status === 'askForReferral') ? (
             // Coffee Chat or Ask for Referral status: Show Notes unblurred
             <div className={linkedinOutreach.status === 'coffeeChat' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
-              <label className="block text-white font-semibold mb-2">Notes from coffee chat</label>
+              <label className="block text-gray-900 font-semibold mb-2">Notes from coffee chat</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400 min-h-[100px]"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[100px]"
                 placeholder="Enter notes from the coffee chat"
               />
               {/* Helper message inside highlighted section */}
@@ -452,12 +452,12 @@ function LinkedinOutreachModal({
             // Follow Up status: Show Notes blurred (unlocks in next column)
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">Notes from coffee chat</label>
+                <label className="block font-semibold mb-2 text-gray-900">Notes from coffee chat</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   disabled={true}
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                   placeholder="Enter notes from the coffee chat"
                 />
               </div>
@@ -475,9 +475,9 @@ function LinkedinOutreachModal({
                   id="recievedReferral"
                   checked={formData.recievedReferral}
                   onChange={(e) => setFormData({ ...formData, recievedReferral: e.target.checked })}
-                  className="w-4 h-4 border rounded bg-gray-700 border-light-steel-blue text-electric-blue focus:ring-electric-blue"
+                  className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
                 />
-                <label htmlFor="recievedReferral" className="ml-2 font-semibold text-white">
+                <label htmlFor="recievedReferral" className="ml-2 font-semibold text-gray-900">
                   Received Referral
                 </label>
               </div>
@@ -495,9 +495,9 @@ function LinkedinOutreachModal({
                     checked={formData.recievedReferral}
                     onChange={(e) => setFormData({ ...formData, recievedReferral: e.target.checked })}
                     disabled={true}
-                    className="w-4 h-4 border rounded bg-gray-700 border-light-steel-blue text-electric-blue focus:ring-electric-blue"
+                    className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
                   />
-                  <label htmlFor="recievedReferral" className="ml-2 font-semibold text-white">
+                  <label htmlFor="recievedReferral" className="ml-2 font-semibold text-gray-900">
                     Received Referral
                   </label>
                 </div>
@@ -511,28 +511,28 @@ function LinkedinOutreachModal({
           {ENABLE_DATE_FIELD_EDITING && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Date Created (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Created (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateCreated}
                   onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2">Date Modified (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Modified (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateModified}
                   onChange={(e) => setFormData({ ...formData, dateModified: e.target.value })}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
             </div>
           )}
 
           {linkedinOutreach && (
-            <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+            <div className="text-xs text-gray-400 pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span>Created: {formatModalDate(linkedinOutreach.dateCreated)}</span>
                 <span>Modified: {formatModalDate(linkedinOutreach.dateModified)}</span>
@@ -557,7 +557,7 @@ function LinkedinOutreachModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -597,17 +597,17 @@ export default function CoffeeChatsTab({
   const [defaultStatus, setDefaultStatus] = React.useState<LinkedinOutreachStatus | undefined>(undefined);
   
   return (
-    <section className="bg-gray-800 border border-light-steel-blue rounded-lg p-4 sm:p-6">
+    <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4 mb-6">
-        <h4 className="text-xl font-bold text-white">Coffee Chats</h4>
-        <div className="flex items-center gap-2 text-sm text-gray-300">
+        <h4 className="text-xl font-bold text-gray-900">Coffee Chats</h4>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>Show:</span>
           <button
             onClick={() => setLinkedinOutreachFilter('modifiedThisMonth')}
             className={`px-3 py-1 rounded-md border transition-colors ${
               linkedinOutreachFilter === 'modifiedThisMonth'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             This Month
@@ -617,7 +617,7 @@ export default function CoffeeChatsTab({
             className={`px-3 py-1 rounded-md border transition-colors ${
               linkedinOutreachFilter === 'allTime'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             All Time
@@ -640,8 +640,8 @@ export default function CoffeeChatsTab({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleLinkedinOutreachDragStart} onDragOver={handleLinkedinOutreachDragOver} onDragEnd={handleLinkedinOutreachDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-6 gap-3">
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
                 Prospects ({filteredLinkedinOutreachColumns.prospects.length})
               </h5>
@@ -677,8 +677,8 @@ export default function CoffeeChatsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                 Send First Message ({filteredLinkedinOutreachColumns.sendFirstMessage.length})
               </h5>
@@ -708,8 +708,8 @@ export default function CoffeeChatsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                 Request Accepted ({filteredLinkedinOutreachColumns.requestAccepted.length})
               </h5>
@@ -738,8 +738,8 @@ export default function CoffeeChatsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
                 Follow Up ({filteredLinkedinOutreachColumns.followUp.length})
               </h5>
@@ -767,8 +767,8 @@ export default function CoffeeChatsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                 Coffee Chat ({filteredLinkedinOutreachColumns.coffeeChat.length})
               </h5>
@@ -793,8 +793,8 @@ export default function CoffeeChatsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-2">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-2">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
                 Ask for Referral ({filteredLinkedinOutreachColumns.askForReferral.length})
               </h5>
@@ -827,8 +827,8 @@ export default function CoffeeChatsTab({
               const card = linkedinOutreachColumns[col].find(c => String(c.id) === activeLinkedinOutreachId);
               if (!card) return null;
               return (
-                <div className="bg-gray-600 border border-light-steel-blue rounded-lg p-3" style={{ touchAction: 'none' }}>
-                  <div className="text-white font-medium mb-1">{card.name}</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                  <div className="text-gray-900 font-medium mb-1">{card.name}</div>
                   <div className="text-gray-400 text-xs mb-1">{card.company}</div>
                 </div>
               );

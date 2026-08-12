@@ -46,7 +46,7 @@ function HelperMessage({ status }: { status?: InPersonEventStatus | null }) {
         <button
           type="button"
           onClick={() => setIsVideoOpen(true)}
-          className="inline-flex items-center gap-2 text-white font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
+          className="inline-flex items-center gap-2 text-gray-900 font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
         >
           <PlayCircle className="w-5 h-5 text-electric-blue flex-shrink-0" />
           <span>Helper video: How to {getMessage()}</span>
@@ -172,11 +172,11 @@ function SortableEventCard(props: {
       {...(props.readOnly ? {} : attributes)}
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-gray-600 border border-light-steel-blue rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="text-white font-medium mb-1">{props.card.event}</div>
+          <div className="text-gray-900 font-medium mb-1">{props.card.event}</div>
           <div className="text-gray-400 text-xs mb-1">{formatDateTime(props.card.date)}</div>
           {props.card.location && (
             <div className="text-gray-400 text-xs mb-1">{props.card.location}</div>
@@ -198,20 +198,20 @@ function SortableEventCard(props: {
         {!props.readOnly && <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handleDelete}
-            className="p-1 hover:bg-red-600 rounded text-gray-300 hover:text-white"
+            className="p-1 hover:bg-red-600 rounded text-gray-500 hover:text-white"
             title="Delete"
           >
             <Trash2 size={14} />
           </button>
         </div>}
       </div>
-      <div className="flex flex-wrap gap-2 text-[10px] text-gray-300 mb-2">
+      <div className="flex flex-wrap gap-2 text-[10px] text-gray-600 mb-2">
         {props.card.careerFair && (
-          <span className="text-green-400 text-xs">✓ Career Fair</span>
+          <span className="text-green-600 text-xs">✓ Career Fair</span>
         )}
       </div>
       {(props.card.nameOfPersonSpokenTo || props.card.sentLinkedInRequest || props.card.followUpMessage) && (
-        <div className="text-green-400 text-xs mb-2 flex flex-col">
+        <div className="text-green-600 text-xs mb-2 flex flex-col">
           {props.card.nameOfPersonSpokenTo && <span className="text-base font-medium">✓ Met: {props.card.nameOfPersonSpokenTo}</span>}
           {props.card.sentLinkedInRequest && <span>✓ LinkedIn Sent</span>}
           {props.card.followUpMessage && <span>✓ Follow-Up Message</span>}
@@ -391,12 +391,12 @@ function InPersonEventModal({
     <ModalOverlay onClose={onClose}>
       <ModalPanel size="3xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-gray-900">
             {eventItem ? 'Edit Event' : 'Create New Event'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-900 transition-colors"
           >
             <X size={24} />
           </button>
@@ -405,23 +405,23 @@ function InPersonEventModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-white font-semibold mb-2">Event Name *</label>
+              <label className="block text-gray-900 font-semibold mb-2">Event Name *</label>
               <input
                 type="text"
                 value={formData.event}
                 onChange={(e) => setFormData(prev => ({ ...prev, event: e.target.value }))}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white placeholder-gray-400"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
                 placeholder="Conference, Meetup, etc."
                 required
               />
             </div>
             <div>
-              <label className="block text-white font-semibold mb-2">Date *</label>
+              <label className="block text-gray-900 font-semibold mb-2">Date *</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 required
               />
             </div>
@@ -429,12 +429,12 @@ function InPersonEventModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-semibold mb-2 text-white">Time</label>
+              <label className="block font-semibold mb-2 text-gray-900">Time</label>
               <div className="flex gap-2">
                 <select
                   value={formData.timeHour}
                   onChange={(e) => setFormData(prev => ({ ...prev, timeHour: e.target.value }))}
-                  className="w-20 border rounded-lg px-3 py-2 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-20 border rounded-lg px-3 py-2 bg-gray-100 border-gray-200 text-gray-900"
                 >
                   {hourOptions.map(hour => (
                     <option key={hour} value={hour}>{hour}</option>
@@ -443,7 +443,7 @@ function InPersonEventModal({
                 <select
                   value={formData.timeMinute}
                   onChange={(e) => setFormData(prev => ({ ...prev, timeMinute: e.target.value }))}
-                  className="w-20 border rounded-lg px-3 py-2 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-20 border rounded-lg px-3 py-2 bg-gray-100 border-gray-200 text-gray-900"
                 >
                   {minuteOptions.map(minute => (
                     <option key={minute} value={minute}>{minute}</option>
@@ -452,7 +452,7 @@ function InPersonEventModal({
                 <select
                   value={formData.timePeriod}
                   onChange={(e) => setFormData(prev => ({ ...prev, timePeriod: e.target.value as 'AM' | 'PM' }))}
-                  className="w-20 border rounded-lg px-3 py-2 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-20 border rounded-lg px-3 py-2 bg-gray-100 border-gray-200 text-gray-900"
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
@@ -460,24 +460,24 @@ function InPersonEventModal({
               </div>
             </div>
             <div>
-              <label className="block font-semibold mb-2 text-white">Location</label>
+              <label className="block font-semibold mb-2 text-gray-900">Location</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                 placeholder="City, Online, etc."
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold mb-2 text-white">Event URL</label>
+            <label className="block font-semibold mb-2 text-gray-900">Event URL</label>
             <input
               type="text"
               value={formData.url}
               onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-              className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+              className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
               placeholder="example.com/event or https://example.com/event"
             />
           </div>
@@ -488,9 +488,9 @@ function InPersonEventModal({
               id="careerFair"
               checked={formData.careerFair}
               onChange={(e) => setFormData(prev => ({ ...prev, careerFair: e.target.checked }))}
-              className="w-4 h-4 border rounded bg-gray-700 border-light-steel-blue text-electric-blue focus:ring-electric-blue"
+              className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
             />
-            <label htmlFor="careerFair" className="ml-2 font-semibold text-white">
+            <label htmlFor="careerFair" className="ml-2 font-semibold text-gray-900">
               This is a career fair
             </label>
           </div>
@@ -505,14 +505,14 @@ function InPersonEventModal({
             // Create mode: Show Name of one person I met blurred (will be revealed in next column)
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">Name of one person I met</label>
+                <label className="block font-semibold mb-2 text-gray-900">Name of one person I met</label>
                 <input
                   type="text"
                   value={formData.nameOfPersonSpokenTo}
                   onChange={(e) => setFormData(prev => ({ ...prev, nameOfPersonSpokenTo: e.target.value }))}
                   disabled={true}
                   placeholder="Enter name"
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                 />
               </div>
               <LockTooltip />
@@ -521,14 +521,14 @@ function InPersonEventModal({
             // Plan status: Show Name of one person I met blurred (will be revealed in next column "Attended")
             <div className="relative group py-4">
               <div className="blur-sm">
-                <label className="block font-semibold mb-2 text-white">Name of one person I met</label>
+                <label className="block font-semibold mb-2 text-gray-900">Name of one person I met</label>
                 <input
                   type="text"
                   value={formData.nameOfPersonSpokenTo}
                   onChange={(e) => setFormData(prev => ({ ...prev, nameOfPersonSpokenTo: e.target.value }))}
                   disabled={true}
                   placeholder="Enter name"
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                 />
               </div>
               <LockTooltip />
@@ -537,13 +537,13 @@ function InPersonEventModal({
             // attended or beyond: Show Name of one person I met unblurred
             <>
               <div className={eventItem.status === 'attended' ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : ''}>
-                <label className="block font-semibold mb-2 text-white">Name of one person I met</label>
+                <label className="block font-semibold mb-2 text-gray-900">Name of one person I met</label>
                 <input
                   type="text"
                   value={formData.nameOfPersonSpokenTo}
                   onChange={(e) => setFormData(prev => ({ ...prev, nameOfPersonSpokenTo: e.target.value }))}
                   placeholder="Enter name"
-                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-700 border-light-steel-blue text-white"
+                  className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 bg-gray-100 border-gray-200 text-gray-900"
                 />
                 {/* Helper message inside highlighted section */}
                 {eventItem.status === 'attended' && (
@@ -563,9 +563,9 @@ function InPersonEventModal({
                         checked={formData.sentLinkedInRequest}
                         onChange={(e) => setFormData(prev => ({ ...prev, sentLinkedInRequest: e.target.checked }))}
                         disabled={true}
-                        className="w-4 h-4 border rounded bg-gray-700 border-light-steel-blue text-electric-blue focus:ring-electric-blue"
+                        className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
                       />
-                      <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-white">
+                      <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-gray-900">
                         Sent LinkedIn Request
                       </label>
                     </div>
@@ -581,9 +581,9 @@ function InPersonEventModal({
                       id="sentLinkedInRequest"
                       checked={formData.sentLinkedInRequest}
                       onChange={(e) => setFormData(prev => ({ ...prev, sentLinkedInRequest: e.target.checked }))}
-                      className="w-4 h-4 border rounded bg-gray-700 border-light-steel-blue text-electric-blue focus:ring-electric-blue"
+                      className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
                     />
-                    <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-white">
+                    <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-gray-900">
                       Sent LinkedIn Request
                     </label>
                   </div>
@@ -599,12 +599,12 @@ function InPersonEventModal({
                 // Send LinkedIn Request status: Show Follow-Up Message blurred (will be revealed in next column "Follow Up")
                 <div className="relative group py-4">
                   <div className="blur-sm">
-                    <label className="block font-semibold mb-2 text-white">Follow-Up Message</label>
+                    <label className="block font-semibold mb-2 text-gray-900">Follow-Up Message</label>
                     <textarea
                       value={formData.followUpMessage}
                       onChange={(e) => setFormData(prev => ({ ...prev, followUpMessage: e.target.value }))}
                       disabled={true}
-                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                      className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                       placeholder="Enter follow-up message"
                     />
                   </div>
@@ -613,11 +613,11 @@ function InPersonEventModal({
               ) : eventItem.status === 'followUp' ? (
                 // Follow Up status: Show Follow-Up Message unblurred
                 <div className="border border-yellow-500 rounded-lg p-4 bg-yellow-500/10">
-                  <label className="block font-semibold mb-2 text-white">Follow-Up Message</label>
+                  <label className="block font-semibold mb-2 text-gray-900">Follow-Up Message</label>
                   <textarea
                     value={formData.followUpMessage}
                     onChange={(e) => setFormData(prev => ({ ...prev, followUpMessage: e.target.value }))}
-                    className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-700 border-light-steel-blue text-white"
+                    className="w-full border rounded-lg px-4 py-2 placeholder-gray-400 min-h-[100px] bg-gray-100 border-gray-200 text-gray-900"
                     placeholder="Enter follow-up message"
                   />
                   {/* Helper message inside highlighted section */}
@@ -631,28 +631,28 @@ function InPersonEventModal({
           {ENABLE_DATE_FIELD_EDITING && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-white font-semibold mb-2">Date Created (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Created (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateCreated}
                   onChange={(e) => setFormData(prev => ({ ...prev, dateCreated: e.target.value }))}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-white font-semibold mb-2">Date Modified (Testing/Debug)</label>
+                <label className="block text-gray-900 font-semibold mb-2">Date Modified (Testing/Debug)</label>
                 <input
                   type="date"
                   value={formData.dateModified}
                   onChange={(e) => setFormData(prev => ({ ...prev, dateModified: e.target.value }))}
-                  className="w-full bg-gray-700 border border-light-steel-blue rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
                 />
               </div>
             </div>
           )}
 
           {eventItem && (
-            <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+            <div className="text-xs text-gray-400 pt-2 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span>Created: {formatModalDate(eventItem.dateCreated)}</span>
                 <span>Modified: {formatModalDate(eventItem.dateModified)}</span>
@@ -677,7 +677,7 @@ function InPersonEventModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-semibold transition-colors"
               >
                 Cancel
               </button>
@@ -717,17 +717,17 @@ export default function EventsTab({
   const [defaultStatus, setDefaultStatus] = React.useState<InPersonEventStatus | undefined>(undefined);
   
   return (
-    <section className="bg-gray-800 border border-light-steel-blue rounded-lg p-4 sm:p-6">
+    <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4 mb-6">
-        <h4 className="text-xl font-bold text-white">In-Person Events</h4>
-        <div className="flex items-center gap-2 text-sm text-gray-300">
+        <h4 className="text-xl font-bold text-gray-900">In-Person Events</h4>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>Show:</span>
           <button
             onClick={() => setEventsFilter('modifiedThisMonth')}
             className={`px-3 py-1 rounded-md border transition-colors ${
               eventsFilter === 'modifiedThisMonth'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             This Month
@@ -737,7 +737,7 @@ export default function EventsTab({
             className={`px-3 py-1 rounded-md border transition-colors ${
               eventsFilter === 'allTime'
                 ? 'bg-electric-blue text-white border-electric-blue'
-                : 'bg-gray-700 text-gray-300 border-transparent hover:border-light-steel-blue'
+                : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-200'
             }`}
           >
             All Time
@@ -760,8 +760,8 @@ export default function EventsTab({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleEventsDragStart} onDragOver={handleEventsDragOver} onDragEnd={handleEventsDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-4 gap-6 min-w-[640px]">
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-4">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                 Plan ({filteredEventColumns.plan.length})
               </h5>
@@ -795,8 +795,8 @@ export default function EventsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-4">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
                 Attended ({filteredEventColumns.attended.length})
               </h5>
@@ -824,8 +824,8 @@ export default function EventsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-4">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                 Send LinkedIn Request ({filteredEventColumns.sendLinkedInRequest.length})
               </h5>
@@ -850,8 +850,8 @@ export default function EventsTab({
               </SortableContext>
             </div>
 
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h5 className="text-white font-semibold mb-4 flex items-center">
+            <div className="bg-gray-100 rounded-lg p-4">
+              <h5 className="text-gray-900 font-semibold mb-4 flex items-center">
                 <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                 Follow Up ({filteredEventColumns.followUp.length})
               </h5>
@@ -897,8 +897,8 @@ export default function EventsTab({
                 }
               })();
               return (
-                <div className="bg-gray-600 border border-light-steel-blue rounded-lg p-3" style={{ touchAction: 'none' }}>
-                  <div className="text-white font-medium mb-1">{card.event}</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                  <div className="text-gray-900 font-medium mb-1">{card.event}</div>
                   <div className="text-gray-400 text-xs mb-1">{formattedDate}</div>
                   {card.location && (
                     <div className="text-gray-400 text-xs mb-1">{card.location}</div>

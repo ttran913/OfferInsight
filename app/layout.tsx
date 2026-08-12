@@ -19,18 +19,18 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{
           __html: `
             ::-webkit-scrollbar { display: none; }
-            .show-scrollbar { scrollbar-width: thin; scrollbar-color: #6b7280 #1f2937; }
+            .show-scrollbar { scrollbar-width: thin; scrollbar-color: #9ca3af #f3f4f6; }
             .show-scrollbar::-webkit-scrollbar { display: block; width: 8px; }
-            .show-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
-            .show-scrollbar::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
-            .show-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+            .show-scrollbar::-webkit-scrollbar-track { background: #f3f4f6; border-radius: 4px; }
+            .show-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+            .show-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
             html, body { font-family: 'Inter', sans-serif; width: 100%; margin: 0; padding: 0; overflow-x: hidden; }
           `
         }} />
       </head>
-      <body className={`${inter.className} antialiased bg-gradient-to-br from-midnight-blue to-gray-900 min-h-full w-full`} suppressHydrationWarning={true}>
+      <body className={`${inter.className} antialiased bg-white min-h-full w-full text-gray-900`} suppressHydrationWarning={true}>
         <Navbar />
-        <main className="w-full bg-gradient-to-br from-midnight-blue to-gray-900 pt-[var(--navbar-height)]">{children}</main>
+        <main className="w-full bg-white pt-[var(--navbar-height)]">{children}</main>
       </body>
     </html>
   );
