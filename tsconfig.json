@@ -22,10 +22,12 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "auth": [
+        "./auth.ts"
       ]
     }
   },
