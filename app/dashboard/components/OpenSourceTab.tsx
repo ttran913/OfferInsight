@@ -11,6 +11,7 @@ import { openSourceStatusToColumn } from './types';
 import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
+import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
 
 // Debug: set to true to show date created/modified fields in the open source modal
 const ENABLE_DATE_FIELD_EDITING = false;
@@ -204,12 +205,14 @@ function OpenSourceModal({
     } else {
       const defaultType = newEntryDefaultCriteriaType || '';
       const primaryCriteria = defaultType ? activePartnershipCriteria.find(c => c.type === defaultType) : null;
-      const issueTypeFromJson = (typesData.types as Record<string, any>)?.issue;
-      const fallback = defaultType === 'issue' ? issueTypeFromJson : null;
+      const typeFromJson = defaultType
+        ? (typesData.types as Record<string, any>)?.[defaultType]
+        : null;
+      const fallback = isUserManagedCriteriaType(defaultType) ? typeFromJson : null;
       const source = primaryCriteria || fallback;
       setFormData({
         partnershipName: selectedPartnership || '',
-        metric: primaryCriteria?.metric ?? issueTypeFromJson?.metric ?? '',
+        metric: primaryCriteria?.metric ?? typeFromJson?.metric ?? '',
         status: 'plan',
         criteriaType: defaultType,
         selectedExtras: [],
@@ -824,7 +827,7 @@ function OpenSourceModal({
 
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-200">
             <div className="order-2 sm:order-1">
-              {!readOnly && entry?.criteriaType === 'issue' && onDelete && (
+              {!readOnly && isUserManagedCriteriaType(entry?.criteriaType) && onDelete && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1672,18 +1675,34 @@ export default function OpenSourceTab({
                   </DroppableColumn>
                 </SortableContext>
                 </div>
-                {!readOnly && <button
-                  type="button"
-                  onClick={() => {
-                    setNewEntryDefaultCriteriaType('issue');
-                    setEditingEntry(null);
-                    setIsModalOpen(true);
-                  }}
-                  className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add new issue card
-                </button>}
+                {!readOnly && (
+                  <div className="mt-2 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewEntryDefaultCriteriaType('issue');
+                        setEditingEntry(null);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add new issue card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewEntryDefaultCriteriaType('ecosystem_conversation');
+                        setEditingEntry(null);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add new conversation card
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
@@ -2064,7 +2083,7 @@ export default function OpenSourceTab({
           }
           availablePartnerships={availablePartnerships}
           fullPartnerships={fullPartnerships}
-          onDelete={editingEntry?.criteriaType === 'issue' ? async () => {
+          onDelete={isUserManagedCriteriaType(editingEntry?.criteriaType) ? async () => {
             if (readOnly) return;
             try {
               const url = userIdParam ? `/api/open_source?userId=${userIdParam}&id=${editingEntry.id}` : `/api/open_source?id=${editingEntry.id}`;

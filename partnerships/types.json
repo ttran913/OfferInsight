@@ -16,6 +16,25 @@
                 "text": "Pull request link: "
             }]
         }, 
+        "ecosystem_conversation": {
+            "is_primary": true,
+            "short_name": "ecosystem_conversation",
+            "quality": "Community engagement",
+            "metric": "Have 1 conversation with someone in the project's ecosystem (a maintainer, contributor, or a user of a competing project).",
+            "plan_column_fields": [],
+            "baby_step_column_fields": [{
+                "type": "URL",
+                "text": "Find someone in the project's ecosystem to talk to (a maintainer, contributor, or a user of a competing project).",
+                "helper_video": ""
+            }],
+            "proof_of_completion_column_fields": [{
+                "type": "URL",
+                "text": "Link to the conversation (GitHub, Discord, LinkedIn, email thread, etc.): "
+            }, {
+                "type": "text",
+                "text": "Write a short summary of who you talked to and what you learned."
+            }]
+        },
         "receive_feedback": {
             "is_primary": false,
             "short_name": "receive_feedback",

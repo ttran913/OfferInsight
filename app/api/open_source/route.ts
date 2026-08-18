@@ -7,6 +7,7 @@ import {
   logOpenSourceColumnMove,
   logOpenSourceFieldEdits,
 } from "@/app/lib/open-source-status-log";
+import { isUserManagedCriteriaType } from "@/app/lib/open-source-user-managed";
 
 // GET: Fetch all open source entries for a user
 export async function GET(request: NextRequest) {
@@ -201,9 +202,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
-    if (existing.criteriaType !== "issue") {
+    if (!isUserManagedCriteriaType(existing.criteriaType)) {
       return NextResponse.json(
-        { error: "Only issue cards can be deleted." },
+        { error: "Only user-managed cards can be deleted." },
         { status: 403 }
       );
     }
