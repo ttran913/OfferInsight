@@ -29,7 +29,7 @@
             }],
             "proof_of_completion_column_fields": [{
                 "type": "URL",
-                "text": "Link to the conversation (GitHub, Discord, LinkedIn, email thread, etc.): "
+                "text": "Link to the LinkedIn profile of the person you spoke with"
             }, {
                 "type": "text",
                 "text": "Write a short summary of who you talked to and what you learned."
