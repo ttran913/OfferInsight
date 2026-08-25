@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Lock, X } from 'lucide-react';
+import { Plus, Lock, X, PlayCircle, BookOpen } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import React, { useState, useEffect } from 'react';
 
@@ -11,6 +11,39 @@ const MODAL_PANEL_MAX_WIDTH: Record<ModalPanelSize, string> = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
 };
+
+function isVideoHelperUrl(url: string): boolean {
+  return /youtu\.be|youtube\.com/i.test(url);
+}
+
+/** Emphasized CTA for Open Source helper videos / guides (opens in a new tab). */
+export function HelperGuideLink({
+  href,
+  compact = false,
+}: {
+  href: string;
+  compact?: boolean;
+}) {
+  const isVideo = isVideoHelperUrl(href);
+  const Icon = isVideo ? PlayCircle : BookOpen;
+  const label = isVideo ? 'Watch helper video' : 'Open helper guide';
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={
+        compact
+          ? 'inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-electric-blue px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors'
+          : 'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-electric-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors'
+      }
+    >
+      <Icon className={compact ? 'w-4 h-4 flex-shrink-0' : 'w-5 h-5 flex-shrink-0'} aria-hidden />
+      <span>{label}</span>
+    </a>
+  );
+}
 
 /** Full-screen backdrop above the fixed navbar; content starts below --navbar-height. */
 export function ModalOverlay({

@@ -8,7 +8,7 @@ import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import type { OpenSourceEntry, OpenSourceColumnId, BoardTimeFilter, OpenSourceStatus } from './types';
 import { openSourceStatusToColumn } from './types';
-import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
+import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS, HelperGuideLink } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
@@ -62,7 +62,24 @@ type OpenSourceTabProps = {
   readOnly?: boolean;
 };
 
-function SortableOpenSourceCard(props: { 
+function getBabyStepHelperUrls(card: OpenSourceEntry): string[] {
+  const collect = (fields: any[] | null | undefined) =>
+    [...new Set(
+      (fields ?? [])
+        .map((field) => field?.helper_video)
+        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+    )];
+
+  const fromCard = collect(card.babyStepFields);
+  if (fromCard.length > 0) return fromCard;
+
+  const typeDef = card.criteriaType
+    ? (typesData.types as Record<string, any>)?.[card.criteriaType]
+    : null;
+  return collect(typeDef?.baby_step_column_fields);
+}
+
+function SortableOpenSourceCard(props: {
   card: OpenSourceEntry;
   activeOpenSourceId: string | null;
   setEditingEntry: (entry: OpenSourceEntry) => void;
@@ -95,6 +112,9 @@ function SortableOpenSourceCard(props: {
     }, 50);
   };
 
+  const babyStepHelperUrls =
+    props.card.status === 'babyStep' ? getBabyStepHelperUrls(props.card) : [];
+
   return (
     <div 
       ref={setNodeRef} 
@@ -116,6 +136,17 @@ function SortableOpenSourceCard(props: {
           )}
         </div>
       </div>
+      {babyStepHelperUrls.length > 0 && (
+        <div
+          className="mt-2 space-y-1.5"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {babyStepHelperUrls.map((url) => (
+            <HelperGuideLink key={url} href={url} compact />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -369,19 +400,10 @@ function OpenSourceModal({
 
     return (
       <div key={index} className="space-y-2">
-        <div className="flex justify-between items-center gap-4">
-          <label className="block text-gray-900 font-semibold">{requirement.text}</label>
-          {requirement.helper_video && (
-            <a 
-              href={requirement.helper_video} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-electric-blue hover:underline text-xs whitespace-nowrap"
-            >
-              Watch Helper Video
-            </a>
-          )}
-        </div>
+        <label className="block text-gray-900 font-semibold">{requirement.text}</label>
+        {requirement.helper_video && (
+          <HelperGuideLink href={requirement.helper_video} />
+        )}
         {requirement.type === 'URL' && (
           <input
             type="text"
@@ -730,15 +752,8 @@ function OpenSourceModal({
                             return (
                               <>
                                 {req.helper_video && (
-                                  <div className="flex justify-end mb-2">
-                                    <a 
-                                      href={req.helper_video} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-electric-blue hover:underline text-xs whitespace-nowrap"
-                                    >
-                                      Watch Helper Video
-                                    </a>
+                                  <div className="mb-2">
+                                    <HelperGuideLink href={req.helper_video} />
                                   </div>
                                 )}
                                 {req.type === 'URL' && (
