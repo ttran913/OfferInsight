@@ -23,9 +23,9 @@
             "metric": "Have 1 conversation with someone in the project's ecosystem (a maintainer, contributor, or a user of a competing project).",
             "plan_column_fields": [],
             "baby_step_column_fields": [{
-                "type": "URL",
-                "text": "Find someone in the project's ecosystem to talk to (a maintainer, contributor, or a user of a competing project).",
-                "helper_video": ""
+                "type": "checkbox",
+                "text": "Read this guide on reaching out to a user of your open source project.",
+                "helper_video": "https://docs.google.com/document/d/1TzeyqMQmx2BKx1ps49aiy7-ColCJ-ghDaISban_xT3c/"
             }],
             "proof_of_completion_column_fields": [{
                 "type": "URL",
