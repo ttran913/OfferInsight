@@ -9,7 +9,7 @@ import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import type { LinkedinOutreach, LinkedinOutreachColumnId, BoardTimeFilter, LinkedinOutreachStatus } from './types';
 import { linkedinOutreachStatusToColumn, linkedinOutreachColumnToStatus } from './types';
-import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, LockTooltip, VideoModal, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel } from './shared';
+import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, LockTooltip, VideoModal, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
 
 // ===== DATE FIELD EDITING TOGGLE START =====
 // Toggle this flag to enable editing dateCreated and dateModified in create/edit modals for testing and debugging.
@@ -475,7 +475,7 @@ function LinkedinOutreachModal({
                   id="recievedReferral"
                   checked={formData.recievedReferral}
                   onChange={(e) => setFormData({ ...formData, recievedReferral: e.target.checked })}
-                  className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
+                  className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                 />
                 <label htmlFor="recievedReferral" className="ml-2 font-semibold text-gray-900">
                   Received Referral
@@ -495,7 +495,7 @@ function LinkedinOutreachModal({
                     checked={formData.recievedReferral}
                     onChange={(e) => setFormData({ ...formData, recievedReferral: e.target.checked })}
                     disabled={true}
-                    className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
+                    className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                   />
                   <label htmlFor="recievedReferral" className="ml-2 font-semibold text-gray-900">
                     Received Referral

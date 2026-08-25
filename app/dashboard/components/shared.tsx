@@ -55,6 +55,10 @@ export function ModalPanel({
   );
 }
 
+/** Shared board-modal checkbox style: dark border unchecked; blue fill when checked so the white checkmark is visible. */
+export const BOARD_CHECKBOX_CLASS =
+  'rounded border-2 border-gray-500 bg-white text-electric-blue checked:bg-electric-blue checked:border-electric-blue focus:ring-2 focus:ring-electric-blue focus:ring-offset-1';
+
 // Delete Confirmation Modal
 export function DeleteModal({ 
   onConfirm, 

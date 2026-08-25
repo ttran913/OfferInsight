@@ -8,7 +8,7 @@ import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import type { OpenSourceEntry, OpenSourceColumnId, BoardTimeFilter, OpenSourceStatus } from './types';
 import { openSourceStatusToColumn } from './types';
-import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel } from './shared';
+import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
@@ -407,7 +407,7 @@ function OpenSourceModal({
               checked={!!value}
               onChange={(e) => handleProofResponseChange(requirement.text, e.target.checked, forcedStatus)}
               disabled={disabled}
-              className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`w-5 h-5 ${BOARD_CHECKBOX_CLASS} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             />
             <span className="text-gray-600">Done</span>
           </div>
@@ -617,7 +617,7 @@ function OpenSourceModal({
                               }));
                             }
                           }}
-                          className="w-4 h-4 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue"
+                          className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                         />
                         <div className="flex flex-col">
                           <span className="text-sm text-gray-800">
@@ -766,7 +766,7 @@ function OpenSourceModal({
                                       checked={!!value}
                                       onChange={(e) => handleProofResponseChange(req.text, e.target.checked, undefined)}
                                       disabled={isDisabled}
-                                      className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                      className={`w-5 h-5 ${BOARD_CHECKBOX_CLASS} ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                     />
                                     <span className="text-gray-600">Done</span>
                                   </div>
