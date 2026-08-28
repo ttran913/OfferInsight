@@ -26,7 +26,7 @@ export function HelperGuideLink({
 }) {
   const isVideo = isVideoHelperUrl(href);
   const Icon = isVideo ? PlayCircle : BookOpen;
-  const label = isVideo ? 'Watch helper video' : 'Open helper guide';
+  const label = isVideo ? 'Watch helper video' : 'View Baby Step(s)';
 
   return (
     <a

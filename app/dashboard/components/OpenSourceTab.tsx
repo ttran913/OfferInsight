@@ -62,21 +62,55 @@ type OpenSourceTabProps = {
   readOnly?: boolean;
 };
 
+function resolveCriteriaDef(criteriaType: string | null | undefined, activePartnershipCriteria: any[]) {
+  if (!criteriaType) return null;
+  return (
+    activePartnershipCriteria.find((c) => c.type === criteriaType) ??
+    (typesData.types as Record<string, any>)?.[criteriaType] ??
+    null
+  );
+}
+
+function dedupeFieldsByText(fields: any[]): any[] {
+  const seen = new Set<string>();
+  return (fields ?? []).filter((field) => {
+    const text = field?.text?.trim();
+    if (!text) return true;
+    if (seen.has(text)) return false;
+    seen.add(text);
+    return true;
+  });
+}
+
 function getBabyStepHelperUrls(card: OpenSourceEntry): string[] {
-  const collect = (fields: any[] | null | undefined) =>
-    [...new Set(
-      (fields ?? [])
-        .map((field) => field?.helper_video)
-        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-    )];
+  const urls: string[] = [];
+  const seenFieldKeys = new Set<string>();
 
-  const fromCard = collect(card.babyStepFields);
-  if (fromCard.length > 0) return fromCard;
+  const addFromFields = (fields: any[] | undefined) => {
+    for (const field of fields ?? []) {
+      const text = field?.text?.trim() ?? '';
+      const url = field?.helper_video;
+      if (typeof url !== 'string' || !url.trim()) continue;
+      const key = `${text}::${url}`;
+      if (seenFieldKeys.has(key)) continue;
+      seenFieldKeys.add(key);
+      urls.push(url);
+    }
+  };
 
-  const typeDef = card.criteriaType
+  const primaryDef = card.criteriaType
     ? (typesData.types as Record<string, any>)?.[card.criteriaType]
     : null;
-  return collect(typeDef?.baby_step_column_fields);
+  addFromFields(primaryDef?.baby_step_column_fields);
+
+  if (card.criteriaType === 'issue' && card.selectedExtras?.length) {
+    for (const extraType of card.selectedExtras) {
+      const extraDef = (typesData.types as Record<string, any>)?.[extraType];
+      addFromFields(extraDef?.baby_step_column_fields);
+    }
+  }
+
+  return urls;
 }
 
 function SortableOpenSourceCard(props: {
@@ -281,39 +315,71 @@ function OpenSourceModal({
     });
   };
 
-  // Plan fields including extras. Extras are hidden in Plan column to keep the modal compact.
   const getEffectivePlanFields = () => {
-    let effectivePlan = [...formData.planFields];
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    let effectivePlan = dedupeFieldsByText(
+      primaryDef?.plan_column_fields ?? formData.planFields ?? []
+    );
+    const seenFieldTexts = new Set(
+      effectivePlan.map((field) => field?.text?.trim()).filter(Boolean) as string[]
+    );
+
     if (formData.criteriaType === 'issue' && formData.status !== 'plan') {
-      formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
-        if (extraCriteria?.plan_column_fields) {
-          effectivePlan = [...effectivePlan, ...extraCriteria.plan_column_fields];
+      formData.selectedExtras.forEach((extraType) => {
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
+        const extraFields = dedupeFieldsByText(extraCriteria?.plan_column_fields ?? []).filter((field) => {
+          const text = field?.text?.trim();
+          if (!text) return true;
+          if (seenFieldTexts.has(text)) return false;
+          seenFieldTexts.add(text);
+          return true;
+        });
+        if (extraFields.length > 0) {
+          effectivePlan = [...effectivePlan, ...extraFields];
         }
       });
     }
     return effectivePlan;
   };
 
-  // Generic helper: builds named groups from primary fields + matching extra fields.
-  // Excludes extra fields when in Plan column to keep the modal compact.
-  const getFieldGroups = (primaryFields: any[], getExtraFields: (c: any) => any[] | undefined) => {
+  // Generic helper: builds named groups from catalog primary fields + matching extra fields.
+  // Uses partnership/types catalog (not stored row fields) to avoid duplicated flattened baby steps.
+  const getFieldGroups = (
+    getPrimaryFromDef: (def: any) => any[] | undefined,
+    storedPrimaryFields: any[],
+    getExtraFields: (c: any) => any[] | undefined
+  ) => {
     const groups: Array<{ name: string; fields: any[] }> = [];
+    const seenFieldTexts = new Set<string>();
 
-    if (primaryFields && primaryFields.length > 0) {
-      const primaryType = activePartnershipCriteria.find(c => c.type === formData.criteriaType);
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    const primaryFields = dedupeFieldsByText(
+      getPrimaryFromDef(primaryDef) ?? storedPrimaryFields ?? []
+    );
+
+    if (primaryFields.length > 0) {
+      primaryFields.forEach((field) => {
+        const text = field?.text?.trim();
+        if (text) seenFieldTexts.add(text);
+      });
       groups.push({
-        name: primaryType?.short_name || formData.criteriaType || 'issue',
+        name: primaryDef?.short_name || formData.criteriaType || 'issue',
         fields: primaryFields,
       });
     }
 
     if (formData.criteriaType === 'issue' && formData.status !== 'plan') {
-      formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
+      formData.selectedExtras.forEach((extraType) => {
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
         if (extraCriteria) {
-          const fields = getExtraFields(extraCriteria);
-          if (fields && fields.length > 0) {
+          const fields = dedupeFieldsByText(getExtraFields(extraCriteria) ?? []).filter((field) => {
+            const text = field?.text?.trim();
+            if (!text) return true;
+            if (seenFieldTexts.has(text)) return false;
+            seenFieldTexts.add(text);
+            return true;
+          });
+          if (fields.length > 0) {
             groups.push({ name: extraCriteria.short_name || extraType, fields });
           }
         }
@@ -323,8 +389,18 @@ function OpenSourceModal({
     return groups;
   };
 
-  const getBabyStepGroups = () => getFieldGroups(formData.babyStepFields, c => c.baby_step_column_fields);
-  const getProofOfWorkGroups = () => getFieldGroups(formData.proofOfCompletion, c => c.proof_of_completion);
+  const getBabyStepGroups = () =>
+    getFieldGroups(
+      (def) => def?.baby_step_column_fields,
+      formData.babyStepFields,
+      (c) => c.baby_step_column_fields
+    );
+  const getProofOfWorkGroups = () =>
+    getFieldGroups(
+      (def) => def?.proof_of_completion_column_fields || def?.proof_of_completion,
+      formData.proofOfCompletion,
+      (c) => c.proof_of_completion
+    );
 
   const effectivePlan = useMemo(
     () => getEffectivePlanFields(),
@@ -464,12 +540,17 @@ function OpenSourceModal({
     
     // Recalculate fields based on current selectedExtras before saving
     // This ensures response cleanup includes all extra fields when extras are changed
-    let effectiveBabySteps = [...formData.babyStepFields];
-    let effectivePlan = [...formData.planFields];
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    let effectiveBabySteps = dedupeFieldsByText(
+      primaryDef?.baby_step_column_fields ?? formData.babyStepFields ?? []
+    );
+    let effectivePlan = dedupeFieldsByText(
+      primaryDef?.plan_column_fields ?? formData.planFields ?? []
+    );
 
     if (formData.criteriaType === 'issue') {
       formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
         if (extraCriteria) {
           if (extraCriteria.baby_step_column_fields) {
             effectiveBabySteps = [...effectiveBabySteps, ...extraCriteria.baby_step_column_fields];
@@ -480,6 +561,9 @@ function OpenSourceModal({
         }
       });
     }
+
+    effectiveBabySteps = dedupeFieldsByText(effectiveBabySteps);
+    effectivePlan = dedupeFieldsByText(effectivePlan);
 
     const effectiveProofOfWork = getEffectiveProofOfCompletionFields(
       {
