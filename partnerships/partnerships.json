@@ -311,6 +311,29 @@
                 { "type": "give_feedback", "count": 1 },
                 { "type": "issue", "count": 3 }
             ]
+        },
+        {
+            "id": 21,
+            "name": "Jonathan",
+            "linkedIn": "",
+            "company": "DMDC",
+            "role": "",
+            "criteria": [
+                { "type": "multiple_choice", "choices": [
+                    { "type": "ecosystem_comments", "count": 1 },
+                    { "type": "live_coding", "count": 1 }
+                ]},
+                { "type": "learn_and_apply", "count": 1 },
+                { "type": "documentation_gap", "count": 1 },
+                { "type": "multiple_choice", "choices": [
+                    { "type": "above_and_beyond", "count": 1 },
+                    { "type": "SWE_pipeline_blog_post", "count": 1 }
+                ]},
+                { "type": "outside_comfort_zone", "count": 1 },
+                { "type": "blog_post", "count": 1 },
+                { "type": "system_design", "count": 1 },
+                { "type": "issue", "count": 3 }
+            ]
         }
     ]
 }   
