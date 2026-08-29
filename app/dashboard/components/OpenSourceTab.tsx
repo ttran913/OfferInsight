@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getApiHeaders } from '@/app/lib/api-helpers';
 import { X, ChevronDown, ChevronUp, PartyPopper, Medal, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core';
@@ -11,6 +11,7 @@ import { openSourceStatusToColumn } from './types';
 import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS, HelperGuideLink } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
+import { helperClickKey, isHelperClickKey, HELPER_CLICK_PREFIX } from '../lib/open-source-baby-step';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
 
 // Debug: set to true to show date created/modified fields in the open source modal
@@ -59,6 +60,8 @@ type OpenSourceTabProps = {
   isInstructor?: boolean;
   showProofOfWorkWarning?: boolean;
   setShowProofOfWorkWarning?: (show: boolean) => void;
+  showBabyStepWarning?: boolean;
+  setShowBabyStepWarning?: (show: boolean) => void;
   readOnly?: boolean;
 };
 
@@ -82,8 +85,10 @@ function dedupeFieldsByText(fields: any[]): any[] {
   });
 }
 
-function getBabyStepHelperUrls(card: OpenSourceEntry): string[] {
-  const urls: string[] = [];
+function getBabyStepHelperLinks(
+  card: OpenSourceEntry
+): Array<{ fieldText: string; url: string }> {
+  const links: Array<{ fieldText: string; url: string }> = [];
   const seenFieldKeys = new Set<string>();
 
   const addFromFields = (fields: any[] | undefined) => {
@@ -94,7 +99,7 @@ function getBabyStepHelperUrls(card: OpenSourceEntry): string[] {
       const key = `${text}::${url}`;
       if (seenFieldKeys.has(key)) continue;
       seenFieldKeys.add(key);
-      urls.push(url);
+      links.push({ fieldText: text, url });
     }
   };
 
@@ -110,7 +115,7 @@ function getBabyStepHelperUrls(card: OpenSourceEntry): string[] {
     }
   }
 
-  return urls;
+  return links;
 }
 
 function SortableOpenSourceCard(props: {
@@ -119,6 +124,7 @@ function SortableOpenSourceCard(props: {
   setEditingEntry: (entry: OpenSourceEntry) => void;
   setIsModalOpen: (open: boolean) => void;
   isDraggingOpenSourceRef: React.MutableRefObject<boolean>;
+  onRecordHelperClick: (entryId: number, fieldText: string) => void;
   readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(props.card.id) });
@@ -146,8 +152,9 @@ function SortableOpenSourceCard(props: {
     }, 50);
   };
 
-  const babyStepHelperUrls =
-    props.card.status === 'babyStep' ? getBabyStepHelperUrls(props.card) : [];
+  const babyStepHelperLinks =
+    props.card.status === 'babyStep' ? getBabyStepHelperLinks(props.card) : [];
+  const babyStepResponses = props.card.babyStepResponses ?? {};
 
   return (
     <div 
@@ -170,14 +177,24 @@ function SortableOpenSourceCard(props: {
           )}
         </div>
       </div>
-      {babyStepHelperUrls.length > 0 && (
+      {babyStepHelperLinks.length > 0 && (
         <div
           className="mt-2 space-y-1.5"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {babyStepHelperUrls.map((url) => (
-            <HelperGuideLink key={url} href={url} compact />
+          {babyStepHelperLinks.map(({ fieldText, url }) => (
+            <HelperGuideLink
+              key={`${fieldText}::${url}`}
+              href={url}
+              compact
+              clicked={!!babyStepResponses[helperClickKey(fieldText)]}
+              onHelperClick={
+                props.readOnly
+                  ? undefined
+                  : () => props.onRecordHelperClick(props.card.id, fieldText)
+              }
+            />
           ))}
         </div>
       )}
@@ -191,6 +208,7 @@ function OpenSourceModal({
   onClose, 
   onSave,
   onDelete,
+  onRecordHelperClick,
   selectedPartnership,
   activePartnershipCriteria,
   availablePartnerships,
@@ -202,6 +220,7 @@ function OpenSourceModal({
   onClose: () => void; 
   onSave: (data: Partial<OpenSourceEntry>) => void;
   onDelete?: () => void;
+  onRecordHelperClick?: (fieldText: string) => void;
   selectedPartnership: string | null;
   activePartnershipCriteria: any[];
   availablePartnerships: Array<{ id: number; name: string; spotsRemaining: number; criteria?: any[] }>;
@@ -478,7 +497,24 @@ function OpenSourceModal({
       <div key={index} className="space-y-2">
         <label className="block text-gray-900 font-semibold">{requirement.text}</label>
         {requirement.helper_video && (
-          <HelperGuideLink href={requirement.helper_video} />
+          <HelperGuideLink
+            href={requirement.helper_video}
+            clicked={!!formData.babyStepResponses[helperClickKey(requirement.text)]}
+            onHelperClick={
+              readOnly || status !== 'babyStep'
+                ? undefined
+                : () => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      babyStepResponses: {
+                        ...prev.babyStepResponses,
+                        [helperClickKey(requirement.text)]: true,
+                      },
+                    }));
+                    onRecordHelperClick?.(requirement.text);
+                  }
+            }
+          />
         )}
         {requirement.type === 'URL' && (
           <input
@@ -593,6 +629,11 @@ function OpenSourceModal({
     Object.keys(formData.babyStepResponses).forEach(key => {
       if (validBabyStepKeys.has(key)) {
         cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+      } else if (isHelperClickKey(key)) {
+        const fieldText = key.slice(HELPER_CLICK_PREFIX.length);
+        if (validBabyStepKeys.has(fieldText)) {
+          cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+        }
       }
     });
     
@@ -1005,6 +1046,8 @@ export default function OpenSourceTab({
   isInstructor = false,
   showProofOfWorkWarning = false,
   setShowProofOfWorkWarning,
+  showBabyStepWarning = false,
+  setShowBabyStepWarning,
   readOnly = false,
 }: OpenSourceTabProps & { isDraggingOpenSourceRef: React.MutableRefObject<boolean> }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -1020,6 +1063,76 @@ export default function OpenSourceTab({
   const [partnershipError, setPartnershipError] = useState<string | null>(null);
   const [newEntryDefaultCriteriaType, setNewEntryDefaultCriteriaType] = useState<string | null>(null);
   const prevCriteriaCompleteRef = useRef<boolean | null>(null);
+
+  const recordBabyStepHelperClick = useCallback(
+    async (entryId: number, fieldText: string) => {
+      if (readOnly) return;
+
+      const clickKey = helperClickKey(fieldText);
+      let foundEntry: OpenSourceEntry | null = null;
+      for (const col of Object.keys(openSourceColumns) as OpenSourceColumnId[]) {
+        const entry = openSourceColumns[col].find((e) => e.id === entryId);
+        if (entry) {
+          foundEntry = entry;
+          break;
+        }
+      }
+      if (!foundEntry) return;
+
+      const updatedEntry: OpenSourceEntry = {
+        ...foundEntry,
+        babyStepResponses: {
+          ...(foundEntry.babyStepResponses ?? {}),
+          [clickKey]: true,
+        },
+      };
+
+      setOpenSourceColumns((prev) => {
+        const newColumns: Record<OpenSourceColumnId, OpenSourceEntry[]> = {
+          plan: [...prev.plan],
+          babyStep: [...prev.babyStep],
+          inProgress: [...prev.inProgress],
+          done: [...prev.done],
+        };
+        for (const col of Object.keys(newColumns) as OpenSourceColumnId[]) {
+          const idx = newColumns[col].findIndex((e) => e.id === entryId);
+          if (idx !== -1) {
+            newColumns[col][idx] = updatedEntry;
+            break;
+          }
+        }
+        return newColumns;
+      });
+
+      if (editingEntry?.id === entryId) {
+        setEditingEntry(updatedEntry);
+      }
+
+      try {
+        const url = userIdParam
+          ? `/api/open_source?userId=${userIdParam}`
+          : '/api/open_source';
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: getApiHeaders(),
+          body: JSON.stringify({ ...updatedEntry, id: entryId }),
+        });
+        if (!response.ok) throw new Error('Failed to record helper click');
+      } catch (error) {
+        console.error('Error recording helper click:', error);
+        await fetchOpenSourceEntries();
+      }
+    },
+    [
+      readOnly,
+      openSourceColumns,
+      editingEntry,
+      userIdParam,
+      fetchOpenSourceEntries,
+      setOpenSourceColumns,
+      setEditingEntry,
+    ]
+  );
 
   useEffect(() => {
     if (!readOnly) return;
@@ -1705,6 +1818,26 @@ export default function OpenSourceTab({
             </ModalOverlay>
           )}
 
+          {/* Baby Step Warning Modal */}
+          {showBabyStepWarning && setShowBabyStepWarning && (
+            <ModalOverlay onClose={() => setShowBabyStepWarning(false)}>
+              <ModalPanel size="md">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Baby Steps Required</h3>
+                <p className="text-amber-400 text-sm mb-6 font-semibold">
+                  Complete baby steps first — open each helper and check Done where required.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowBabyStepWarning(false)}
+                    className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    OK
+                  </button>
+                </div>
+              </ModalPanel>
+            </ModalOverlay>
+          )}
+
           {/* Congratulations Modal - All Partnership Criteria Completed */}
           {showCongratsModal && (
             <ModalOverlay onClose={() => handleCompletePartnership(false)}>
@@ -1768,6 +1901,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1826,6 +1960,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1853,6 +1988,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1880,6 +2016,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -2173,6 +2310,11 @@ export default function OpenSourceTab({
               await fetchOpenSourceEntries();
             }
           }}
+          onRecordHelperClick={
+            editingEntry
+              ? (fieldText) => recordBabyStepHelperClick(editingEntry.id, fieldText)
+              : undefined
+          }
           selectedPartnership={selectedPartnership}
           activePartnershipCriteria={
             // When editing a completed partnership's card, use that partnership's saved criteria

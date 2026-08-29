@@ -20,23 +20,40 @@ function isVideoHelperUrl(url: string): boolean {
 export function HelperGuideLink({
   href,
   compact = false,
+  clicked = false,
+  onHelperClick,
 }: {
   href: string;
   compact?: boolean;
+  clicked?: boolean;
+  onHelperClick?: () => void;
 }) {
   const isVideo = isVideoHelperUrl(href);
   const Icon = isVideo ? PlayCircle : BookOpen;
-  const label = isVideo ? 'Watch helper video' : 'View Baby Step(s)';
+  const baseLabel = isVideo ? 'Watch helper video' : 'View Baby Step(s)';
+  const label = clicked ? (isVideo ? 'Video opened' : 'Guide opened') : baseLabel;
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onHelperClick?.();
+    if (!href) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className={
         compact
-          ? 'inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-electric-blue px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors'
-          : 'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-electric-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors'
+          ? `inline-flex w-full items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${
+              clicked ? 'bg-violet-700 hover:bg-violet-800' : 'bg-electric-blue hover:bg-blue-600'
+            }`
+          : `inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors ${
+              clicked ? 'bg-violet-700 hover:bg-violet-800' : 'bg-electric-blue hover:bg-blue-600'
+            }`
       }
     >
       <Icon className={compact ? 'w-4 h-4 flex-shrink-0' : 'w-5 h-5 flex-shrink-0'} aria-hidden />

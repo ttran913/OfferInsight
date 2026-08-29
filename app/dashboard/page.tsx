@@ -19,6 +19,10 @@ import {
   getPartnershipCriteriaForEntry,
   isProofOfWorkComplete,
 } from './lib/open-source-proof-of-work';
+import {
+  isBabyStepComplete,
+  statusRequiresBabyStepComplete,
+} from './lib/open-source-baby-step';
 import type {
   Application,
   ApplicationStatus,
@@ -649,6 +653,7 @@ const hasSeededMockDataRef = useRef(false);
   const isFetchingAvailablePartnershipsRef = useRef(false);
   const isDraggingOpenSourceRef = useRef(false);
   const [showProofOfWorkWarning, setShowProofOfWorkWarning] = useState(false);
+  const [showBabyStepWarning, setShowBabyStepWarning] = useState(false);
 
   const fetchOpenSourceEntries = useCallback(async () => {
     // --- MOCK DATA BYPASS FOR OPENSOURCE FETCH START ---
@@ -904,6 +909,15 @@ const hasSeededMockDataRef = useRef(false);
         activePartnershipCriteria,
         completedPartnerships
       );
+      if (
+        statusRequiresBabyStepComplete(fromCol, toCol) &&
+        !isBabyStepComplete(movingItem, partnershipCriteria)
+      ) {
+        setShowBabyStepWarning(true);
+        setActiveOpenSourceId(null);
+        isDraggingOpenSourceRef.current = false;
+        return;
+      }
       if (toCol === 'done' && !isProofOfWorkComplete(movingItem, partnershipCriteria)) {
         setShowProofOfWorkWarning(true);
         setActiveOpenSourceId(null);
@@ -1813,6 +1827,8 @@ const hasSeededMockDataRef = useRef(false);
             isInstructor={isInstructor}
             showProofOfWorkWarning={showProofOfWorkWarning}
             setShowProofOfWorkWarning={setShowProofOfWorkWarning}
+            showBabyStepWarning={showBabyStepWarning}
+            setShowBabyStepWarning={setShowBabyStepWarning}
             readOnly={!canEditViewedUser && !!userIdParam}
           />
         )}
