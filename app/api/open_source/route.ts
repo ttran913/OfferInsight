@@ -7,6 +7,65 @@ import {
   logOpenSourceColumnMove,
   logOpenSourceFieldEdits,
 } from "@/app/lib/open-source-status-log";
+import { isUserManagedCriteriaType } from "@/app/lib/open-source-user-managed";
+import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
+import {
+  getPartnershipCriteriaFromCatalog,
+  isBabyStepComplete,
+  statusRequiresBabyStepComplete,
+} from "@/app/dashboard/lib/open-source-baby-step";
+
+type OpenSourceDbEntry = {
+  id: number;
+  partnershipName: string;
+  criteriaType: string | null;
+  metric: string | null;
+  status: string;
+  selectedExtras: unknown;
+  planFields: unknown;
+  planResponses: unknown;
+  babyStepFields: unknown;
+  babyStepResponses: unknown;
+  proofOfCompletion: unknown;
+  proofResponses: unknown;
+  userId: string;
+};
+
+function toOpenSourceEntry(row: OpenSourceDbEntry): OpenSourceEntry {
+  return {
+    id: row.id,
+    partnershipName: row.partnershipName,
+    criteriaType: row.criteriaType,
+    metric: row.metric,
+    status: row.status as OpenSourceStatus,
+    selectedExtras: (row.selectedExtras as string[] | null) ?? [],
+    planFields: (row.planFields as OpenSourceEntry["planFields"]) ?? [],
+    planResponses: (row.planResponses as OpenSourceEntry["planResponses"]) ?? {},
+    babyStepFields: (row.babyStepFields as OpenSourceEntry["babyStepFields"]) ?? [],
+    babyStepResponses: (row.babyStepResponses as OpenSourceEntry["babyStepResponses"]) ?? {},
+    proofOfCompletion: (row.proofOfCompletion as OpenSourceEntry["proofOfCompletion"]) ?? [],
+    proofResponses: (row.proofResponses as OpenSourceEntry["proofResponses"]) ?? {},
+    userId: row.userId,
+  };
+}
+
+function getBabyStepValidationError(
+  existing: OpenSourceDbEntry,
+  newStatus: OpenSourceStatus,
+  entryForValidation: OpenSourceEntry
+): string | null {
+  const fromStatus = existing.status as OpenSourceStatus;
+  if (!statusRequiresBabyStepComplete(fromStatus, newStatus)) {
+    return null;
+  }
+
+  const partnershipCriteria = getPartnershipCriteriaFromCatalog(existing.partnershipName);
+  if (!isBabyStepComplete(entryForValidation, partnershipCriteria)) {
+    return "Complete baby steps first — open each helper and check Done where required.";
+  }
+
+  return null;
+}
 
 // GET: Fetch all open source entries for a user
 export async function GET(request: NextRequest) {
@@ -119,6 +178,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
+    const newStatus = data.status as OpenSourceStatus;
+    if (data.status && data.status !== existing.status) {
+      const entryForValidation = toOpenSourceEntry({
+        ...existing,
+        babyStepResponses: data.babyStepResponses ?? existing.babyStepResponses,
+        selectedExtras: data.selectedExtras ?? existing.selectedExtras,
+        babyStepFields: data.babyStepFields ?? existing.babyStepFields,
+        criteriaType: data.criteriaType ?? existing.criteriaType,
+      });
+      const babyStepError = getBabyStepValidationError(existing, newStatus, entryForValidation);
+      if (babyStepError) {
+        return NextResponse.json({ error: babyStepError }, { status: 400 });
+      }
+    }
+
     const entry = await prisma.openSourceEntry.update({
       where: { id: data.id, userId: userId },
       data: {
@@ -201,9 +275,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
-    if (existing.criteriaType !== "issue") {
+    if (!isUserManagedCriteriaType(existing.criteriaType)) {
       return NextResponse.json(
-        { error: "Only issue cards can be deleted." },
+        { error: "Only user-managed cards can be deleted." },
         { status: 403 }
       );
     }
@@ -251,6 +325,16 @@ export async function PATCH(request: NextRequest) {
 
     if (!existing) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    const newStatus = status as OpenSourceStatus;
+    const babyStepError = getBabyStepValidationError(
+      existing,
+      newStatus,
+      toOpenSourceEntry(existing)
+    );
+    if (babyStepError) {
+      return NextResponse.json({ error: babyStepError }, { status: 400 });
     }
 
     const entry = await prisma.openSourceEntry.update({

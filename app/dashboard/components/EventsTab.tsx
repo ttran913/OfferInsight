@@ -9,7 +9,7 @@ import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import type { InPersonEvent, EventColumnId, BoardTimeFilter, InPersonEventStatus } from './types';
 import { eventStatusToColumn, eventColumnToStatus } from './types';
-import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, getLocalTimeParts, getLocalDateParts, LockTooltip, VideoModal, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel } from './shared';
+import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, getLocalTimeParts, getLocalDateParts, LockTooltip, VideoModal, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
 
 const hourOptions = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 const minuteOptions = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
@@ -488,7 +488,7 @@ function InPersonEventModal({
               id="careerFair"
               checked={formData.careerFair}
               onChange={(e) => setFormData(prev => ({ ...prev, careerFair: e.target.checked }))}
-              className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
+              className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
             />
             <label htmlFor="careerFair" className="ml-2 font-semibold text-gray-900">
               This is a career fair
@@ -563,7 +563,7 @@ function InPersonEventModal({
                         checked={formData.sentLinkedInRequest}
                         onChange={(e) => setFormData(prev => ({ ...prev, sentLinkedInRequest: e.target.checked }))}
                         disabled={true}
-                        className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
+                        className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                       />
                       <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-gray-900">
                         Sent LinkedIn Request
@@ -581,7 +581,7 @@ function InPersonEventModal({
                       id="sentLinkedInRequest"
                       checked={formData.sentLinkedInRequest}
                       onChange={(e) => setFormData(prev => ({ ...prev, sentLinkedInRequest: e.target.checked }))}
-                      className="w-4 h-4 border rounded bg-gray-100 border-gray-200 text-electric-blue focus:ring-electric-blue"
+                      className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                     />
                     <label htmlFor="sentLinkedInRequest" className="ml-2 font-semibold text-gray-900">
                       Sent LinkedIn Request

@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Lock, X } from 'lucide-react';
+import { Plus, Lock, X, PlayCircle, BookOpen } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import React, { useState, useEffect } from 'react';
 
@@ -11,6 +11,56 @@ const MODAL_PANEL_MAX_WIDTH: Record<ModalPanelSize, string> = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
 };
+
+function isVideoHelperUrl(url: string): boolean {
+  return /youtu\.be|youtube\.com/i.test(url);
+}
+
+/** Emphasized CTA for Open Source helper videos / guides (opens in a new tab). */
+export function HelperGuideLink({
+  href,
+  compact = false,
+  clicked = false,
+  onHelperClick,
+}: {
+  href: string;
+  compact?: boolean;
+  clicked?: boolean;
+  onHelperClick?: () => void;
+}) {
+  const isVideo = isVideoHelperUrl(href);
+  const Icon = isVideo ? PlayCircle : BookOpen;
+  const baseLabel = isVideo ? 'Watch helper video' : 'View Baby Step(s)';
+  const label = clicked ? (isVideo ? 'Video opened' : 'Guide opened') : baseLabel;
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onHelperClick?.();
+    if (!href) {
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleClick}
+      className={
+        compact
+          ? `inline-flex w-full items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${
+              clicked ? 'bg-violet-700 hover:bg-violet-800' : 'bg-electric-blue hover:bg-blue-600'
+            }`
+          : `inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors ${
+              clicked ? 'bg-violet-700 hover:bg-violet-800' : 'bg-electric-blue hover:bg-blue-600'
+            }`
+      }
+    >
+      <Icon className={compact ? 'w-4 h-4 flex-shrink-0' : 'w-5 h-5 flex-shrink-0'} aria-hidden />
+      <span>{label}</span>
+    </a>
+  );
+}
 
 /** Full-screen backdrop above the fixed navbar; content starts below --navbar-height. */
 export function ModalOverlay({
@@ -54,6 +104,10 @@ export function ModalPanel({
     </div>
   );
 }
+
+/** Shared board-modal checkbox style: dark border unchecked; blue fill when checked so the white checkmark is visible. */
+export const BOARD_CHECKBOX_CLASS =
+  'rounded border-2 border-gray-500 bg-white text-electric-blue checked:bg-electric-blue checked:border-electric-blue focus:ring-2 focus:ring-electric-blue focus:ring-offset-1';
 
 // Delete Confirmation Modal
 export function DeleteModal({ 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getApiHeaders } from '@/app/lib/api-helpers';
 import { X, ChevronDown, ChevronUp, PartyPopper, Medal, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core';
@@ -8,9 +8,11 @@ import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities';
 import type { OpenSourceEntry, OpenSourceColumnId, BoardTimeFilter, OpenSourceStatus } from './types';
 import { openSourceStatusToColumn } from './types';
-import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel } from './shared';
+import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS, HelperGuideLink } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
+import { helperClickKey, isHelperClickKey, HELPER_CLICK_PREFIX } from '../lib/open-source-baby-step';
+import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
 
 // Debug: set to true to show date created/modified fields in the open source modal
 const ENABLE_DATE_FIELD_EDITING = false;
@@ -58,15 +60,78 @@ type OpenSourceTabProps = {
   isInstructor?: boolean;
   showProofOfWorkWarning?: boolean;
   setShowProofOfWorkWarning?: (show: boolean) => void;
+  showBabyStepWarning?: boolean;
+  setShowBabyStepWarning?: (show: boolean) => void;
   readOnly?: boolean;
 };
 
-function SortableOpenSourceCard(props: { 
+function resolveCriteriaDef(criteriaType: string | null | undefined, activePartnershipCriteria: any[]) {
+  if (!criteriaType) return null;
+  return (
+    activePartnershipCriteria.find((c) => c.type === criteriaType) ??
+    (typesData.types as Record<string, any>)?.[criteriaType] ??
+    null
+  );
+}
+
+function dedupeFieldsByText(fields: any[]): any[] {
+  const seen = new Set<string>();
+  return (fields ?? []).filter((field) => {
+    const text = field?.text?.trim();
+    if (!text) return true;
+    if (seen.has(text)) return false;
+    seen.add(text);
+    return true;
+  });
+}
+
+function getBabyStepHelperLinks(
+  card: OpenSourceEntry
+): Array<{ fieldText: string; url: string }> {
+  const links: Array<{ fieldText: string; url: string }> = [];
+  const seenFieldKeys = new Set<string>();
+
+  const addFromFields = (fields: any[] | undefined) => {
+    for (const field of fields ?? []) {
+      const text = field?.text?.trim() ?? '';
+      const url = field?.helper_video;
+      if (typeof url !== 'string' || !url.trim()) continue;
+      const key = `${text}::${url}`;
+      if (seenFieldKeys.has(key)) continue;
+      seenFieldKeys.add(key);
+      links.push({ fieldText: text, url });
+    }
+  };
+
+  const primaryDef = card.criteriaType
+    ? (typesData.types as Record<string, any>)?.[card.criteriaType]
+    : null;
+  addFromFields(primaryDef?.baby_step_column_fields);
+
+  if (card.criteriaType === 'issue' && card.selectedExtras?.length) {
+    for (const extraType of card.selectedExtras) {
+      const extraDef = (typesData.types as Record<string, any>)?.[extraType];
+      addFromFields(extraDef?.baby_step_column_fields);
+    }
+  }
+
+  return links;
+}
+
+function getOpenSourceCardBorderClass(criteriaType?: string | null): string {
+  if (criteriaType === 'ecosystem_conversation') {
+    return 'border-2 border-amber-400 bg-amber-50/60 hover:border-amber-500 hover:shadow-sm';
+  }
+  return 'border border-gray-200 hover:border-electric-blue';
+}
+
+function SortableOpenSourceCard(props: {
   card: OpenSourceEntry;
   activeOpenSourceId: string | null;
   setEditingEntry: (entry: OpenSourceEntry) => void;
   setIsModalOpen: (open: boolean) => void;
   isDraggingOpenSourceRef: React.MutableRefObject<boolean>;
+  onRecordHelperClick: (entryId: number, fieldText: string) => void;
   readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(props.card.id) });
@@ -94,6 +159,10 @@ function SortableOpenSourceCard(props: {
     }, 50);
   };
 
+  const babyStepHelperLinks =
+    props.card.status === 'babyStep' ? getBabyStepHelperLinks(props.card) : [];
+  const babyStepResponses = props.card.babyStepResponses ?? {};
+
   return (
     <div 
       ref={setNodeRef} 
@@ -101,7 +170,7 @@ function SortableOpenSourceCard(props: {
       {...(props.readOnly ? {} : attributes)} 
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className={`bg-white rounded-lg p-3 cursor-pointer transition-colors group relative ${getOpenSourceCardBorderClass(props.card.criteriaType)}`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -115,6 +184,27 @@ function SortableOpenSourceCard(props: {
           )}
         </div>
       </div>
+      {babyStepHelperLinks.length > 0 && (
+        <div
+          className="mt-2 space-y-1.5"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {babyStepHelperLinks.map(({ fieldText, url }) => (
+            <HelperGuideLink
+              key={`${fieldText}::${url}`}
+              href={url}
+              compact
+              clicked={!!babyStepResponses[helperClickKey(fieldText)]}
+              onHelperClick={
+                props.readOnly
+                  ? undefined
+                  : () => props.onRecordHelperClick(props.card.id, fieldText)
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -125,6 +215,7 @@ function OpenSourceModal({
   onClose, 
   onSave,
   onDelete,
+  onRecordHelperClick,
   selectedPartnership,
   activePartnershipCriteria,
   availablePartnerships,
@@ -136,6 +227,7 @@ function OpenSourceModal({
   onClose: () => void; 
   onSave: (data: Partial<OpenSourceEntry>) => void;
   onDelete?: () => void;
+  onRecordHelperClick?: (fieldText: string) => void;
   selectedPartnership: string | null;
   activePartnershipCriteria: any[];
   availablePartnerships: Array<{ id: number; name: string; spotsRemaining: number; criteria?: any[] }>;
@@ -204,12 +296,14 @@ function OpenSourceModal({
     } else {
       const defaultType = newEntryDefaultCriteriaType || '';
       const primaryCriteria = defaultType ? activePartnershipCriteria.find(c => c.type === defaultType) : null;
-      const issueTypeFromJson = (typesData.types as Record<string, any>)?.issue;
-      const fallback = defaultType === 'issue' ? issueTypeFromJson : null;
+      const typeFromJson = defaultType
+        ? (typesData.types as Record<string, any>)?.[defaultType]
+        : null;
+      const fallback = isUserManagedCriteriaType(defaultType) ? typeFromJson : null;
       const source = primaryCriteria || fallback;
       setFormData({
         partnershipName: selectedPartnership || '',
-        metric: primaryCriteria?.metric ?? issueTypeFromJson?.metric ?? '',
+        metric: primaryCriteria?.metric ?? typeFromJson?.metric ?? '',
         status: 'plan',
         criteriaType: defaultType,
         selectedExtras: [],
@@ -247,39 +341,71 @@ function OpenSourceModal({
     });
   };
 
-  // Plan fields including extras. Extras are hidden in Plan column to keep the modal compact.
   const getEffectivePlanFields = () => {
-    let effectivePlan = [...formData.planFields];
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    let effectivePlan = dedupeFieldsByText(
+      primaryDef?.plan_column_fields ?? formData.planFields ?? []
+    );
+    const seenFieldTexts = new Set(
+      effectivePlan.map((field) => field?.text?.trim()).filter(Boolean) as string[]
+    );
+
     if (formData.criteriaType === 'issue' && formData.status !== 'plan') {
-      formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
-        if (extraCriteria?.plan_column_fields) {
-          effectivePlan = [...effectivePlan, ...extraCriteria.plan_column_fields];
+      formData.selectedExtras.forEach((extraType) => {
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
+        const extraFields = dedupeFieldsByText(extraCriteria?.plan_column_fields ?? []).filter((field) => {
+          const text = field?.text?.trim();
+          if (!text) return true;
+          if (seenFieldTexts.has(text)) return false;
+          seenFieldTexts.add(text);
+          return true;
+        });
+        if (extraFields.length > 0) {
+          effectivePlan = [...effectivePlan, ...extraFields];
         }
       });
     }
     return effectivePlan;
   };
 
-  // Generic helper: builds named groups from primary fields + matching extra fields.
-  // Excludes extra fields when in Plan column to keep the modal compact.
-  const getFieldGroups = (primaryFields: any[], getExtraFields: (c: any) => any[] | undefined) => {
+  // Generic helper: builds named groups from catalog primary fields + matching extra fields.
+  // Uses partnership/types catalog (not stored row fields) to avoid duplicated flattened baby steps.
+  const getFieldGroups = (
+    getPrimaryFromDef: (def: any) => any[] | undefined,
+    storedPrimaryFields: any[],
+    getExtraFields: (c: any) => any[] | undefined
+  ) => {
     const groups: Array<{ name: string; fields: any[] }> = [];
+    const seenFieldTexts = new Set<string>();
 
-    if (primaryFields && primaryFields.length > 0) {
-      const primaryType = activePartnershipCriteria.find(c => c.type === formData.criteriaType);
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    const primaryFields = dedupeFieldsByText(
+      getPrimaryFromDef(primaryDef) ?? storedPrimaryFields ?? []
+    );
+
+    if (primaryFields.length > 0) {
+      primaryFields.forEach((field) => {
+        const text = field?.text?.trim();
+        if (text) seenFieldTexts.add(text);
+      });
       groups.push({
-        name: primaryType?.short_name || formData.criteriaType || 'issue',
+        name: primaryDef?.short_name || formData.criteriaType || 'issue',
         fields: primaryFields,
       });
     }
 
     if (formData.criteriaType === 'issue' && formData.status !== 'plan') {
-      formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
+      formData.selectedExtras.forEach((extraType) => {
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
         if (extraCriteria) {
-          const fields = getExtraFields(extraCriteria);
-          if (fields && fields.length > 0) {
+          const fields = dedupeFieldsByText(getExtraFields(extraCriteria) ?? []).filter((field) => {
+            const text = field?.text?.trim();
+            if (!text) return true;
+            if (seenFieldTexts.has(text)) return false;
+            seenFieldTexts.add(text);
+            return true;
+          });
+          if (fields.length > 0) {
             groups.push({ name: extraCriteria.short_name || extraType, fields });
           }
         }
@@ -289,8 +415,18 @@ function OpenSourceModal({
     return groups;
   };
 
-  const getBabyStepGroups = () => getFieldGroups(formData.babyStepFields, c => c.baby_step_column_fields);
-  const getProofOfWorkGroups = () => getFieldGroups(formData.proofOfCompletion, c => c.proof_of_completion);
+  const getBabyStepGroups = () =>
+    getFieldGroups(
+      (def) => def?.baby_step_column_fields,
+      formData.babyStepFields,
+      (c) => c.baby_step_column_fields
+    );
+  const getProofOfWorkGroups = () =>
+    getFieldGroups(
+      (def) => def?.proof_of_completion_column_fields || def?.proof_of_completion,
+      formData.proofOfCompletion,
+      (c) => c.proof_of_completion
+    );
 
   const effectivePlan = useMemo(
     () => getEffectivePlanFields(),
@@ -366,19 +502,27 @@ function OpenSourceModal({
 
     return (
       <div key={index} className="space-y-2">
-        <div className="flex justify-between items-center gap-4">
-          <label className="block text-gray-900 font-semibold">{requirement.text}</label>
-          {requirement.helper_video && (
-            <a 
-              href={requirement.helper_video} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-electric-blue hover:underline text-xs whitespace-nowrap"
-            >
-              Watch Helper Video
-            </a>
-          )}
-        </div>
+        <label className="block text-gray-900 font-semibold">{requirement.text}</label>
+        {requirement.helper_video && (
+          <HelperGuideLink
+            href={requirement.helper_video}
+            clicked={!!formData.babyStepResponses[helperClickKey(requirement.text)]}
+            onHelperClick={
+              readOnly || status !== 'babyStep'
+                ? undefined
+                : () => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      babyStepResponses: {
+                        ...prev.babyStepResponses,
+                        [helperClickKey(requirement.text)]: true,
+                      },
+                    }));
+                    onRecordHelperClick?.(requirement.text);
+                  }
+            }
+          />
+        )}
         {requirement.type === 'URL' && (
           <input
             type="text"
@@ -404,7 +548,7 @@ function OpenSourceModal({
               checked={!!value}
               onChange={(e) => handleProofResponseChange(requirement.text, e.target.checked, forcedStatus)}
               disabled={disabled}
-              className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              className={`w-5 h-5 ${BOARD_CHECKBOX_CLASS} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
             />
             <span className="text-gray-600">Done</span>
           </div>
@@ -439,12 +583,17 @@ function OpenSourceModal({
     
     // Recalculate fields based on current selectedExtras before saving
     // This ensures response cleanup includes all extra fields when extras are changed
-    let effectiveBabySteps = [...formData.babyStepFields];
-    let effectivePlan = [...formData.planFields];
+    const primaryDef = resolveCriteriaDef(formData.criteriaType, activePartnershipCriteria);
+    let effectiveBabySteps = dedupeFieldsByText(
+      primaryDef?.baby_step_column_fields ?? formData.babyStepFields ?? []
+    );
+    let effectivePlan = dedupeFieldsByText(
+      primaryDef?.plan_column_fields ?? formData.planFields ?? []
+    );
 
     if (formData.criteriaType === 'issue') {
       formData.selectedExtras.forEach(extraType => {
-        const extraCriteria = activePartnershipCriteria.find(c => c.type === extraType);
+        const extraCriteria = resolveCriteriaDef(extraType, activePartnershipCriteria);
         if (extraCriteria) {
           if (extraCriteria.baby_step_column_fields) {
             effectiveBabySteps = [...effectiveBabySteps, ...extraCriteria.baby_step_column_fields];
@@ -455,6 +604,9 @@ function OpenSourceModal({
         }
       });
     }
+
+    effectiveBabySteps = dedupeFieldsByText(effectiveBabySteps);
+    effectivePlan = dedupeFieldsByText(effectivePlan);
 
     const effectiveProofOfWork = getEffectiveProofOfCompletionFields(
       {
@@ -484,6 +636,11 @@ function OpenSourceModal({
     Object.keys(formData.babyStepResponses).forEach(key => {
       if (validBabyStepKeys.has(key)) {
         cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+      } else if (isHelperClickKey(key)) {
+        const fieldText = key.slice(HELPER_CLICK_PREFIX.length);
+        if (validBabyStepKeys.has(fieldText)) {
+          cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+        }
       }
     });
     
@@ -614,7 +771,7 @@ function OpenSourceModal({
                               }));
                             }
                           }}
-                          className="w-4 h-4 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue"
+                          className={`w-4 h-4 ${BOARD_CHECKBOX_CLASS}`}
                         />
                         <div className="flex flex-col">
                           <span className="text-sm text-gray-800">
@@ -727,15 +884,8 @@ function OpenSourceModal({
                             return (
                               <>
                                 {req.helper_video && (
-                                  <div className="flex justify-end mb-2">
-                                    <a 
-                                      href={req.helper_video} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-electric-blue hover:underline text-xs whitespace-nowrap"
-                                    >
-                                      Watch Helper Video
-                                    </a>
+                                  <div className="mb-2">
+                                    <HelperGuideLink href={req.helper_video} />
                                   </div>
                                 )}
                                 {req.type === 'URL' && (
@@ -763,7 +913,7 @@ function OpenSourceModal({
                                       checked={!!value}
                                       onChange={(e) => handleProofResponseChange(req.text, e.target.checked, undefined)}
                                       disabled={isDisabled}
-                                      className={`w-5 h-5 rounded border-gray-200 bg-gray-100 text-electric-blue focus:ring-electric-blue ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                      className={`w-5 h-5 ${BOARD_CHECKBOX_CLASS} ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                     />
                                     <span className="text-gray-600">Done</span>
                                   </div>
@@ -824,7 +974,7 @@ function OpenSourceModal({
 
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-200">
             <div className="order-2 sm:order-1">
-              {!readOnly && entry?.criteriaType === 'issue' && onDelete && (
+              {!readOnly && isUserManagedCriteriaType(entry?.criteriaType) && onDelete && (
                 <button
                   type="button"
                   onClick={() => {
@@ -903,6 +1053,8 @@ export default function OpenSourceTab({
   isInstructor = false,
   showProofOfWorkWarning = false,
   setShowProofOfWorkWarning,
+  showBabyStepWarning = false,
+  setShowBabyStepWarning,
   readOnly = false,
 }: OpenSourceTabProps & { isDraggingOpenSourceRef: React.MutableRefObject<boolean> }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -918,6 +1070,76 @@ export default function OpenSourceTab({
   const [partnershipError, setPartnershipError] = useState<string | null>(null);
   const [newEntryDefaultCriteriaType, setNewEntryDefaultCriteriaType] = useState<string | null>(null);
   const prevCriteriaCompleteRef = useRef<boolean | null>(null);
+
+  const recordBabyStepHelperClick = useCallback(
+    async (entryId: number, fieldText: string) => {
+      if (readOnly) return;
+
+      const clickKey = helperClickKey(fieldText);
+      let foundEntry: OpenSourceEntry | null = null;
+      for (const col of Object.keys(openSourceColumns) as OpenSourceColumnId[]) {
+        const entry = openSourceColumns[col].find((e) => e.id === entryId);
+        if (entry) {
+          foundEntry = entry;
+          break;
+        }
+      }
+      if (!foundEntry) return;
+
+      const updatedEntry: OpenSourceEntry = {
+        ...foundEntry,
+        babyStepResponses: {
+          ...(foundEntry.babyStepResponses ?? {}),
+          [clickKey]: true,
+        },
+      };
+
+      setOpenSourceColumns((prev) => {
+        const newColumns: Record<OpenSourceColumnId, OpenSourceEntry[]> = {
+          plan: [...prev.plan],
+          babyStep: [...prev.babyStep],
+          inProgress: [...prev.inProgress],
+          done: [...prev.done],
+        };
+        for (const col of Object.keys(newColumns) as OpenSourceColumnId[]) {
+          const idx = newColumns[col].findIndex((e) => e.id === entryId);
+          if (idx !== -1) {
+            newColumns[col][idx] = updatedEntry;
+            break;
+          }
+        }
+        return newColumns;
+      });
+
+      if (editingEntry?.id === entryId) {
+        setEditingEntry(updatedEntry);
+      }
+
+      try {
+        const url = userIdParam
+          ? `/api/open_source?userId=${userIdParam}`
+          : '/api/open_source';
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: getApiHeaders(),
+          body: JSON.stringify({ ...updatedEntry, id: entryId }),
+        });
+        if (!response.ok) throw new Error('Failed to record helper click');
+      } catch (error) {
+        console.error('Error recording helper click:', error);
+        await fetchOpenSourceEntries();
+      }
+    },
+    [
+      readOnly,
+      openSourceColumns,
+      editingEntry,
+      userIdParam,
+      fetchOpenSourceEntries,
+      setOpenSourceColumns,
+      setEditingEntry,
+    ]
+  );
 
   useEffect(() => {
     if (!readOnly) return;
@@ -1603,6 +1825,26 @@ export default function OpenSourceTab({
             </ModalOverlay>
           )}
 
+          {/* Baby Step Warning Modal */}
+          {showBabyStepWarning && setShowBabyStepWarning && (
+            <ModalOverlay onClose={() => setShowBabyStepWarning(false)}>
+              <ModalPanel size="md">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Baby Steps Required</h3>
+                <p className="text-amber-400 text-sm mb-6 font-semibold">
+                  Complete baby steps first — open each helper and check Done where required.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowBabyStepWarning(false)}
+                    className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    OK
+                  </button>
+                </div>
+              </ModalPanel>
+            </ModalOverlay>
+          )}
+
           {/* Congratulations Modal - All Partnership Criteria Completed */}
           {showCongratsModal && (
             <ModalOverlay onClose={() => handleCompletePartnership(false)}>
@@ -1666,24 +1908,41 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
                   </DroppableColumn>
                 </SortableContext>
                 </div>
-                {!readOnly && <button
-                  type="button"
-                  onClick={() => {
-                    setNewEntryDefaultCriteriaType('issue');
-                    setEditingEntry(null);
-                    setIsModalOpen(true);
-                  }}
-                  className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add new issue card
-                </button>}
+                {!readOnly && (
+                  <div className="mt-2 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewEntryDefaultCriteriaType('issue');
+                        setEditingEntry(null);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add new issue card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewEntryDefaultCriteriaType('ecosystem_conversation');
+                        setEditingEntry(null);
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add new conversation card
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="bg-gray-100 rounded-lg p-2 flex flex-col">
@@ -1708,6 +1967,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1735,6 +1995,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1762,6 +2023,7 @@ export default function OpenSourceTab({
                         setEditingEntry={setEditingEntry}
                         setIsModalOpen={setIsModalOpen}
                         isDraggingOpenSourceRef={isDraggingOpenSourceRef}
+                        onRecordHelperClick={recordBabyStepHelperClick}
                         readOnly={readOnly}
                       />
                     ))}
@@ -1937,7 +2199,10 @@ export default function OpenSourceTab({
               const card = openSourceColumns[col].find(c => String(c.id) === activeOpenSourceId);
               if (!card) return null;
               return (
-                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                <div
+                  className={`rounded-lg p-3 ${getOpenSourceCardBorderClass(card.criteriaType)} bg-white`}
+                  style={{ touchAction: 'none' }}
+                >
                   <div className="text-gray-900 font-medium mb-1">{card.metric || 'Untitled'}</div>
                   <div className="text-gray-400 text-xs mb-1">Partnership: {card.partnershipName}</div>
                 </div>
@@ -2055,6 +2320,11 @@ export default function OpenSourceTab({
               await fetchOpenSourceEntries();
             }
           }}
+          onRecordHelperClick={
+            editingEntry
+              ? (fieldText) => recordBabyStepHelperClick(editingEntry.id, fieldText)
+              : undefined
+          }
           selectedPartnership={selectedPartnership}
           activePartnershipCriteria={
             // When editing a completed partnership's card, use that partnership's saved criteria
@@ -2064,7 +2334,7 @@ export default function OpenSourceTab({
           }
           availablePartnerships={availablePartnerships}
           fullPartnerships={fullPartnerships}
-          onDelete={editingEntry?.criteriaType === 'issue' ? async () => {
+          onDelete={isUserManagedCriteriaType(editingEntry?.criteriaType) ? async () => {
             if (readOnly) return;
             try {
               const url = userIdParam ? `/api/open_source?userId=${userIdParam}&id=${editingEntry.id}` : `/api/open_source?id=${editingEntry.id}`;
