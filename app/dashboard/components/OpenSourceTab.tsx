@@ -118,6 +118,13 @@ function getBabyStepHelperLinks(
   return links;
 }
 
+function getOpenSourceCardBorderClass(criteriaType?: string | null): string {
+  if (criteriaType === 'ecosystem_conversation') {
+    return 'border-2 border-amber-400 bg-amber-50/60 hover:border-amber-500 hover:shadow-sm';
+  }
+  return 'border border-gray-200 hover:border-electric-blue';
+}
+
 function SortableOpenSourceCard(props: {
   card: OpenSourceEntry;
   activeOpenSourceId: string | null;
@@ -163,7 +170,7 @@ function SortableOpenSourceCard(props: {
       {...(props.readOnly ? {} : attributes)} 
       {...(props.readOnly ? {} : listeners)}
       onClick={handleClick}
-      className="bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-electric-blue transition-colors group relative"
+      className={`bg-white rounded-lg p-3 cursor-pointer transition-colors group relative ${getOpenSourceCardBorderClass(props.card.criteriaType)}`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -2192,7 +2199,10 @@ export default function OpenSourceTab({
               const card = openSourceColumns[col].find(c => String(c.id) === activeOpenSourceId);
               if (!card) return null;
               return (
-                <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ touchAction: 'none' }}>
+                <div
+                  className={`rounded-lg p-3 ${getOpenSourceCardBorderClass(card.criteriaType)} bg-white`}
+                  style={{ touchAction: 'none' }}
+                >
                   <div className="text-gray-900 font-medium mb-1">{card.metric || 'Untitled'}</div>
                   <div className="text-gray-400 text-xs mb-1">Partnership: {card.partnershipName}</div>
                 </div>
