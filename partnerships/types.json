@@ -739,8 +739,40 @@
                 "text": "Name 3 complex systems where you would feel comfortable explaining how it works."
             },
             {
+                "type": "URL",
+                "text": "Link to video or blog post where you explain one of the systems."
+            },
+            {
                 "type": "checkbox",
                 "text": "If we quizzed you on these 3, you would be able to talk about it."
+            }]
+        },
+        "help_onboarding": {
+            "is_primary": true,
+            "short_name": "help_onboarding",
+            "quality": "Initiative",
+            "metric": "Help one person get onboarded to the project.",
+            "plan_column_fields": [],
+            "baby_step_column_fields": [{
+                "type": "checkbox",
+                "text": "Coming soon...",
+                "helper_video": ""
+            }],
+            "proof_of_completion": [{
+                "type": "text",
+                "text": "Name of the person you helped."
+            },
+            {
+                "type": "text",
+                "text": "In 1 or 2 sentences, describe what you did to help them get onboarded."
+            },
+            {
+                "type": "URL",
+                "text": "Link to the forum or Discord channel where you helped them."
+            },
+            {
+                "type": "text",
+                "text": "Your username/handle on that forum or Discord channel."
             }]
         }
     }   

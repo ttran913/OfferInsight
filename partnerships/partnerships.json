@@ -327,7 +327,7 @@
                 { "type": "documentation_gap", "count": 1 },
                 { "type": "multiple_choice", "choices": [
                     { "type": "above_and_beyond", "count": 1 },
-                    { "type": "SWE_pipeline_blog_post", "count": 1 }
+                    { "type": "help_onboarding", "count": 2 }
                 ]},
                 { "type": "outside_comfort_zone", "count": 1 },
                 { "type": "blog_post", "count": 1 },
