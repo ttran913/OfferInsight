@@ -1,7 +1,10 @@
 import {
   getEffectiveBabyStepFields,
   helperClickKey,
+  helperClickKeyForUrl,
+  hasHelperBeenClicked,
   isBabyStepComplete,
+  normalizeHelperVideoUrl,
   statusRequiresBabyStepComplete,
 } from "@/app/dashboard/lib/open-source-baby-step";
 import type { OpenSourceEntry } from "@/app/dashboard/components/types";
@@ -24,6 +27,12 @@ const FEEDBACK_CHECKBOX = {
   helper_video: "https://youtu.be/U87ZQIo9tu0",
 };
 
+const SEEK_FEEDBACK_SAME_URL = {
+  type: "Checkbox",
+  text: "Different copy, same tutorial video.",
+  helper_video: "https://youtu.be/U87ZQIo9tu0",
+};
+
 const NO_HELPER_CHECKBOX = {
   type: "checkbox",
   text: "Acknowledge the contribution guidelines.",
@@ -42,6 +51,10 @@ const partnershipCriteria = [
   {
     type: "receive_feedback",
     baby_step_column_fields: [FEEDBACK_CHECKBOX],
+  },
+  {
+    type: "seek_feedback",
+    baby_step_column_fields: [SEEK_FEEDBACK_SAME_URL],
   },
   {
     type: "edge_cases",
@@ -92,6 +105,39 @@ describe("getEffectiveBabyStepFields", () => {
   });
 });
 
+describe("hasHelperBeenClicked / URL keys", () => {
+  it("treats normalized URL click keys as shared across different field text", () => {
+    const responses = {
+      [helperClickKeyForUrl(FEEDBACK_CHECKBOX.helper_video)]: true,
+    };
+    expect(hasHelperBeenClicked(responses, FEEDBACK_CHECKBOX)).toBe(true);
+    expect(hasHelperBeenClicked(responses, SEEK_FEEDBACK_SAME_URL)).toBe(true);
+  });
+
+  it("still accepts legacy text click keys", () => {
+    const responses = {
+      [helperClickKey(ISSUE_HELPER_FIELD.text)]: true,
+    };
+    expect(hasHelperBeenClicked(responses, ISSUE_HELPER_FIELD)).toBe(true);
+  });
+
+  it("returns false when helper_video is empty", () => {
+    expect(
+      hasHelperBeenClicked(
+        { [helperClickKey(NO_HELPER_CHECKBOX.text)]: true },
+        NO_HELPER_CHECKBOX
+      )
+    ).toBe(false);
+  });
+
+  it("normalizes trailing slashes for URL keys", () => {
+    expect(normalizeHelperVideoUrl("https://youtu.be/abc/")).toBe("https://youtu.be/abc");
+    expect(
+      helperClickKeyForUrl("https://youtu.be/abc/")
+    ).toBe(helperClickKeyForUrl("https://youtu.be/abc"));
+  });
+});
+
 describe("isBabyStepComplete", () => {
   it("requires helper click for fields with helper_video", () => {
     expect(isBabyStepComplete(makeEntry(), partnershipCriteria)).toBe(false);
@@ -100,6 +146,19 @@ describe("isBabyStepComplete", () => {
         makeEntry({
           babyStepResponses: {
             [helperClickKey(ISSUE_HELPER_FIELD.text)]: true,
+          },
+        }),
+        partnershipCriteria
+      )
+    ).toBe(true);
+  });
+
+  it("accepts URL-based click keys for completion", () => {
+    expect(
+      isBabyStepComplete(
+        makeEntry({
+          babyStepResponses: {
+            [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
           },
         }),
         partnershipCriteria
@@ -139,6 +198,18 @@ describe("isBabyStepComplete", () => {
         partnershipCriteria
       )
     ).toBe(true);
+  });
+
+  it("does not share checkbox Done across fields", () => {
+    const entry = makeEntry({
+      criteriaType: "ecosystem_conversation",
+      babyStepFields: [ECOSYSTEM_CHECKBOX],
+      babyStepResponses: {
+        [helperClickKeyForUrl(ECOSYSTEM_CHECKBOX.helper_video)]: true,
+        // checkbox not checked
+      },
+    });
+    expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);
   });
 
   it("requires only checkbox when helper_video is empty", () => {

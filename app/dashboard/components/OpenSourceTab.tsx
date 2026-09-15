@@ -11,7 +11,19 @@ import { openSourceStatusToColumn } from './types';
 import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS, HelperGuideLink } from './shared';
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
-import { helperClickKey, isHelperClickKey, HELPER_CLICK_PREFIX } from '../lib/open-source-baby-step';
+import {
+  helperClickKey,
+  helperClickKeyForUrl,
+  hasHelperBeenClicked,
+  isHelperClickKey,
+  isHelperClickUrlKey,
+  getHelperVideoUrlFromClickKey,
+  getClickedHelperUrlsFromEntry,
+  entryIncludesHelperVideoUrl,
+  getPartnershipCriteriaFromCatalog,
+  normalizeHelperVideoUrl,
+  HELPER_CLICK_PREFIX,
+} from '../lib/open-source-baby-step';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
 
 // Debug: set to true to show date created/modified fields in the open source modal
@@ -25,7 +37,7 @@ type OpenSourceTabProps = {
   openSourceFilter: BoardTimeFilter;
   setOpenSourceFilter: (filter: BoardTimeFilter) => void;
   setIsModalOpen: (open: boolean) => void;
-  setEditingEntry: (entry: OpenSourceEntry | null) => void;
+  setEditingEntry: React.Dispatch<React.SetStateAction<OpenSourceEntry | null>>;
   sensors: any;
   handleOpenSourceDragStart: (event: any) => void;
   handleOpenSourceDragOver: (event: any) => void;
@@ -131,7 +143,7 @@ function SortableOpenSourceCard(props: {
   setEditingEntry: (entry: OpenSourceEntry) => void;
   setIsModalOpen: (open: boolean) => void;
   isDraggingOpenSourceRef: React.MutableRefObject<boolean>;
-  onRecordHelperClick: (entryId: number, fieldText: string) => void;
+  onRecordHelperClick: (entryId: number, fieldText: string, helperVideoUrl: string) => void;
   readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(props.card.id) });
@@ -195,11 +207,14 @@ function SortableOpenSourceCard(props: {
               key={`${fieldText}::${url}`}
               href={url}
               compact
-              clicked={!!babyStepResponses[helperClickKey(fieldText)]}
+              clicked={hasHelperBeenClicked(babyStepResponses, {
+                text: fieldText,
+                helper_video: url,
+              })}
               onHelperClick={
                 props.readOnly
                   ? undefined
-                  : () => props.onRecordHelperClick(props.card.id, fieldText)
+                  : () => props.onRecordHelperClick(props.card.id, fieldText, url)
               }
             />
           ))}
@@ -227,7 +242,7 @@ function OpenSourceModal({
   onClose: () => void; 
   onSave: (data: Partial<OpenSourceEntry>) => void;
   onDelete?: () => void;
-  onRecordHelperClick?: (fieldText: string) => void;
+  onRecordHelperClick?: (fieldText: string, helperVideoUrl: string) => void;
   selectedPartnership: string | null;
   activePartnershipCriteria: any[];
   availablePartnerships: Array<{ id: number; name: string; spotsRemaining: number; criteria?: any[] }>;
@@ -506,19 +521,21 @@ function OpenSourceModal({
         {requirement.helper_video && (
           <HelperGuideLink
             href={requirement.helper_video}
-            clicked={!!formData.babyStepResponses[helperClickKey(requirement.text)]}
+            clicked={hasHelperBeenClicked(formData.babyStepResponses, requirement)}
             onHelperClick={
               readOnly || status !== 'babyStep'
                 ? undefined
                 : () => {
+                    const urlKey = helperClickKeyForUrl(requirement.helper_video);
                     setFormData((prev) => ({
                       ...prev,
                       babyStepResponses: {
                         ...prev.babyStepResponses,
+                        [urlKey]: true,
                         [helperClickKey(requirement.text)]: true,
                       },
                     }));
-                    onRecordHelperClick?.(requirement.text);
+                    onRecordHelperClick?.(requirement.text, requirement.helper_video);
                   }
             }
           />
@@ -636,6 +653,19 @@ function OpenSourceModal({
     Object.keys(formData.babyStepResponses).forEach(key => {
       if (validBabyStepKeys.has(key)) {
         cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+      } else if (isHelperClickUrlKey(key)) {
+        const clickUrl = getHelperVideoUrlFromClickKey(key);
+        const stillUsed = effectiveBabySteps.some((f) => {
+          const video = typeof f.helper_video === 'string' ? f.helper_video.trim() : '';
+          return (
+            video.length > 0 &&
+            clickUrl !== null &&
+            normalizeHelperVideoUrl(video) === clickUrl
+          );
+        });
+        if (stillUsed) {
+          cleanedBabyStepResponses[key] = formData.babyStepResponses[key];
+        }
       } else if (isHelperClickKey(key)) {
         const fieldText = key.slice(HELPER_CLICK_PREFIX.length);
         if (validBabyStepKeys.has(fieldText)) {
@@ -1070,30 +1100,11 @@ export default function OpenSourceTab({
   const [partnershipError, setPartnershipError] = useState<string | null>(null);
   const [newEntryDefaultCriteriaType, setNewEntryDefaultCriteriaType] = useState<string | null>(null);
   const prevCriteriaCompleteRef = useRef<boolean | null>(null);
+  const healedHelperUrlsRef = useRef<Set<string>>(new Set());
 
-  const recordBabyStepHelperClick = useCallback(
-    async (entryId: number, fieldText: string) => {
-      if (readOnly) return;
-
-      const clickKey = helperClickKey(fieldText);
-      let foundEntry: OpenSourceEntry | null = null;
-      for (const col of Object.keys(openSourceColumns) as OpenSourceColumnId[]) {
-        const entry = openSourceColumns[col].find((e) => e.id === entryId);
-        if (entry) {
-          foundEntry = entry;
-          break;
-        }
-      }
-      if (!foundEntry) return;
-
-      const updatedEntry: OpenSourceEntry = {
-        ...foundEntry,
-        babyStepResponses: {
-          ...(foundEntry.babyStepResponses ?? {}),
-          [clickKey]: true,
-        },
-      };
-
+  const applyHelperClickToColumns = useCallback(
+    (helperVideoUrl: string, clickKey: string) => {
+      const normalized = normalizeHelperVideoUrl(helperVideoUrl);
       setOpenSourceColumns((prev) => {
         const newColumns: Record<OpenSourceColumnId, OpenSourceEntry[]> = {
           plan: [...prev.plan],
@@ -1101,30 +1112,99 @@ export default function OpenSourceTab({
           inProgress: [...prev.inProgress],
           done: [...prev.done],
         };
+
+        for (const col of Object.keys(newColumns) as OpenSourceColumnId[]) {
+          newColumns[col] = newColumns[col].map((entry) => {
+            const criteria = getPartnershipCriteriaFromCatalog(entry.partnershipName);
+            if (!entryIncludesHelperVideoUrl(entry, normalized, criteria)) {
+              return entry;
+            }
+            if (entry.babyStepResponses?.[clickKey]) {
+              return entry;
+            }
+            return {
+              ...entry,
+              babyStepResponses: {
+                ...(entry.babyStepResponses ?? {}),
+                [clickKey]: true,
+              },
+            };
+          });
+        }
+        return newColumns;
+      });
+
+      setEditingEntry((prev) => {
+        if (!prev) return prev;
+        const criteria = getPartnershipCriteriaFromCatalog(prev.partnershipName);
+        if (!entryIncludesHelperVideoUrl(prev, normalized, criteria)) return prev;
+        if (prev.babyStepResponses?.[clickKey]) return prev;
+        return {
+          ...prev,
+          babyStepResponses: {
+            ...(prev.babyStepResponses ?? {}),
+            [clickKey]: true,
+          },
+        };
+      });
+    },
+    [setOpenSourceColumns, setEditingEntry]
+  );
+
+  const persistHelperClickFanout = useCallback(
+    async (helperVideoUrl: string) => {
+      const url = userIdParam
+        ? `/api/open_source/helper-click?userId=${userIdParam}`
+        : '/api/open_source/helper-click';
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: getApiHeaders(),
+        body: JSON.stringify({ helperVideoUrl }),
+      });
+      if (!response.ok) throw new Error('Failed to record helper click');
+      return response.json();
+    },
+    [userIdParam]
+  );
+
+  const recordBabyStepHelperClick = useCallback(
+    async (entryId: number, fieldText: string, helperVideoUrl: string) => {
+      if (readOnly) return;
+      if (!helperVideoUrl?.trim()) return;
+
+      const clickKey = helperClickKeyForUrl(helperVideoUrl);
+      applyHelperClickToColumns(helperVideoUrl, clickKey);
+
+      // Keep legacy text key on the clicked card for back-compat with older clients.
+      setOpenSourceColumns((prev) => {
+        const newColumns: Record<OpenSourceColumnId, OpenSourceEntry[]> = {
+          plan: [...prev.plan],
+          babyStep: [...prev.babyStep],
+          inProgress: [...prev.inProgress],
+          done: [...prev.done],
+        };
+        const legacyKey = helperClickKey(fieldText);
         for (const col of Object.keys(newColumns) as OpenSourceColumnId[]) {
           const idx = newColumns[col].findIndex((e) => e.id === entryId);
           if (idx !== -1) {
-            newColumns[col][idx] = updatedEntry;
+            const entry = newColumns[col][idx];
+            newColumns[col][idx] = {
+              ...entry,
+              babyStepResponses: {
+                ...(entry.babyStepResponses ?? {}),
+                [legacyKey]: true,
+                [clickKey]: true,
+              },
+            };
             break;
           }
         }
         return newColumns;
       });
 
-      if (editingEntry?.id === entryId) {
-        setEditingEntry(updatedEntry);
-      }
-
       try {
-        const url = userIdParam
-          ? `/api/open_source?userId=${userIdParam}`
-          : '/api/open_source';
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: getApiHeaders(),
-          body: JSON.stringify({ ...updatedEntry, id: entryId }),
-        });
-        if (!response.ok) throw new Error('Failed to record helper click');
+        await persistHelperClickFanout(helperVideoUrl);
+        healedHelperUrlsRef.current.add(normalizeHelperVideoUrl(helperVideoUrl));
       } catch (error) {
         console.error('Error recording helper click:', error);
         await fetchOpenSourceEntries();
@@ -1132,14 +1212,75 @@ export default function OpenSourceTab({
     },
     [
       readOnly,
-      openSourceColumns,
-      editingEntry,
-      userIdParam,
+      applyHelperClickToColumns,
+      persistHelperClickFanout,
       fetchOpenSourceEntries,
       setOpenSourceColumns,
-      setEditingEntry,
     ]
   );
+
+  // Heal: if any card already has a click for a tutorial URL (URL key or legacy text key),
+  // stamp that URL key onto siblings so purple/gate state is shared without re-clicking.
+  useEffect(() => {
+    if (readOnly) return;
+
+    const allEntries = (
+      Object.keys(openSourceColumns) as OpenSourceColumnId[]
+    ).flatMap((col) => openSourceColumns[col]);
+    if (allEntries.length === 0) return;
+
+    const clickedUrls = new Set<string>();
+    for (const entry of allEntries) {
+      const criteria = getPartnershipCriteriaFromCatalog(entry.partnershipName);
+      for (const url of getClickedHelperUrlsFromEntry(entry, criteria)) {
+        clickedUrls.add(url);
+      }
+    }
+
+    const urlsNeedingHeal: string[] = [];
+    for (const clickedUrl of clickedUrls) {
+      if (healedHelperUrlsRef.current.has(clickedUrl)) continue;
+
+      const clickKey = helperClickKeyForUrl(clickedUrl);
+      const needsHeal = allEntries.some((entry) => {
+        const criteria = getPartnershipCriteriaFromCatalog(entry.partnershipName);
+        if (!entryIncludesHelperVideoUrl(entry, clickedUrl, criteria)) return false;
+        return !entry.babyStepResponses?.[clickKey];
+      });
+
+      if (needsHeal) {
+        urlsNeedingHeal.push(clickedUrl);
+      } else {
+        healedHelperUrlsRef.current.add(clickedUrl);
+      }
+    }
+
+    if (urlsNeedingHeal.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const helperVideoUrl of urlsNeedingHeal) {
+        if (cancelled) return;
+        const clickKey = helperClickKeyForUrl(helperVideoUrl);
+        applyHelperClickToColumns(helperVideoUrl, clickKey);
+        try {
+          await persistHelperClickFanout(helperVideoUrl);
+          healedHelperUrlsRef.current.add(normalizeHelperVideoUrl(helperVideoUrl));
+        } catch (error) {
+          console.error('Error healing shared helper clicks:', error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    readOnly,
+    openSourceColumns,
+    applyHelperClickToColumns,
+    persistHelperClickFanout,
+  ]);
 
   useEffect(() => {
     if (!readOnly) return;
@@ -2322,7 +2463,8 @@ export default function OpenSourceTab({
           }}
           onRecordHelperClick={
             editingEntry
-              ? (fieldText) => recordBabyStepHelperClick(editingEntry.id, fieldText)
+              ? (fieldText, helperVideoUrl) =>
+                  recordBabyStepHelperClick(editingEntry.id, fieldText, helperVideoUrl)
               : undefined
           }
           selectedPartnership={selectedPartnership}

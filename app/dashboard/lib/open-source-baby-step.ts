@@ -4,8 +4,9 @@ import type { OpenSourceEntry, OpenSourceStatus } from "../components/types";
 import { normalizePartnerName } from "./partnership-name-match";
 
 export const HELPER_CLICK_PREFIX = "__helperClicked__";
+export const HELPER_CLICK_URL_MARKER = "url:";
 
-type BabyStepFieldDef = {
+export type BabyStepFieldDef = {
   type?: string;
   text?: string;
   helper_video?: string;
@@ -45,12 +46,49 @@ function resolveCriteriaDef(
   );
 }
 
+/** Trim and strip trailing slashes so youtu.be/.../ matches youtu.be/... */
+export function normalizeHelperVideoUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
 export function helperClickKey(fieldText: string): string {
   return `${HELPER_CLICK_PREFIX}${fieldText}`;
 }
 
+export function helperClickKeyForUrl(url: string): string {
+  return `${HELPER_CLICK_PREFIX}${HELPER_CLICK_URL_MARKER}${normalizeHelperVideoUrl(url)}`;
+}
+
 export function isHelperClickKey(key: string): boolean {
   return key.startsWith(HELPER_CLICK_PREFIX);
+}
+
+export function isHelperClickUrlKey(key: string): boolean {
+  return key.startsWith(`${HELPER_CLICK_PREFIX}${HELPER_CLICK_URL_MARKER}`);
+}
+
+export function getHelperVideoUrlFromClickKey(key: string): string | null {
+  if (!isHelperClickUrlKey(key)) return null;
+  return normalizeHelperVideoUrl(
+    key.slice(`${HELPER_CLICK_PREFIX}${HELPER_CLICK_URL_MARKER}`.length)
+  );
+}
+
+export function hasHelperBeenClicked(
+  responses: Record<string, unknown> | null | undefined,
+  field: BabyStepFieldDef
+): boolean {
+  const helperVideo =
+    typeof field.helper_video === "string" ? field.helper_video.trim() : "";
+  if (!helperVideo) return false;
+
+  const responsesObj = responses ?? {};
+  if (responsesObj[helperClickKeyForUrl(helperVideo)]) return true;
+
+  const text = field?.text?.trim() ?? "";
+  if (text && responsesObj[helperClickKey(text)]) return true;
+
+  return false;
 }
 
 export function getEffectiveBabyStepFields(
@@ -85,6 +123,46 @@ export function getEffectiveBabyStepFields(
   return fields;
 }
 
+export function entryIncludesHelperVideoUrl(
+  entry: OpenSourceEntry,
+  helperVideoUrl: string,
+  partnershipCriteria: PartnershipCriteriaDef[] = []
+): boolean {
+  const target = normalizeHelperVideoUrl(helperVideoUrl);
+  if (!target) return false;
+
+  return getEffectiveBabyStepFields(entry, partnershipCriteria).some((field) => {
+    const video = typeof field.helper_video === "string" ? field.helper_video.trim() : "";
+    return video.length > 0 && normalizeHelperVideoUrl(video) === target;
+  });
+}
+
+/** Collect tutorial URLs already marked clicked on this entry (URL keys + legacy text keys). */
+export function getClickedHelperUrlsFromEntry(
+  entry: OpenSourceEntry,
+  partnershipCriteria: PartnershipCriteriaDef[] = []
+): string[] {
+  const responses = entry.babyStepResponses ?? {};
+  const urls = new Set<string>();
+
+  for (const [key, value] of Object.entries(responses)) {
+    if (!value || !isHelperClickKey(key)) continue;
+    const fromUrlKey = getHelperVideoUrlFromClickKey(key);
+    if (fromUrlKey) urls.add(fromUrlKey);
+  }
+
+  for (const field of getEffectiveBabyStepFields(entry, partnershipCriteria)) {
+    const text = field.text?.trim();
+    const video = typeof field.helper_video === "string" ? field.helper_video.trim() : "";
+    if (!text || !video) continue;
+    if (responses[helperClickKey(text)]) {
+      urls.add(normalizeHelperVideoUrl(video));
+    }
+  }
+
+  return [...urls];
+}
+
 export function isBabyStepComplete(
   entry: OpenSourceEntry,
   partnershipCriteria: PartnershipCriteriaDef[] = []
@@ -100,7 +178,7 @@ export function isBabyStepComplete(
 
     const helperVideo =
       typeof field.helper_video === "string" ? field.helper_video.trim() : "";
-    if (helperVideo && !responses[helperClickKey(text)]) {
+    if (helperVideo && !hasHelperBeenClicked(responses, field)) {
       return false;
     }
 
