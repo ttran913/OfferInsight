@@ -42,7 +42,7 @@ function buildCriteria(partnershipId: number, selections: Record<string, string>
       const selectedChoice = c.choices.find((choice: any) => choice.type === selectedType);
       if (!selectedChoice) return [];
       const typeDef = (typesData.types as any)[selectedChoice.type];
-      return [{ ...selectedChoice, ...typeDef, isFromChoice: true }];
+      return [{ ...selectedChoice, ...typeDef }];
     }
     return [{ ...c, ...((typesData.types as any)[c.type] || {}) }];
   });

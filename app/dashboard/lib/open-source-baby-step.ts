@@ -4,7 +4,7 @@ import type { OpenSourceEntry, OpenSourceStatus } from "../components/types";
 import { normalizePartnerName } from "./partnership-name-match";
 
 export const HELPER_CLICK_PREFIX = "__helperClicked__";
-export const HELPER_CLICK_URL_MARKER = "url:";
+const HELPER_CLICK_URL_MARKER = "url:";
 
 export type BabyStepFieldDef = {
   type?: string;
