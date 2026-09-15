@@ -4,7 +4,6 @@ import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-
 import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
 import {
   entryIncludesHelperVideoUrl,
-  getPartnershipCriteriaFromCatalog,
   helperClickKeyForUrl,
   normalizeHelperVideoUrl,
 } from "@/app/dashboard/lib/open-source-baby-step";
@@ -16,12 +15,8 @@ type OpenSourceDbEntry = {
   metric: string | null;
   status: string;
   selectedExtras: unknown;
-  planFields: unknown;
-  planResponses: unknown;
   babyStepFields: unknown;
   babyStepResponses: unknown;
-  proofOfCompletion: unknown;
-  proofResponses: unknown;
   userId: string;
 };
 
@@ -33,12 +28,8 @@ function toOpenSourceEntry(row: OpenSourceDbEntry): OpenSourceEntry {
     metric: row.metric,
     status: row.status as OpenSourceStatus,
     selectedExtras: (row.selectedExtras as string[] | null) ?? [],
-    planFields: (row.planFields as OpenSourceEntry["planFields"]) ?? [],
-    planResponses: (row.planResponses as OpenSourceEntry["planResponses"]) ?? {},
     babyStepFields: (row.babyStepFields as OpenSourceEntry["babyStepFields"]) ?? [],
     babyStepResponses: (row.babyStepResponses as OpenSourceEntry["babyStepResponses"]) ?? {},
-    proofOfCompletion: (row.proofOfCompletion as OpenSourceEntry["proofOfCompletion"]) ?? [],
-    proofResponses: (row.proofResponses as OpenSourceEntry["proofResponses"]) ?? {},
     userId: row.userId,
   };
 }
@@ -81,12 +72,8 @@ export async function PATCH(request: NextRequest) {
         metric: true,
         status: true,
         selectedExtras: true,
-        planFields: true,
-        planResponses: true,
         babyStepFields: true,
         babyStepResponses: true,
-        proofOfCompletion: true,
-        proofResponses: true,
         userId: true,
       },
     });
@@ -95,8 +82,7 @@ export async function PATCH(request: NextRequest) {
 
     for (const row of rows) {
       const entry = toOpenSourceEntry(row as OpenSourceDbEntry);
-      const partnershipCriteria = getPartnershipCriteriaFromCatalog(entry.partnershipName);
-      if (!entryIncludesHelperVideoUrl(entry, normalizedUrl, partnershipCriteria)) {
+      if (!entryIncludesHelperVideoUrl(entry, normalizedUrl)) {
         continue;
       }
 

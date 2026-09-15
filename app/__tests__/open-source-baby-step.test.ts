@@ -1,4 +1,6 @@
 import {
+  entryIncludesHelperVideoUrl,
+  getCardHelperVideoFields,
   getEffectiveBabyStepFields,
   helperClickKey,
   helperClickKeyForUrl,
@@ -105,6 +107,66 @@ describe("getEffectiveBabyStepFields", () => {
   });
 });
 
+describe("getCardHelperVideoFields / extras sharing", () => {
+  it("includes issue extras helper videos for sharing even when status is plan", () => {
+    const fields = getCardHelperVideoFields(
+      makeEntry({
+        status: "plan",
+        selectedExtras: ["receive_feedback"],
+      })
+    );
+    expect(fields.map((f) => f.helper_video)).toEqual([
+      ISSUE_HELPER_FIELD.helper_video,
+      FEEDBACK_CHECKBOX.helper_video,
+    ]);
+  });
+
+  it("detects shared extra tutorial URLs across issue cards", () => {
+    const cardA = makeEntry({
+      id: 1,
+      selectedExtras: ["receive_feedback"],
+      status: "babyStep",
+    });
+    const cardB = makeEntry({
+      id: 2,
+      selectedExtras: ["receive_feedback"],
+      status: "babyStep",
+    });
+    const cardWithoutExtra = makeEntry({
+      id: 3,
+      selectedExtras: [],
+      status: "babyStep",
+    });
+
+    expect(
+      entryIncludesHelperVideoUrl(cardA, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(cardB, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(cardWithoutExtra, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(false);
+  });
+
+  it("shares seek_feedback and receive_feedback when they use the same helper URL", () => {
+    const receiveCard = makeEntry({
+      id: 1,
+      selectedExtras: ["receive_feedback"],
+    });
+    const seekCard = makeEntry({
+      id: 2,
+      selectedExtras: ["seek_feedback"],
+    });
+    expect(
+      entryIncludesHelperVideoUrl(receiveCard, "https://youtu.be/U87ZQIo9tu0")
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(seekCard, "https://youtu.be/U87ZQIo9tu0")
+    ).toBe(true);
+  });
+});
+
 describe("hasHelperBeenClicked / URL keys", () => {
   it("treats normalized URL click keys as shared across different field text", () => {
     const responses = {
@@ -166,6 +228,30 @@ describe("isBabyStepComplete", () => {
     ).toBe(true);
   });
 
+  it("requires extra helper click via URL key when issue has extras", () => {
+    const entry = makeEntry({
+      selectedExtras: ["receive_feedback"],
+      babyStepResponses: {
+        [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
+      },
+    });
+    expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);
+
+    expect(
+      isBabyStepComplete(
+        {
+          ...entry,
+          babyStepResponses: {
+            [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
+            [helperClickKeyForUrl(FEEDBACK_CHECKBOX.helper_video)]: true,
+            [FEEDBACK_CHECKBOX.text]: true,
+          },
+        },
+        partnershipCriteria
+      )
+    ).toBe(true);
+  });
+
   it("requires checkbox and helper click when both exist", () => {
     const entry = makeEntry({
       criteriaType: "ecosystem_conversation",
@@ -206,7 +292,6 @@ describe("isBabyStepComplete", () => {
       babyStepFields: [ECOSYSTEM_CHECKBOX],
       babyStepResponses: {
         [helperClickKeyForUrl(ECOSYSTEM_CHECKBOX.helper_video)]: true,
-        // checkbox not checked
       },
     });
     expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);

@@ -102,14 +102,14 @@ export function getEffectiveBabyStepFields(
 
   if (
     entry.criteriaType !== "issue" ||
-    !entry.selectedExtras?.length ||
+    getSelectedExtraTypes(entry).length === 0 ||
     entry.status === "plan"
   ) {
     return fields;
   }
 
   const seenTexts = new Set(fields.map((f) => f?.text?.trim()).filter(Boolean));
-  for (const extraType of entry.selectedExtras) {
+  for (const extraType of getSelectedExtraTypes(entry)) {
     const extraDef = resolveCriteriaDef(extraType, partnershipCriteria);
     const extraFields = dedupeFieldsByText(extraDef?.baby_step_column_fields ?? []);
     for (const field of extraFields) {
@@ -123,25 +123,67 @@ export function getEffectiveBabyStepFields(
   return fields;
 }
 
+function getSelectedExtraTypes(entry: OpenSourceEntry): string[] {
+  const raw = entry.selectedExtras as unknown;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+}
+
+/**
+ * Helper-video fields visible on a card's baby-step UI.
+ * Matches kanban `getBabyStepHelperLinks`: primary from catalog + issue extras
+ * from selectedExtras via types.json (not gated on status).
+ */
+export function getCardHelperVideoFields(entry: OpenSourceEntry): BabyStepFieldDef[] {
+  const fields: BabyStepFieldDef[] = [];
+  const seen = new Set<string>();
+
+  const addFields = (list: BabyStepFieldDef[] | undefined) => {
+    for (const field of list ?? []) {
+      const video =
+        typeof field.helper_video === "string" ? field.helper_video.trim() : "";
+      if (!video) continue;
+      const text = field.text?.trim() ?? "";
+      const key = `${text}::${normalizeHelperVideoUrl(video)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      fields.push(field);
+    }
+  };
+
+  const primaryDef = entry.criteriaType
+    ? ((typesData.types as Record<string, PartnershipCriteriaDef>)?.[entry.criteriaType] ??
+      null)
+    : null;
+  addFields(primaryDef?.baby_step_column_fields ?? entry.babyStepFields ?? []);
+
+  if (entry.criteriaType === "issue") {
+    for (const extraType of getSelectedExtraTypes(entry)) {
+      const extraDef =
+        (typesData.types as Record<string, PartnershipCriteriaDef>)?.[extraType] ?? null;
+      addFields(extraDef?.baby_step_column_fields);
+    }
+  }
+
+  return fields;
+}
+
 export function entryIncludesHelperVideoUrl(
   entry: OpenSourceEntry,
-  helperVideoUrl: string,
-  partnershipCriteria: PartnershipCriteriaDef[] = []
+  helperVideoUrl: string
 ): boolean {
   const target = normalizeHelperVideoUrl(helperVideoUrl);
   if (!target) return false;
 
-  return getEffectiveBabyStepFields(entry, partnershipCriteria).some((field) => {
+  // Use the same discovery as the kanban helper buttons so issue extras share correctly.
+  return getCardHelperVideoFields(entry).some((field) => {
     const video = typeof field.helper_video === "string" ? field.helper_video.trim() : "";
     return video.length > 0 && normalizeHelperVideoUrl(video) === target;
   });
 }
 
 /** Collect tutorial URLs already marked clicked on this entry (URL keys + legacy text keys). */
-export function getClickedHelperUrlsFromEntry(
-  entry: OpenSourceEntry,
-  partnershipCriteria: PartnershipCriteriaDef[] = []
-): string[] {
+export function getClickedHelperUrlsFromEntry(entry: OpenSourceEntry): string[] {
   const responses = entry.babyStepResponses ?? {};
   const urls = new Set<string>();
 
@@ -151,7 +193,7 @@ export function getClickedHelperUrlsFromEntry(
     if (fromUrlKey) urls.add(fromUrlKey);
   }
 
-  for (const field of getEffectiveBabyStepFields(entry, partnershipCriteria)) {
+  for (const field of getCardHelperVideoFields(entry)) {
     const text = field.text?.trim();
     const video = typeof field.helper_video === "string" ? field.helper_video.trim() : "";
     if (!text || !video) continue;
