@@ -173,6 +173,7 @@ describe("POST /api/users/partnership switch safety", () => {
             update: jest.fn().mockResolvedValue({}),
           },
           openSourceEntry: {
+            findFirst: jest.fn().mockResolvedValue(null),
             create: jest.fn().mockResolvedValue({}),
           },
         };

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { checkAuth } from '../../server';
 import { User, GraduationCap, Calendar, Code, Loader2, ArrowRight } from 'lucide-react';
+import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
+import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
 import './page.css';
 
 export default function Page1() {
@@ -15,6 +17,8 @@ export default function Page1() {
   const [graduationYear, setGraduationYear] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [leetCodeUrlModalOpen, setLeetCodeUrlModalOpen] = useState(false);
+  const [leetCodeUrlWarned, setLeetCodeUrlWarned] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -25,10 +29,15 @@ export default function Page1() {
     authenticate();
   }, []);
 
+  const continueToPage2 = () => {
+    router.push('/onboarding/page2');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
+    const trimmedLeetCode = leetCodeUserName.trim();
     const response = await fetch('/api/users/onboarding1', {
       method: 'POST',
       headers: {
@@ -38,18 +47,27 @@ export default function Page1() {
         name,
         school,
         major,
-        leetCodeUserName: leetCodeUserName.trim(),
+        leetCodeUserName: trimmedLeetCode,
         expectedGraduationDate: `${graduationYear}-${graduationMonth.padStart(2, '0')}-01`,
       }),
     });
 
     if (response.ok) {
-      console.log('User information updated successfully');
-      router.push('/onboarding/page2');
+      if (looksLikeLeetCodeUrl(trimmedLeetCode) && !leetCodeUrlWarned) {
+        setIsSubmitting(false);
+        setLeetCodeUrlWarned(true);
+        setLeetCodeUrlModalOpen(true);
+        return;
+      }
+      continueToPage2();
     } else {
       console.error('Failed to update user information');
       setIsSubmitting(false);
     }
+  };
+
+  const handleLeetCodeUrlModalClose = () => {
+    setLeetCodeUrlModalOpen(false);
   };
 
   const handleSkip = () => {
@@ -157,9 +175,12 @@ export default function Page1() {
               type="text"
               name="leetCodeUserName"
               value={leetCodeUserName}
-              onChange={(e) => setLeetCodeUserName(e.target.value)}
+              onChange={(e) => {
+                setLeetCodeUserName(e.target.value);
+                setLeetCodeUrlWarned(false);
+              }}
               className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50 transition-all"
-              placeholder="e.g., your_handle (leetcode.com/u/…)"
+              placeholder="e.g., your_handle"
               autoComplete="username"
             />
             <p className="text-gray-500 text-xs mt-1">Optional — used to show your public profile stats later.</p>
@@ -240,6 +261,29 @@ export default function Page1() {
           </div>
         </form>
       </div>
+
+      {leetCodeUrlModalOpen && (
+        <ModalOverlay onClose={handleLeetCodeUrlModalClose}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Use your LeetCode username</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter only your LeetCode username (for example{' '}
+              <span className="font-medium text-gray-900">your_handle</span>), not a profile link like{' '}
+              <span className="font-medium text-gray-900">leetcode.com/u/…</span>. A full URL will not load your
+              stats correctly.
+            </p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleLeetCodeUrlModalClose}
+                className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
+      )}
     </div>
   );
 }

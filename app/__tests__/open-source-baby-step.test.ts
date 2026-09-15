@@ -1,7 +1,12 @@
 import {
+  entryIncludesHelperVideoUrl,
+  getCardHelperVideoFields,
   getEffectiveBabyStepFields,
   helperClickKey,
+  helperClickKeyForUrl,
+  hasHelperBeenClicked,
   isBabyStepComplete,
+  normalizeHelperVideoUrl,
   statusRequiresBabyStepComplete,
 } from "@/app/dashboard/lib/open-source-baby-step";
 import type { OpenSourceEntry } from "@/app/dashboard/components/types";
@@ -24,6 +29,12 @@ const FEEDBACK_CHECKBOX = {
   helper_video: "https://youtu.be/U87ZQIo9tu0",
 };
 
+const SEEK_FEEDBACK_SAME_URL = {
+  type: "Checkbox",
+  text: "Different copy, same tutorial video.",
+  helper_video: "https://youtu.be/U87ZQIo9tu0",
+};
+
 const NO_HELPER_CHECKBOX = {
   type: "checkbox",
   text: "Acknowledge the contribution guidelines.",
@@ -42,6 +53,10 @@ const partnershipCriteria = [
   {
     type: "receive_feedback",
     baby_step_column_fields: [FEEDBACK_CHECKBOX],
+  },
+  {
+    type: "seek_feedback",
+    baby_step_column_fields: [SEEK_FEEDBACK_SAME_URL],
   },
   {
     type: "edge_cases",
@@ -92,6 +107,99 @@ describe("getEffectiveBabyStepFields", () => {
   });
 });
 
+describe("getCardHelperVideoFields / extras sharing", () => {
+  it("includes issue extras helper videos for sharing even when status is plan", () => {
+    const fields = getCardHelperVideoFields(
+      makeEntry({
+        status: "plan",
+        selectedExtras: ["receive_feedback"],
+      })
+    );
+    expect(fields.map((f) => f.helper_video)).toEqual([
+      ISSUE_HELPER_FIELD.helper_video,
+      FEEDBACK_CHECKBOX.helper_video,
+    ]);
+  });
+
+  it("detects shared extra tutorial URLs across issue cards", () => {
+    const cardA = makeEntry({
+      id: 1,
+      selectedExtras: ["receive_feedback"],
+      status: "babyStep",
+    });
+    const cardB = makeEntry({
+      id: 2,
+      selectedExtras: ["receive_feedback"],
+      status: "babyStep",
+    });
+    const cardWithoutExtra = makeEntry({
+      id: 3,
+      selectedExtras: [],
+      status: "babyStep",
+    });
+
+    expect(
+      entryIncludesHelperVideoUrl(cardA, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(cardB, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(cardWithoutExtra, FEEDBACK_CHECKBOX.helper_video)
+    ).toBe(false);
+  });
+
+  it("shares seek_feedback and receive_feedback when they use the same helper URL", () => {
+    const receiveCard = makeEntry({
+      id: 1,
+      selectedExtras: ["receive_feedback"],
+    });
+    const seekCard = makeEntry({
+      id: 2,
+      selectedExtras: ["seek_feedback"],
+    });
+    expect(
+      entryIncludesHelperVideoUrl(receiveCard, "https://youtu.be/U87ZQIo9tu0")
+    ).toBe(true);
+    expect(
+      entryIncludesHelperVideoUrl(seekCard, "https://youtu.be/U87ZQIo9tu0")
+    ).toBe(true);
+  });
+});
+
+describe("hasHelperBeenClicked / URL keys", () => {
+  it("treats normalized URL click keys as shared across different field text", () => {
+    const responses = {
+      [helperClickKeyForUrl(FEEDBACK_CHECKBOX.helper_video)]: true,
+    };
+    expect(hasHelperBeenClicked(responses, FEEDBACK_CHECKBOX)).toBe(true);
+    expect(hasHelperBeenClicked(responses, SEEK_FEEDBACK_SAME_URL)).toBe(true);
+  });
+
+  it("still accepts legacy text click keys", () => {
+    const responses = {
+      [helperClickKey(ISSUE_HELPER_FIELD.text)]: true,
+    };
+    expect(hasHelperBeenClicked(responses, ISSUE_HELPER_FIELD)).toBe(true);
+  });
+
+  it("returns false when helper_video is empty", () => {
+    expect(
+      hasHelperBeenClicked(
+        { [helperClickKey(NO_HELPER_CHECKBOX.text)]: true },
+        NO_HELPER_CHECKBOX
+      )
+    ).toBe(false);
+  });
+
+  it("normalizes trailing slashes for URL keys", () => {
+    expect(normalizeHelperVideoUrl("https://youtu.be/abc/")).toBe("https://youtu.be/abc");
+    expect(
+      helperClickKeyForUrl("https://youtu.be/abc/")
+    ).toBe(helperClickKeyForUrl("https://youtu.be/abc"));
+  });
+});
+
 describe("isBabyStepComplete", () => {
   it("requires helper click for fields with helper_video", () => {
     expect(isBabyStepComplete(makeEntry(), partnershipCriteria)).toBe(false);
@@ -102,6 +210,68 @@ describe("isBabyStepComplete", () => {
             [helperClickKey(ISSUE_HELPER_FIELD.text)]: true,
           },
         }),
+        partnershipCriteria
+      )
+    ).toBe(true);
+  });
+
+  it("accepts shared helper URL clicks from other cards for completion", () => {
+    const shared = new Set([normalizeHelperVideoUrl(ISSUE_HELPER_FIELD.helper_video)]);
+    expect(isBabyStepComplete(makeEntry(), partnershipCriteria)).toBe(false);
+    expect(isBabyStepComplete(makeEntry(), partnershipCriteria, shared)).toBe(true);
+  });
+
+  it("still requires checkbox Done even when helper click is shared", () => {
+    const entry = makeEntry({
+      criteriaType: "ecosystem_conversation",
+      babyStepFields: [ECOSYSTEM_CHECKBOX],
+    });
+    const shared = new Set([normalizeHelperVideoUrl(ECOSYSTEM_CHECKBOX.helper_video)]);
+    expect(isBabyStepComplete(entry, partnershipCriteria, shared)).toBe(false);
+    expect(
+      isBabyStepComplete(
+        {
+          ...entry,
+          babyStepResponses: { [ECOSYSTEM_CHECKBOX.text]: true },
+        },
+        partnershipCriteria,
+        shared
+      )
+    ).toBe(true);
+  });
+
+  it("accepts URL-based click keys for completion", () => {
+    expect(
+      isBabyStepComplete(
+        makeEntry({
+          babyStepResponses: {
+            [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
+          },
+        }),
+        partnershipCriteria
+      )
+    ).toBe(true);
+  });
+
+  it("requires extra helper click via URL key when issue has extras", () => {
+    const entry = makeEntry({
+      selectedExtras: ["receive_feedback"],
+      babyStepResponses: {
+        [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
+      },
+    });
+    expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);
+
+    expect(
+      isBabyStepComplete(
+        {
+          ...entry,
+          babyStepResponses: {
+            [helperClickKeyForUrl(ISSUE_HELPER_FIELD.helper_video)]: true,
+            [helperClickKeyForUrl(FEEDBACK_CHECKBOX.helper_video)]: true,
+            [FEEDBACK_CHECKBOX.text]: true,
+          },
+        },
         partnershipCriteria
       )
     ).toBe(true);
@@ -139,6 +309,17 @@ describe("isBabyStepComplete", () => {
         partnershipCriteria
       )
     ).toBe(true);
+  });
+
+  it("does not share checkbox Done across fields", () => {
+    const entry = makeEntry({
+      criteriaType: "ecosystem_conversation",
+      babyStepFields: [ECOSYSTEM_CHECKBOX],
+      babyStepResponses: {
+        [helperClickKeyForUrl(ECOSYSTEM_CHECKBOX.helper_video)]: true,
+      },
+    });
+    expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);
   });
 
   it("requires only checkbox when helper_video is empty", () => {

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Save, User, GraduationCap, Code, Shield } from 'lucide-react';
+import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
+import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
 
 type AccountData = {
   name: string | null;
@@ -41,6 +43,7 @@ export default function AccountPage() {
   });
   const [email, setEmail] = useState<string | null>(null);
   const [loginMethods, setLoginMethods] = useState<string[]>([]);
+  const [leetCodeUrlModalOpen, setLeetCodeUrlModalOpen] = useState(false);
 
   useEffect(() => {
     const loadAccount = async () => {
@@ -59,6 +62,9 @@ export default function AccountPage() {
         });
         setEmail(data.email || null);
         setLoginMethods(data.loginMethods || []);
+        if (looksLikeLeetCodeUrl(data.leetCodeUserName)) {
+          setLeetCodeUrlModalOpen(true);
+        }
       } catch (error) {
         console.error('Error loading account page:', error);
       } finally {
@@ -96,6 +102,9 @@ export default function AccountPage() {
         throw new Error('Failed to save account data');
       }
       setSaveMessage('Saved');
+      if (looksLikeLeetCodeUrl(form.leetCodeUserName)) {
+        setLeetCodeUrlModalOpen(true);
+      }
     } catch (error) {
       console.error('Error saving account data:', error);
       setSaveMessage('Failed to save');
@@ -198,7 +207,7 @@ export default function AccountPage() {
                   value={form.leetCodeUserName}
                   onChange={(e) => handleChange('leetCodeUserName', e.target.value)}
                   className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
-                  placeholder="leetcode.com/u/your_handle"
+                  placeholder="e.g., your_handle"
                 />
               </div>
               <div>
@@ -233,6 +242,29 @@ export default function AccountPage() {
           </form>
         </section>
       </main>
+
+      {leetCodeUrlModalOpen && (
+        <ModalOverlay onClose={() => setLeetCodeUrlModalOpen(false)}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Use your LeetCode username</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter only your LeetCode username (for example{' '}
+              <span className="font-medium text-gray-900">your_handle</span>), not a profile link like{' '}
+              <span className="font-medium text-gray-900">leetcode.com/u/…</span>. A full URL will not load your
+              stats correctly.
+            </p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setLeetCodeUrlModalOpen(false)}
+                className="px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
+      )}
     </div>
   );
 }

@@ -8,8 +8,13 @@ import {
   logOpenSourceFieldEdits,
 } from "@/app/lib/open-source-status-log";
 import { isUserManagedCriteriaType } from "@/app/lib/open-source-user-managed";
+import {
+  ECOSYSTEM_CONVERSATION_TYPE,
+  ensureEcosystemConversationCard,
+} from "@/app/lib/open-source-ecosystem-conversation";
 import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
 import {
+  collectClickedHelperUrlsFromEntries,
   getPartnershipCriteriaFromCatalog,
   isBabyStepComplete,
   statusRequiresBabyStepComplete,
@@ -52,7 +57,8 @@ function toOpenSourceEntry(row: OpenSourceDbEntry): OpenSourceEntry {
 function getBabyStepValidationError(
   existing: OpenSourceDbEntry,
   newStatus: OpenSourceStatus,
-  entryForValidation: OpenSourceEntry
+  entryForValidation: OpenSourceEntry,
+  sharedClickedHelperUrls?: Set<string> | null
 ): string | null {
   const fromStatus = existing.status as OpenSourceStatus;
   if (!statusRequiresBabyStepComplete(fromStatus, newStatus)) {
@@ -60,11 +66,33 @@ function getBabyStepValidationError(
   }
 
   const partnershipCriteria = getPartnershipCriteriaFromCatalog(existing.partnershipName);
-  if (!isBabyStepComplete(entryForValidation, partnershipCriteria)) {
+  if (!isBabyStepComplete(entryForValidation, partnershipCriteria, sharedClickedHelperUrls)) {
     return "Complete baby steps first — open each helper and check Done where required.";
   }
 
   return null;
+}
+
+async function getSharedClickedHelperUrlsForUser(userId: string): Promise<Set<string>> {
+  const rows = await prisma.openSourceEntry.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      partnershipName: true,
+      criteriaType: true,
+      metric: true,
+      status: true,
+      selectedExtras: true,
+      planFields: true,
+      planResponses: true,
+      babyStepFields: true,
+      babyStepResponses: true,
+      proofOfCompletion: true,
+      proofResponses: true,
+      userId: true,
+    },
+  });
+  return collectClickedHelperUrlsFromEntries(rows.map((row) => toOpenSourceEntry(row as OpenSourceDbEntry)));
 }
 
 // GET: Fetch all open source entries for a user
@@ -74,6 +102,23 @@ export async function GET(request: NextRequest) {
 
     if (error || !userId) {
       return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
+    }
+
+    // Backfill mandatory conversation card if the user has an active partnership.
+    const activePartnership = await prisma.userPartnership.findFirst({
+      where: { userId, status: "active" },
+      include: { partnership: true },
+    });
+    if (activePartnership?.partnership?.name) {
+      try {
+        await ensureEcosystemConversationCard(
+          prisma,
+          userId,
+          activePartnership.partnership.name
+        );
+      } catch (ensureError) {
+        console.error("Error ensuring ecosystem conversation card:", ensureError);
+      }
     }
 
     const entries = await prisma.openSourceEntry.findMany({
@@ -124,6 +169,16 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+
+    if (data.criteriaType === ECOSYSTEM_CONVERSATION_TYPE) {
+      return NextResponse.json(
+        {
+          error:
+            "Conversation cards are created automatically. Only one is allowed per partnership.",
+        },
+        { status: 400 }
+      );
+    }
 
     const entry = await prisma.openSourceEntry.create({
       data: {
@@ -187,7 +242,13 @@ export async function PUT(request: NextRequest) {
         babyStepFields: data.babyStepFields ?? existing.babyStepFields,
         criteriaType: data.criteriaType ?? existing.criteriaType,
       });
-      const babyStepError = getBabyStepValidationError(existing, newStatus, entryForValidation);
+      const sharedClickedHelperUrls = await getSharedClickedHelperUrlsForUser(userId);
+      const babyStepError = getBabyStepValidationError(
+        existing,
+        newStatus,
+        entryForValidation,
+        sharedClickedHelperUrls
+      );
       if (babyStepError) {
         return NextResponse.json({ error: babyStepError }, { status: 400 });
       }
@@ -328,10 +389,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const newStatus = status as OpenSourceStatus;
+    const sharedClickedHelperUrls = await getSharedClickedHelperUrlsForUser(userId);
     const babyStepError = getBabyStepValidationError(
       existing,
       newStatus,
-      toOpenSourceEntry(existing)
+      toOpenSourceEntry(existing),
+      sharedClickedHelperUrls
     );
     if (babyStepError) {
       return NextResponse.json({ error: babyStepError }, { status: 400 });

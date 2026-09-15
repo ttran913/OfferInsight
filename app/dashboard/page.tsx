@@ -19,7 +19,9 @@ import {
   getPartnershipCriteriaForEntry,
   isProofOfWorkComplete,
 } from './lib/open-source-proof-of-work';
+import { computeOpenSourceCriteriaProgress } from '@/app/lib/open-source-criteria-progress';
 import {
+  collectClickedHelperUrlsFromEntries,
   isBabyStepComplete,
   statusRequiresBabyStepComplete,
 } from './lib/open-source-baby-step';
@@ -909,9 +911,14 @@ const hasSeededMockDataRef = useRef(false);
         activePartnershipCriteria,
         completedPartnerships
       );
+      const sharedClickedHelperUrls = collectClickedHelperUrlsFromEntries(
+        (Object.keys(openSourceColumns) as OpenSourceColumnId[]).flatMap(
+          (col) => openSourceColumns[col]
+        )
+      );
       if (
         statusRequiresBabyStepComplete(fromCol, toCol) &&
-        !isBabyStepComplete(movingItem, partnershipCriteria)
+        !isBabyStepComplete(movingItem, partnershipCriteria, sharedClickedHelperUrls)
       ) {
         setShowBabyStepWarning(true);
         setActiveOpenSourceId(null);
@@ -1479,10 +1486,6 @@ const hasSeededMockDataRef = useRef(false);
 
   const openSourceCriteria = useMemo(() => {
     const doneEntries = openSourceColumns.done ?? [];
-    const totalCriteria = activePartnershipCriteria.reduce((sum, criteria) => {
-      const count = Number(criteria?.count);
-      return sum + (Number.isFinite(count) && count > 0 ? count : 1);
-    }, 0);
     const nameSet = selectedPartnership
       ? buildPartnershipNameMatchSet(
           selectedPartnershipId,
@@ -1491,21 +1494,19 @@ const hasSeededMockDataRef = useRef(false);
           fullPartnerships
         )
       : null;
-    const activePartnershipDoneCount = nameSet && nameSet.size > 0
-      ? doneEntries
-          .filter((entry) => {
+    const activePartnershipDoneEntries =
+      nameSet && nameSet.size > 0
+        ? doneEntries.filter((entry) => {
             const n = normalizePartnerName(entry.partnershipName);
             return n !== '' && nameSet.has(n);
           })
-          .reduce((sum, entry) => {
-            const extras = Array.isArray(entry.selectedExtras) ? entry.selectedExtras.length : 0;
-            return sum + 1 + extras;
-          }, 0)
-      : 0;
-    const completedCriteria =
-      totalCriteria > 0 ? Math.min(activePartnershipDoneCount, totalCriteria) : activePartnershipDoneCount;
+        : [];
+    const { completed, total } = computeOpenSourceCriteriaProgress(
+      activePartnershipCriteria,
+      activePartnershipDoneEntries
+    );
 
-    return { completedCriteria, totalCriteria };
+    return { completedCriteria: completed, totalCriteria: total };
   }, [
     openSourceColumns,
     selectedPartnership,

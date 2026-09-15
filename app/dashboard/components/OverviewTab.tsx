@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { FileText, Users, GitBranch, Code } from 'lucide-react';
+import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
+import { ModalOverlay, ModalPanel } from './shared';
 
 type OpenSourceActivityItem = {
   id: number;
@@ -117,6 +120,30 @@ export default function OverviewTab({
 }: OverviewTabProps) {
   const { completedCriteria, totalCriteria } = openSourceCriteria;
   const osDot = openSourceCriteriaDotClass(completedCriteria, totalCriteria);
+  const leetCodeLooksLikeUrl = looksLikeLeetCodeUrl(leetCodeStats.username);
+  const [leetCodeUrlModalOpen, setLeetCodeUrlModalOpen] = useState(false);
+  const [leetCodeUrlModalDismissed, setLeetCodeUrlModalDismissed] = useState(false);
+
+  useEffect(() => {
+    setLeetCodeUrlModalDismissed(false);
+  }, [leetCodeStats.username]);
+
+  useEffect(() => {
+    if (
+      leetCodeLooksLikeUrl &&
+      !instructorViewUserId &&
+      !leetCodeUrlModalDismissed
+    ) {
+      setLeetCodeUrlModalOpen(true);
+    } else {
+      setLeetCodeUrlModalOpen(false);
+    }
+  }, [leetCodeLooksLikeUrl, instructorViewUserId, leetCodeUrlModalDismissed]);
+
+  const dismissLeetCodeUrlModal = () => {
+    setLeetCodeUrlModalOpen(false);
+    setLeetCodeUrlModalDismissed(true);
+  };
 
   const [activityItems, setActivityItems] = useState<OpenSourceActivityItem[]>([]);
   const [logLoading, setLogLoading] = useState(false);
@@ -256,7 +283,7 @@ export default function OverviewTab({
               <Code className="text-electric-blue text-xl" />
               <h4 className="text-gray-900 font-semibold">LeetCode</h4>
             </div>
-            {leetCodeStats.username && (
+            {leetCodeStats.username && !leetCodeLooksLikeUrl && (
               <a
                 href={`https://leetcode.com/u/${encodeURIComponent(leetCodeStats.username)}`}
                 target="_blank"
@@ -267,7 +294,11 @@ export default function OverviewTab({
               </a>
             )}
           </div>
-          {leetCodeStats.unavailable ? (
+          {leetCodeLooksLikeUrl ? (
+            <div className="text-sm text-gray-400">
+              Stats unavailable — your LeetCode field looks like a profile link, not a username.
+            </div>
+          ) : leetCodeStats.unavailable ? (
             <div className="text-sm text-gray-400">Stats unavailable right now.</div>
           ) : !leetCodeStats.hasUsername ? (
             <div className="text-sm text-gray-400">Add your LeetCode username in Account.</div>
@@ -293,6 +324,36 @@ export default function OverviewTab({
           )}
         </div>
       </div>
+
+      {leetCodeUrlModalOpen && (
+        <ModalOverlay onClose={dismissLeetCodeUrlModal}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Use your LeetCode username</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Your account has a full LeetCode profile link saved. This app needs only your username
+              (for example <span className="font-medium text-gray-900">your_handle</span>), not a URL
+              like <span className="font-medium text-gray-900">leetcode.com/u/…</span>. Update it under
+              Account so your stats and profile link can work.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <button
+                type="button"
+                onClick={dismissLeetCodeUrlModal}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <Link
+                href="/account"
+                onClick={dismissLeetCodeUrlModal}
+                className="inline-flex items-center justify-center px-4 py-2 bg-electric-blue hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Go to Account
+              </Link>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
+      )}
 
       {instructorViewUserId && (
         <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">

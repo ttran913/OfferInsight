@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
 import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-user-helper";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
+import {
+  ECOSYSTEM_CONVERSATION_TYPE,
+  ensureEcosystemConversationCard,
+} from "@/app/lib/open-source-ecosystem-conversation";
+import { buildCriteria } from "@/app/lib/partnership-criteria";
 import partnershipsData from "@/partnerships/partnerships.json";
 import typesData from "@/partnerships/types.json";
 
@@ -29,23 +34,6 @@ function partnershipNameOrWhere(aliasNames: string[]) {
   return aliasNames.map((name) => ({
     partnershipName: { equals: name, mode: "insensitive" as const },
   }));
-}
-
-// Builds the full criteria array for a given partnership + user multiple-choice selections.
-function buildCriteria(partnershipId: number, selections: Record<string, string>) {
-  let mcIndex = 0;
-  return (partnershipsData.partnerships.find(p => p.id === partnershipId)?.criteria || []).flatMap((c: any) => {
-    if (c.type === 'multiple_choice' && c.choices) {
-      const selectedType = selections[String(mcIndex)];
-      mcIndex++;
-      if (!selectedType) return [];
-      const selectedChoice = c.choices.find((choice: any) => choice.type === selectedType);
-      if (!selectedChoice) return [];
-      const typeDef = (typesData.types as any)[selectedChoice.type];
-      return [{ ...selectedChoice, ...typeDef, isFromChoice: true }];
-    }
-    return [{ ...c, ...((typesData.types as any)[c.type] || {}) }];
-  });
 }
 
 // GET: Fetch user's active partnership and history
@@ -360,6 +348,9 @@ export async function POST(request: NextRequest) {
             }
           }
           mcBlockIndex++;
+        } else if (criteria.type === ECOSYSTEM_CONVERSATION_TYPE) {
+          // Created once via ensureEcosystemConversationCard after the loop
+          continue;
         } else {
           // Normal criteria
           const typeDef = (typesData.types as any)[criteria.type];
@@ -388,6 +379,8 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+
+      await ensureEcosystemConversationCard(tx, userId, partnershipDef.name);
 
       return newPartnership;
     });
