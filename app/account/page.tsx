@@ -198,7 +198,7 @@ export default function AccountPage() {
                   value={form.leetCodeUserName}
                   onChange={(e) => handleChange('leetCodeUserName', e.target.value)}
                   className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-electric-blue focus:ring-2 focus:ring-electric-blue/50"
-                  placeholder="leetcode.com/u/your_handle"
+                  placeholder="e.g., your_handle"
                 />
               </div>
               <div>
