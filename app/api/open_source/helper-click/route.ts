@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/db";
 import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-user-helper";
 import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
@@ -87,13 +88,16 @@ export async function PATCH(request: NextRequest) {
       }
 
       const existingResponses =
-        (row.babyStepResponses as Record<string, unknown> | null) ?? {};
+        (row.babyStepResponses as Record<string, Prisma.InputJsonValue> | null) ?? {};
       if (existingResponses[clickKey]) {
         updatedIds.push(row.id);
         continue;
       }
 
-      const nextResponses = { ...existingResponses, [clickKey]: true };
+      const nextResponses: Record<string, Prisma.InputJsonValue> = {
+        ...existingResponses,
+        [clickKey]: true,
+      };
       await prisma.openSourceEntry.update({
         where: { id: row.id },
         data: {

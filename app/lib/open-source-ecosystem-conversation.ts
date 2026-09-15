@@ -1,18 +1,11 @@
 import typesData from "@/partnerships/types.json";
+import { prisma } from "@/db";
 
 export const ECOSYSTEM_CONVERSATION_TYPE = "ecosystem_conversation";
 
+/** Prisma client or interactive transaction client with openSourceEntry access. */
 type OpenSourceCreateClient = {
-  openSourceEntry: {
-    findFirst: (args: {
-      where: {
-        userId: string;
-        partnershipName: string;
-        criteriaType: string;
-      };
-    }) => Promise<{ id: number } | null>;
-    create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
-  };
+  openSourceEntry: Pick<typeof prisma.openSourceEntry, "findFirst" | "create">;
 };
 
 /** Ensure exactly one ecosystem conversation card exists for this user + partnership. */
