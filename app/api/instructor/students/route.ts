@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
 import { getCurrentMonthDateRange } from "@/app/lib/date-utils";
-import partnershipsData from "@/partnerships/partnerships.json";
+import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteria-progress";
+import { buildCriteria } from "@/app/lib/partnership-criteria";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
@@ -69,40 +70,14 @@ export async function GET() {
 
         if (activePartnership) {
           const selections = (activePartnership.selections as Record<string, string>) || {};
-          let mcIndex = 0;
-          const criteria = (partnershipsData.partnerships.find(
-            (p: { id: number }) => p.id === activePartnership.partnershipId
-          )?.criteria || []).flatMap((c: { type: string; count?: number; choices?: { type: string; count?: number }[] }) => {
-            if (c.type === 'multiple_choice' && c.choices) {
-              const selectedType = selections[String(mcIndex)];
-              mcIndex++;
-              if (!selectedType) return [];
-              const selectedChoice = c.choices.find((choice: { type: string }) => choice.type === selectedType);
-              if (!selectedChoice) return [];
-              return [{ type: selectedChoice.type, count: selectedChoice.count || 1 }];
-            }
-            return [{ type: c.type, count: c.count || 1 }];
-          });
-
+          const criteria = buildCriteria(activePartnership.partnershipId, selections);
           const partnershipName = activePartnership.partnership.name;
           const doneEntries = openSourceEntries.filter(
             (e) => e.status === 'done' && e.partnershipName === partnershipName
           );
-
-          for (const criteriaItem of criteria) {
-            if (criteriaItem.type === 'multiple_choice') continue;
-
-            const requiredCount = criteriaItem.count || 1;
-            totalCriteriaCount += requiredCount;
-
-            const completedForCriteria = doneEntries.filter((entry) => {
-              if (entry.criteriaType === criteriaItem.type) return true;
-              const extras = entry.selectedExtras as string[] | null;
-              return extras && Array.isArray(extras) && extras.includes(criteriaItem.type);
-            }).length;
-
-            completedCriteriaCount += Math.min(completedForCriteria, requiredCount);
-          }
+          const progress = computeOpenSourceCriteriaProgress(criteria, doneEntries);
+          totalCriteriaCount += progress.total;
+          completedCriteriaCount += progress.completed;
         } else {
           for (const entry of openSourceEntries) {
             const extras = Array.isArray(entry.selectedExtras)

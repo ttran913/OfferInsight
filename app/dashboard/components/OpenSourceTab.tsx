@@ -12,7 +12,6 @@ import { DroppableColumn, formatModalDate, toLocalDateString, LockTooltip, norma
 import typesData from '@/partnerships/types.json';
 import { getEffectiveProofOfCompletionFields } from '../lib/open-source-proof-of-work';
 import {
-  helperClickKey,
   helperClickKeyForUrl,
   hasHelperBeenClicked,
   isHelperClickKey,
@@ -25,6 +24,7 @@ import {
   HELPER_CLICK_PREFIX,
 } from '../lib/open-source-baby-step';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
+import { computeOpenSourceCriteriaProgress } from '@/app/lib/open-source-criteria-progress';
 
 // Debug: set to true to show date created/modified fields in the open source modal
 const ENABLE_DATE_FIELD_EDITING = false;
@@ -119,7 +119,7 @@ function SortableOpenSourceCard(props: {
   setEditingEntry: (entry: OpenSourceEntry) => void;
   setIsModalOpen: (open: boolean) => void;
   isDraggingOpenSourceRef: React.MutableRefObject<boolean>;
-  onRecordHelperClick: (entryId: number, fieldText: string, helperVideoUrl: string) => void;
+  onRecordHelperClick: (helperVideoUrl: string) => void;
   sharedClickedHelperUrls: Set<string>;
   readOnly?: boolean;
 }) {
@@ -189,7 +189,7 @@ function SortableOpenSourceCard(props: {
                 onHelperClick={
                   props.readOnly
                     ? undefined
-                    : () => props.onRecordHelperClick(props.card.id, fieldText, url)
+                    : () => props.onRecordHelperClick(url)
                 }
               />
             );
@@ -212,20 +212,21 @@ function OpenSourceModal({
   activePartnershipCriteria,
   availablePartnerships,
   fullPartnerships,
-  newEntryDefaultCriteriaType = null,
+  isCreatingNewIssue = false,
   readOnly = false,
 }: { 
   entry: OpenSourceEntry | null; 
   onClose: () => void; 
   onSave: (data: Partial<OpenSourceEntry>) => void;
   onDelete?: () => void;
-  onRecordHelperClick?: (fieldText: string, helperVideoUrl: string) => void;
+  onRecordHelperClick?: (helperVideoUrl: string) => void;
   sharedClickedHelperUrls?: Set<string>;
   selectedPartnership: string | null;
   activePartnershipCriteria: any[];
   availablePartnerships: Array<{ id: number; name: string; spotsRemaining: number; criteria?: any[] }>;
   fullPartnerships: Array<{ id: number; name: string; criteria?: any[] }>;
-  newEntryDefaultCriteriaType?: string | null;
+  /** When true and entry is null, initialize a new issue card. */
+  isCreatingNewIssue?: boolean;
   readOnly?: boolean;
 }) {
 
@@ -245,16 +246,18 @@ function OpenSourceModal({
     dateModified: string;
   };
 
+  const newIssueCriteriaType = isCreatingNewIssue ? 'issue' : '';
+
   // Resolve clean primary criteria fields once at start to handle initialization (including "new issue" default)
   const initialPrimaryCriteria = entry
     ? activePartnershipCriteria.find(c => c.type === entry.criteriaType)
-    : (newEntryDefaultCriteriaType ? activePartnershipCriteria.find(c => c.type === newEntryDefaultCriteriaType) : null);
+    : (newIssueCriteriaType ? activePartnershipCriteria.find(c => c.type === newIssueCriteriaType) : null);
 
   const [formData, setFormData] = useState<OpenSourceFormData>({
     partnershipName: entry?.partnershipName || selectedPartnership || '',
     metric: entry?.metric || '',
     status: entry?.status || 'plan',
-    criteriaType: entry?.criteriaType || newEntryDefaultCriteriaType || '',
+    criteriaType: entry?.criteriaType || newIssueCriteriaType,
     selectedExtras: (entry?.selectedExtras as string[]) || [],
     planFields: initialPrimaryCriteria?.plan_column_fields || entry?.planFields || [],
     planResponses: entry?.planResponses || {},
@@ -287,7 +290,7 @@ function OpenSourceModal({
         dateModified: entry.dateModified ? toLocalDateString(entry.dateModified) : '',
       });
     } else {
-      const defaultType = newEntryDefaultCriteriaType || '';
+      const defaultType = newIssueCriteriaType;
       const primaryCriteria = defaultType ? activePartnershipCriteria.find(c => c.type === defaultType) : null;
       const typeFromJson = defaultType
         ? (typesData.types as Record<string, any>)?.[defaultType]
@@ -310,7 +313,7 @@ function OpenSourceModal({
         dateModified: '',
       });
     }
-  }, [entry, selectedPartnership, newEntryDefaultCriteriaType]);
+  }, [entry, selectedPartnership, isCreatingNewIssue, newIssueCriteriaType]);
 
   const handleProofResponseChange = (text: string, value: any, targetStatus?: OpenSourceStatus) => {
     const status = targetStatus || formData.status;
@@ -515,10 +518,9 @@ function OpenSourceModal({
                       babyStepResponses: {
                         ...prev.babyStepResponses,
                         [urlKey]: true,
-                        [helperClickKey(requirement.text)]: true,
                       },
                     }));
-                    onRecordHelperClick?.(requirement.text, requirement.helper_video);
+                    onRecordHelperClick?.(requirement.helper_video);
                   }
             }
           />
@@ -1081,7 +1083,7 @@ export default function OpenSourceTab({
   const [showCongratsModal, setShowCongratsModal] = useState(false);
   const [isCompletingPartnership, setIsCompletingPartnership] = useState(false);
   const [partnershipError, setPartnershipError] = useState<string | null>(null);
-  const [newEntryDefaultCriteriaType, setNewEntryDefaultCriteriaType] = useState<string | null>(null);
+  const [isCreatingNewIssue, setIsCreatingNewIssue] = useState(false);
   const prevCriteriaCompleteRef = useRef<boolean | null>(null);
   const healedHelperUrlsRef = useRef<Set<string>>(new Set());
 
@@ -1094,16 +1096,8 @@ export default function OpenSourceTab({
   }, [openSourceColumns]);
 
   const applyHelperClickToColumns = useCallback(
-    (
-      helperVideoUrl: string,
-      clickKey: string,
-      options?: { entryId?: number; legacyFieldText?: string }
-    ) => {
+    (helperVideoUrl: string, clickKey: string) => {
       const normalized = normalizeHelperVideoUrl(helperVideoUrl);
-      const legacyKey =
-        options?.legacyFieldText != null
-          ? helperClickKey(options.legacyFieldText)
-          : null;
 
       setOpenSourceColumns((prev) => {
         const newColumns: Record<OpenSourceColumnId, OpenSourceEntry[]> = {
@@ -1119,20 +1113,8 @@ export default function OpenSourceTab({
               return entry;
             }
             const nextResponses = { ...(entry.babyStepResponses ?? {}) };
-            let changed = false;
-            if (!nextResponses[clickKey]) {
-              nextResponses[clickKey] = true;
-              changed = true;
-            }
-            if (
-              legacyKey &&
-              options?.entryId === entry.id &&
-              !nextResponses[legacyKey]
-            ) {
-              nextResponses[legacyKey] = true;
-              changed = true;
-            }
-            if (!changed) return entry;
+            if (nextResponses[clickKey]) return entry;
+            nextResponses[clickKey] = true;
             return { ...entry, babyStepResponses: nextResponses };
           });
         }
@@ -1143,20 +1125,8 @@ export default function OpenSourceTab({
         if (!prev) return prev;
         if (!entryIncludesHelperVideoUrl(prev, normalized)) return prev;
         const nextResponses = { ...(prev.babyStepResponses ?? {}) };
-        let changed = false;
-        if (!nextResponses[clickKey]) {
-          nextResponses[clickKey] = true;
-          changed = true;
-        }
-        if (
-          legacyKey &&
-          options?.entryId === prev.id &&
-          !nextResponses[legacyKey]
-        ) {
-          nextResponses[legacyKey] = true;
-          changed = true;
-        }
-        if (!changed) return prev;
+        if (nextResponses[clickKey]) return prev;
+        nextResponses[clickKey] = true;
         return { ...prev, babyStepResponses: nextResponses };
       });
     },
@@ -1180,15 +1150,12 @@ export default function OpenSourceTab({
   );
 
   const recordBabyStepHelperClick = useCallback(
-    async (entryId: number, fieldText: string, helperVideoUrl: string) => {
+    async (helperVideoUrl: string) => {
       if (readOnly) return;
       if (!helperVideoUrl?.trim()) return;
 
       const clickKey = helperClickKeyForUrl(helperVideoUrl);
-      applyHelperClickToColumns(helperVideoUrl, clickKey, {
-        entryId,
-        legacyFieldText: fieldText,
-      });
+      applyHelperClickToColumns(helperVideoUrl, clickKey);
 
       try {
         await persistHelperClickFanout(helperVideoUrl);
@@ -1276,37 +1243,14 @@ export default function OpenSourceTab({
   );
 
   // Overall criteria progress: total = sum of ALL criteria counts (primaries + extras) from partnership definition
-  const totalCriteriaProgress = useMemo(() => {
-    if (!activePartnershipCriteria || activePartnershipCriteria.length === 0) {
-      return { completed: 0, total: 0 };
-    }
-
-    const doneEntries = filteredOpenSourceColumns.done;
-    let total = 0;
-    let completed = 0;
-
-    activePartnershipCriteria.forEach((criteria: any) => {
-      // Ignore multiple_choice blocks; they are handled via selected extras
-      if (criteria.type === 'multiple_choice') return;
-
-      const requiredCount = criteria.count || 1;
-      total += requiredCount;
-
-      const completedCount = doneEntries.filter((entry) => {
-        // Direct card for this criteria type
-        if (entry.criteriaType === criteria.type) {
-          return true;
-        }
-        // Or this criteria is attached as an extra on the card
-        const extras = entry.selectedExtras as string[] | null;
-        return extras && Array.isArray(extras) && extras.includes(criteria.type);
-      }).length;
-
-      completed += Math.min(completedCount, requiredCount);
-    });
-
-    return { completed, total };
-  }, [activePartnershipCriteria, filteredOpenSourceColumns.done]);
+  const totalCriteriaProgress = useMemo(
+    () =>
+      computeOpenSourceCriteriaProgress(
+        activePartnershipCriteria,
+        filteredOpenSourceColumns.done
+      ),
+    [activePartnershipCriteria, filteredOpenSourceColumns.done]
+  );
 
   const showPartnershipCompleteButton =
     !isInstructor &&
@@ -2042,7 +1986,7 @@ export default function OpenSourceTab({
                     <button
                       type="button"
                       onClick={() => {
-                        setNewEntryDefaultCriteriaType('issue');
+                        setIsCreatingNewIssue(true);
                         setEditingEntry(null);
                         setIsModalOpen(true);
                       }}
@@ -2332,15 +2276,15 @@ export default function OpenSourceTab({
         <OpenSourceModal
           entry={editingEntry}
           readOnly={readOnly}
-          newEntryDefaultCriteriaType={newEntryDefaultCriteriaType}
+          isCreatingNewIssue={isCreatingNewIssue}
           onClose={() => {
-            setNewEntryDefaultCriteriaType(null);
+            setIsCreatingNewIssue(false);
             setIsModalOpen(false);
             setEditingEntry(null);
           }}
           onSave={async (data: Partial<OpenSourceEntry>) => {
             if (readOnly) {
-              setNewEntryDefaultCriteriaType(null);
+              setIsCreatingNewIssue(false);
               setIsModalOpen(false);
               setEditingEntry(null);
               return;
@@ -2424,7 +2368,7 @@ export default function OpenSourceTab({
                   return newColumns;
                 });
               }
-              setNewEntryDefaultCriteriaType(null);
+              setIsCreatingNewIssue(false);
               setIsModalOpen(false);
               setEditingEntry(null);
             } catch (error) {
@@ -2434,10 +2378,7 @@ export default function OpenSourceTab({
             }
           }}
           onRecordHelperClick={
-            editingEntry
-              ? (fieldText, helperVideoUrl) =>
-                  recordBabyStepHelperClick(editingEntry.id, fieldText, helperVideoUrl)
-              : undefined
+            editingEntry ? recordBabyStepHelperClick : undefined
           }
           sharedClickedHelperUrls={sharedClickedHelperUrls}
           selectedPartnership={selectedPartnership}
@@ -2464,7 +2405,7 @@ export default function OpenSourceTab({
                 inProgress: prev.inProgress.filter(e => e.id !== editingEntry.id),
                 done: prev.done.filter(e => e.id !== editingEntry.id),
               }));
-              setNewEntryDefaultCriteriaType(null);
+              setIsCreatingNewIssue(false);
               setIsModalOpen(false);
               setEditingEntry(null);
             } catch (err) {
