@@ -2055,18 +2055,6 @@ export default function OpenSourceTab({
                       <Plus className="w-4 h-4" />
                       Add new issue card
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewEntryDefaultCriteriaType('ecosystem_conversation');
-                        setEditingEntry(null);
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-gray-500 text-gray-400 hover:border-electric-blue hover:text-electric-blue transition-colors text-sm font-medium"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add new conversation card
-                    </button>
                   </div>
                 )}
               </div>

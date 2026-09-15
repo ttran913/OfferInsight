@@ -1,316 +1,762 @@
 {
     "partnerships": [
         {
-            "id": 1, 
+            "id": 1,
             "name": "Mark F.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "receive_feedback", "count": 2 },
-                { "type": "closer", "count": 6 }
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "closer",
+                    "count": 6
+                }
             ]
-        }, 
-
+        },
         {
-            "id": 2, 
+            "id": 2,
             "name": "Krishna P.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 3 },
-                { "type": "blog_post", "count": 1 },
-                { "type": "edge_cases", "count": 1 },
-                { "type": "high_quality_question", "count": 1 },
-                { "type": "propose_implementation_plan", "count": 1 },
-                { "type": "above_and_beyond", "count": 1 }
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "blog_post",
+                    "count": 1
+                },
+                {
+                    "type": "edge_cases",
+                    "count": 1
+                },
+                {
+                    "type": "high_quality_question",
+                    "count": 1
+                },
+                {
+                    "type": "propose_implementation_plan",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 1
+                }
             ]
-        }, 
-
+        },
         {
-            "id": 3, 
+            "id": 3,
             "name": "Brianna P.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "give_feedback", "count": 2 },
-                { "type": "receive_feedback", "count": 2 },
-                { "type": "find_bug", "count": 2 },
-                { "type": "complex_bug", "count": 1 },
-                { "type": "initiative", "count": 2 },
-                { "type": "use_product", "count": 1 }
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "give_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "find_bug",
+                    "count": 2
+                },
+                {
+                    "type": "complex_bug",
+                    "count": 1
+                },
+                {
+                    "type": "initiative",
+                    "count": 2
+                },
+                {
+                    "type": "use_product",
+                    "count": 1
+                }
             ]
-        }, 
-
+        },
         {
-            "id": 4, 
+            "id": 4,
             "name": "Jagbir K.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 3 },
-                { "type": "above_and_beyond", "count": 1}, 
-                { "type": "multiple_choice", "choices": [
-                    {"type": "propose_implementation_plan", "count": 1}, 
-                    {"type": "high_quality_question", "count": 1}, 
-                    {"type": "initiative", "count": 1}] },
-                { "type": "advocate", "count": 1 }, 
-                { "type": "receive_feedback", "count": 1 },
-                { "type": "blog_post", "count": 1 }
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "propose_implementation_plan",
+                            "count": 1
+                        },
+                        {
+                            "type": "high_quality_question",
+                            "count": 1
+                        },
+                        {
+                            "type": "initiative",
+                            "count": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "advocate",
+                    "count": 1
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 1
+                },
+                {
+                    "type": "blog_post",
+                    "count": 1
+                }
             ]
-        }, 
+        },
         {
-            "id": 5, 
+            "id": 5,
             "name": "Nikhil M.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "above_and_beyond", "count": 2}, 
-                { "type": "seek_feedback", "count": 2 },
-                { "type": "thorough_documentation", "count": 1 },
-                { "type": "AI_usage", "count": 1 }
-
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 2
+                },
+                {
+                    "type": "seek_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "thorough_documentation",
+                    "count": 1
+                },
+                {
+                    "type": "AI_usage",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 6, 
+            "id": 6,
             "name": "Akshatha A.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 4 },
-                { "type": "blog_post", "count": 1 },
-                { "type": "edge_cases", "count": 1 },
-                { "type": "multiple_choice", "choices": [
-                    { "type": "above_and_beyond", "count": 1 },
-                    { "type": "case_study", "count": 1 }
-                ]}, 
-                { "type": "outside_comfort_zone", "count": 1 }
+                {
+                    "type": "issue",
+                    "count": 4
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "blog_post",
+                    "count": 1
+                },
+                {
+                    "type": "edge_cases",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "above_and_beyond",
+                            "count": 1
+                        },
+                        {
+                            "type": "case_study",
+                            "count": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 7, 
+            "id": 7,
             "name": "Kevin M.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 3 },
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "live_coding", "count": 1 },
-                { "type": "passion_project", "count": 1 },
-                { "type": "multiple_choice", "choices": [
-                    { "type": "puzzle_hobby", "count": 1 },
-                    { "type": "case_study", "count": 1 },
-                    { "type": "outside_comfort_zone", "count": 1 },
-                    { "type": "integration_focused_PR", "count": 1 }
-                ]} 
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "live_coding",
+                    "count": 1
+                },
+                {
+                    "type": "passion_project",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "puzzle_hobby",
+                            "count": 1
+                        },
+                        {
+                            "type": "case_study",
+                            "count": 1
+                        },
+                        {
+                            "type": "outside_comfort_zone",
+                            "count": 1
+                        },
+                        {
+                            "type": "integration_focused_PR",
+                            "count": 1
+                        }
+                    ]
+                }
             ]
         },
         {
-            "id": 8, 
+            "id": 8,
             "name": "Jim A.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 3 },
-                { "type": "give_feedback", "count": 2 },
-                { "type": "receive_feedback", "count": 2 },
-                { "type": "high_quality_question", "count": 1 },
-                { "type": "above_and_beyond", "count": 1 },
-                { "type": "multiple_choice", "choices": [
-                    { "type": "SWE_pipeline_blog_post", "count": 1 },
-                    { "type": "SWE_pipeline_personal_project", "count": 1 }
-                ]} 
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "give_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "high_quality_question",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "SWE_pipeline_blog_post",
+                            "count": 1
+                        },
+                        {
+                            "type": "SWE_pipeline_personal_project",
+                            "count": 1
+                        }
+                    ]
+                }
             ]
         },
         {
-            "id": 9, 
+            "id": 9,
             "name": "Ajay G.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "complex_bug", "count": 1 },
-                { "type": "product_opinion", "count": 1 },
-                { "type": "understand_purpose", "count": 1 } 
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "complex_bug",
+                    "count": 1
+                },
+                {
+                    "type": "product_opinion",
+                    "count": 1
+                },
+                {
+                    "type": "understand_purpose",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 10, 
+            "id": 10,
             "name": "Brendan C.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "multiple_approaches", "count": 2 },
-                { "type": "seek_feedback", "count": 2 },
-                { "type": "above_and_beyond", "count": 2 } 
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_approaches",
+                    "count": 2
+                },
+                {
+                    "type": "seek_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 2
+                }
             ]
         },
         {
-            "id": 11, 
+            "id": 11,
             "name": "Ian B.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "issue", "count": 6 },
-                { "type": "initiative", "count": 1 },
-                { "type": "high_quality_question", "count": 1 },
-                { "type": "thorough_documentation", "count": 1 },
-                { "type": "video_demo", "count": 1 },
-                { "type": "video_streaming_experience", "count": 1 }
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "initiative",
+                    "count": 1
+                },
+                {
+                    "type": "high_quality_question",
+                    "count": 1
+                },
+                {
+                    "type": "thorough_documentation",
+                    "count": 1
+                },
+                {
+                    "type": "video_demo",
+                    "count": 1
+                },
+                {
+                    "type": "video_streaming_experience",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 12, 
+            "id": 12,
             "name": "Manu S.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "find_bug", "count": 2 },
-                { "type": "complex_bug", "count": 1 },
-                { "type": "above_and_beyond", "count": 2 },
-                { "type": "edge_cases", "count": 1 },
-                { "type": "reliability_artifact", "count": 1 },
-                { "type": "propose_implementation_plan", "count": 1},
-                { "type": "issue", "count": 6 },
-                { "type": "impact_video_demo", "count": 1} 
+                {
+                    "type": "find_bug",
+                    "count": 2
+                },
+                {
+                    "type": "complex_bug",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 2
+                },
+                {
+                    "type": "edge_cases",
+                    "count": 1
+                },
+                {
+                    "type": "reliability_artifact",
+                    "count": 1
+                },
+                {
+                    "type": "propose_implementation_plan",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                },
+                {
+                    "type": "impact_video_demo",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 13, 
+            "id": 13,
             "name": "Piranavan S.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "initiative", "count": 1 },
-                { "type": "above_and_beyond", "count": 1 },
-                { "type": "propose_implementation_plan", "count": 1 },
-                { "type": "blog_post", "count": 1 },
-                { "type": "receive_feedback", "count": 1 },
-                { "type": "issue", "count": 5 }
+                {
+                    "type": "initiative",
+                    "count": 1
+                },
+                {
+                    "type": "above_and_beyond",
+                    "count": 1
+                },
+                {
+                    "type": "propose_implementation_plan",
+                    "count": 1
+                },
+                {
+                    "type": "blog_post",
+                    "count": 1
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 5
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 14, 
+            "id": 14,
             "name": "Ronald T.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "give_feedback", "count": 2 },
-                { "type": "receive_feedback", "count": 2 },
-                { "type": "outside_comfort_zone", "count": 2 },
-                { "type": "ronald_t_domain_knowledge", "count": 1 },
-                { "type": "issue", "count": 10 }
+                {
+                    "type": "give_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 2
+                },
+                {
+                    "type": "ronald_t_domain_knowledge",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 10
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 15, 
+            "id": 15,
             "name": "James F.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "writing_unit_tests", "count": 3 },
-                { "type": "receive_feedback", "count": 2 },
-                { "type": "initiative", "count": 1 },
-                { "type": "james_f_domain_knowledge", "count": 1 },
-                { "type": "issue", "count": 6 }
+                {
+                    "type": "writing_unit_tests",
+                    "count": 3
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 2
+                },
+                {
+                    "type": "initiative",
+                    "count": 1
+                },
+                {
+                    "type": "james_f_domain_knowledge",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 6
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 16, 
+            "id": 16,
             "name": "Fawaz T.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "initiative", "count": 1 },
-                { "type": "product_opinion", "count": 1 },
-                { "type": "thorough_documentation", "count": 1 },
-                { "type": "leetcode_problem", "count": 3 },
-                { "type": "issue", "count": 3 }
+                {
+                    "type": "initiative",
+                    "count": 1
+                },
+                {
+                    "type": "product_opinion",
+                    "count": 1
+                },
+                {
+                    "type": "thorough_documentation",
+                    "count": 1
+                },
+                {
+                    "type": "leetcode_problem",
+                    "count": 3
+                },
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 17, 
+            "id": 17,
             "name": "Thomas S.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "initiative", "count": 1 },
-                { "type": "learn_and_apply", "count": 1 },
-                { "type": "issue", "count": 3 }
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "initiative",
+                    "count": 1
+                },
+                {
+                    "type": "learn_and_apply",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 18, 
+            "id": 18,
             "name": "Bruce L.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "edge_cases", "count": 1 },
-                { "type": "give_feedback", "count": 1 },
-                { "type": "documentation_gap", "count": 1 },
-                { "type": "applied_domain_skill", "count": 1 },
-                { "type": "multiple_approaches", "count": 2 },
-                { "type": "issue", "count": 5 }
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "edge_cases",
+                    "count": 1
+                },
+                {
+                    "type": "give_feedback",
+                    "count": 1
+                },
+                {
+                    "type": "documentation_gap",
+                    "count": 1
+                },
+                {
+                    "type": "applied_domain_skill",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_approaches",
+                    "count": 2
+                },
+                {
+                    "type": "issue",
+                    "count": 5
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 19, 
+            "id": 19,
             "name": "Michael L.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "multiple_choice", "choices": [
-                    { "type": "case_study", "count": 1 },
-                    { "type": "blog_post", "count": 1 }
-                ]},
-                { "type": "multiple_choice", "choices": [
-                    { "type": "initiative", "count": 1 },
-                    { "type": "passion_project", "count": 1 }
-                ]},
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "issue", "count": 3 }
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "case_study",
+                            "count": 1
+                        },
+                        {
+                            "type": "blog_post",
+                            "count": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "initiative",
+                            "count": 1
+                        },
+                        {
+                            "type": "passion_project",
+                            "count": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         },
         {
-            "id": 20, 
+            "id": 20,
             "name": "Shalom G.",
             "linkedIn": "",
             "company": "",
             "role": "",
             "criteria": [
-                { "type": "high_quality_question", "count": 1 },
-                { "type": "propose_implementation_plan", "count": 1 },
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "receive_feedback", "count": 1 },
-                { "type": "give_feedback", "count": 1 },
-                { "type": "issue", "count": 3 }
+                {
+                    "type": "high_quality_question",
+                    "count": 1
+                },
+                {
+                    "type": "propose_implementation_plan",
+                    "count": 1
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "receive_feedback",
+                    "count": 1
+                },
+                {
+                    "type": "give_feedback",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 3
+                },
+                {
+                    "type": "ecosystem_conversation",
+                    "count": 1
+                }
             ]
         }
     ]
-}   
+}

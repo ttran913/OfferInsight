@@ -1,6 +1,5 @@
 export const USER_MANAGED_CRITERIA_TYPES = [
   "issue",
-  "ecosystem_conversation",
 ] as const;
 
 export type UserManagedCriteriaType =
