@@ -18,7 +18,7 @@
         }, 
         "ecosystem_conversation": {
             "is_primary": true,
-            "short_name": "ecosystem_conversation",
+            "short_name": "conversation",
             "quality": "Community engagement",
             "metric": "Have 1 conversation with someone in the project's ecosystem (a maintainer, contributor, or a user of a competing project).",
             "plan_column_fields": [],
