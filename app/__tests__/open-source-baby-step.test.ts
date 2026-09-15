@@ -215,6 +215,31 @@ describe("isBabyStepComplete", () => {
     ).toBe(true);
   });
 
+  it("accepts shared helper URL clicks from other cards for completion", () => {
+    const shared = new Set([normalizeHelperVideoUrl(ISSUE_HELPER_FIELD.helper_video)]);
+    expect(isBabyStepComplete(makeEntry(), partnershipCriteria)).toBe(false);
+    expect(isBabyStepComplete(makeEntry(), partnershipCriteria, shared)).toBe(true);
+  });
+
+  it("still requires checkbox Done even when helper click is shared", () => {
+    const entry = makeEntry({
+      criteriaType: "ecosystem_conversation",
+      babyStepFields: [ECOSYSTEM_CHECKBOX],
+    });
+    const shared = new Set([normalizeHelperVideoUrl(ECOSYSTEM_CHECKBOX.helper_video)]);
+    expect(isBabyStepComplete(entry, partnershipCriteria, shared)).toBe(false);
+    expect(
+      isBabyStepComplete(
+        {
+          ...entry,
+          babyStepResponses: { [ECOSYSTEM_CHECKBOX.text]: true },
+        },
+        partnershipCriteria,
+        shared
+      )
+    ).toBe(true);
+  });
+
   it("accepts URL-based click keys for completion", () => {
     expect(
       isBabyStepComplete(

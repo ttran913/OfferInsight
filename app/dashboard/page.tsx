@@ -20,6 +20,7 @@ import {
   isProofOfWorkComplete,
 } from './lib/open-source-proof-of-work';
 import {
+  collectClickedHelperUrlsFromEntries,
   isBabyStepComplete,
   statusRequiresBabyStepComplete,
 } from './lib/open-source-baby-step';
@@ -909,9 +910,14 @@ const hasSeededMockDataRef = useRef(false);
         activePartnershipCriteria,
         completedPartnerships
       );
+      const sharedClickedHelperUrls = collectClickedHelperUrlsFromEntries(
+        (Object.keys(openSourceColumns) as OpenSourceColumnId[]).flatMap(
+          (col) => openSourceColumns[col]
+        )
+      );
       if (
         statusRequiresBabyStepComplete(fromCol, toCol) &&
-        !isBabyStepComplete(movingItem, partnershipCriteria)
+        !isBabyStepComplete(movingItem, partnershipCriteria, sharedClickedHelperUrls)
       ) {
         setShowBabyStepWarning(true);
         setActiveOpenSourceId(null);

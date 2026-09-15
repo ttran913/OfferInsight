@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/open-source-ecosystem-conversation";
 import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
 import {
+  collectClickedHelperUrlsFromEntries,
   getPartnershipCriteriaFromCatalog,
   isBabyStepComplete,
   statusRequiresBabyStepComplete,
@@ -56,7 +57,8 @@ function toOpenSourceEntry(row: OpenSourceDbEntry): OpenSourceEntry {
 function getBabyStepValidationError(
   existing: OpenSourceDbEntry,
   newStatus: OpenSourceStatus,
-  entryForValidation: OpenSourceEntry
+  entryForValidation: OpenSourceEntry,
+  sharedClickedHelperUrls?: Set<string> | null
 ): string | null {
   const fromStatus = existing.status as OpenSourceStatus;
   if (!statusRequiresBabyStepComplete(fromStatus, newStatus)) {
@@ -64,11 +66,33 @@ function getBabyStepValidationError(
   }
 
   const partnershipCriteria = getPartnershipCriteriaFromCatalog(existing.partnershipName);
-  if (!isBabyStepComplete(entryForValidation, partnershipCriteria)) {
+  if (!isBabyStepComplete(entryForValidation, partnershipCriteria, sharedClickedHelperUrls)) {
     return "Complete baby steps first — open each helper and check Done where required.";
   }
 
   return null;
+}
+
+async function getSharedClickedHelperUrlsForUser(userId: string): Promise<Set<string>> {
+  const rows = await prisma.openSourceEntry.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      partnershipName: true,
+      criteriaType: true,
+      metric: true,
+      status: true,
+      selectedExtras: true,
+      planFields: true,
+      planResponses: true,
+      babyStepFields: true,
+      babyStepResponses: true,
+      proofOfCompletion: true,
+      proofResponses: true,
+      userId: true,
+    },
+  });
+  return collectClickedHelperUrlsFromEntries(rows.map((row) => toOpenSourceEntry(row as OpenSourceDbEntry)));
 }
 
 // GET: Fetch all open source entries for a user
@@ -218,7 +242,13 @@ export async function PUT(request: NextRequest) {
         babyStepFields: data.babyStepFields ?? existing.babyStepFields,
         criteriaType: data.criteriaType ?? existing.criteriaType,
       });
-      const babyStepError = getBabyStepValidationError(existing, newStatus, entryForValidation);
+      const sharedClickedHelperUrls = await getSharedClickedHelperUrlsForUser(userId);
+      const babyStepError = getBabyStepValidationError(
+        existing,
+        newStatus,
+        entryForValidation,
+        sharedClickedHelperUrls
+      );
       if (babyStepError) {
         return NextResponse.json({ error: babyStepError }, { status: 400 });
       }
@@ -359,10 +389,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const newStatus = status as OpenSourceStatus;
+    const sharedClickedHelperUrls = await getSharedClickedHelperUrlsForUser(userId);
     const babyStepError = getBabyStepValidationError(
       existing,
       newStatus,
-      toOpenSourceEntry(existing)
+      toOpenSourceEntry(existing),
+      sharedClickedHelperUrls
     );
     if (babyStepError) {
       return NextResponse.json({ error: babyStepError }, { status: 400 });

@@ -76,11 +76,15 @@ export function getHelperVideoUrlFromClickKey(key: string): string | null {
 
 export function hasHelperBeenClicked(
   responses: Record<string, unknown> | null | undefined,
-  field: BabyStepFieldDef
+  field: BabyStepFieldDef,
+  sharedClickedHelperUrls?: Set<string> | null
 ): boolean {
   const helperVideo =
     typeof field.helper_video === "string" ? field.helper_video.trim() : "";
   if (!helperVideo) return false;
+
+  const normalized = normalizeHelperVideoUrl(helperVideo);
+  if (sharedClickedHelperUrls?.has(normalized)) return true;
 
   const responsesObj = responses ?? {};
   if (responsesObj[helperClickKeyForUrl(helperVideo)]) return true;
@@ -205,9 +209,23 @@ export function getClickedHelperUrlsFromEntry(entry: OpenSourceEntry): string[] 
   return [...urls];
 }
 
+/** Collect shared helper-click URLs across many entries (board-wide / user-wide). */
+export function collectClickedHelperUrlsFromEntries(
+  entries: OpenSourceEntry[]
+): Set<string> {
+  const urls = new Set<string>();
+  for (const entry of entries) {
+    for (const url of getClickedHelperUrlsFromEntry(entry)) {
+      urls.add(url);
+    }
+  }
+  return urls;
+}
+
 export function isBabyStepComplete(
   entry: OpenSourceEntry,
-  partnershipCriteria: PartnershipCriteriaDef[] = []
+  partnershipCriteria: PartnershipCriteriaDef[] = [],
+  sharedClickedHelperUrls?: Set<string> | null
 ): boolean {
   const fields = getEffectiveBabyStepFields(entry, partnershipCriteria);
   if (fields.length === 0) return true;
@@ -220,7 +238,7 @@ export function isBabyStepComplete(
 
     const helperVideo =
       typeof field.helper_video === "string" ? field.helper_video.trim() : "";
-    if (helperVideo && !hasHelperBeenClicked(responses, field)) {
+    if (helperVideo && !hasHelperBeenClicked(responses, field, sharedClickedHelperUrls)) {
       return false;
     }
 

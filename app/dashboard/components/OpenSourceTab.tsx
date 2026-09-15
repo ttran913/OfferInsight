@@ -18,7 +18,7 @@ import {
   isHelperClickKey,
   isHelperClickUrlKey,
   getHelperVideoUrlFromClickKey,
-  getClickedHelperUrlsFromEntry,
+  collectClickedHelperUrlsFromEntries,
   entryIncludesHelperVideoUrl,
   getCardHelperVideoFields,
   normalizeHelperVideoUrl,
@@ -1086,15 +1086,11 @@ export default function OpenSourceTab({
   const healedHelperUrlsRef = useRef<Set<string>>(new Set());
 
   const sharedClickedHelperUrls = useMemo(() => {
-    const urls = new Set<string>();
-    for (const col of Object.keys(openSourceColumns) as OpenSourceColumnId[]) {
-      for (const entry of openSourceColumns[col]) {
-        for (const url of getClickedHelperUrlsFromEntry(entry)) {
-          urls.add(url);
-        }
-      }
-    }
-    return urls;
+    return collectClickedHelperUrlsFromEntries(
+      (Object.keys(openSourceColumns) as OpenSourceColumnId[]).flatMap(
+        (col) => openSourceColumns[col]
+      )
+    );
   }, [openSourceColumns]);
 
   const applyHelperClickToColumns = useCallback(
