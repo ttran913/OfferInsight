@@ -3,58 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { getApiHeaders } from '@/app/lib/api-helpers';
 
-import { Plus, Trash2, X, PlayCircle } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { LinkedinOutreach, LinkedinOutreachColumnId, BoardTimeFilter, LinkedinOutreachStatus } from './types';
 import { linkedinOutreachStatusToColumn, linkedinOutreachColumnToStatus } from './types';
-import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, LockTooltip, VideoModal, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
+import { DroppableColumn, DeleteModal, formatModalDate, toLocalDateString, LockTooltip, normalizeUrl, ModalFormPrimaryAction, ModalOverlay, ModalPanel, BOARD_CHECKBOX_CLASS } from './shared';
 
 // ===== DATE FIELD EDITING TOGGLE START =====
 // Toggle this flag to enable editing dateCreated and dateModified in create/edit modals for testing and debugging.
 const ENABLE_DATE_FIELD_EDITING = false;
 // ===== DATE FIELD EDITING TOGGLE END =====
 
-// Helper Message Component - shows video link based on current column
-function HelperMessage({ status }: { status?: LinkedinOutreachStatus | null }) {
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
-  const videoUrl = 'https://www.youtube.com/watch?v=UgZrVViUQLk'; // TODO: Update with actual Coffee Chats video URL
-
-  const getMessage = () => {
-    if (!status) return 'find prospects';
-    switch (status) {
-      case 'prospects':
-        return 'find prospects';
-      case 'sendFirstMessage':
-        return 'send your first message';
-      case 'requestAccepted':
-        return 'get your request accepted';
-      case 'followUp':
-        return 'follow up';
-      case 'coffeeChat':
-        return 'have a coffee chat';
-      case 'askForReferral':
-        return 'ask for a referral';
-      default:
-        return 'find prospects';
-    }
-  };
-
+// Helper Message Component - placeholder until real helper videos are ready
+function HelperMessage({ status: _status }: { status?: LinkedinOutreachStatus | null }) {
   return (
-    <>
-      <div className="text-center py-3">
-        <button
-          type="button"
-          onClick={() => setIsVideoOpen(true)}
-          className="inline-flex items-center gap-2 text-gray-900 font-semibold hover:text-electric-blue transition-colors cursor-pointer underline"
-        >
-          <PlayCircle className="w-5 h-5 text-electric-blue flex-shrink-0" />
-          <span>Helper video: How to {getMessage()}</span>
-        </button>
-      </div>
-      <VideoModal videoUrl={videoUrl} isOpen={isVideoOpen} onClose={() => setIsVideoOpen(false)} />
-    </>
+    <div className="text-center py-3">
+      <p className="text-gray-500 font-medium">Helper video is coming soon...</p>
+    </div>
   );
 }
 
