@@ -774,6 +774,26 @@
                 "type": "text",
                 "text": "Your username/handle on that forum or Discord channel."
             }]
+        },
+        "teach_new_proposal": {
+            "is_primary": true,
+            "short_name": "teach_new_proposal",
+            "quality": "Curiosity",
+            "metric": "Learn something new and submit a proposal to bring it into the project (teach the project).",
+            "plan_column_fields": [],
+            "baby_step_column_fields": [{
+                "type": "checkbox",
+                "text": "Coming soon...",
+                "helper_video": ""
+            }],
+            "proof_of_completion": [{
+                "type": "text",
+                "text": "In 1 or 2 sentences, describe what you learned and how it helps the project."
+            },
+            {
+                "type": "URL",
+                "text": "Link to the blog post or video."
+            }]
         }
     }   
 }
