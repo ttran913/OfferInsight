@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Calendar, Loader2, Plus, Trash2 } from 'lucide-react';
 import {
@@ -9,6 +9,7 @@ import {
   MEETING_DURATION_MINUTES,
   MEETING_MAX_HEADCOUNT,
 } from '@/app/lib/calendar/constants';
+import { formatEndHhMm } from '@/app/lib/calendar/ics';
 
 type WindowRow = {
   key: string;
@@ -144,14 +145,6 @@ export default function CalendarTab() {
 
   const timezone = status?.defaultTimezone ?? DEFAULT_AVAILABILITY_TIMEZONE;
   const canEdit = status?.canEdit ?? false;
-
-  const sortedPreview = useMemo(
-    () =>
-      [...rows].sort(
-        (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)
-      ),
-    [rows]
-  );
 
   async function handleSave() {
     if (!canEdit) return;
@@ -311,7 +304,7 @@ export default function CalendarTab() {
         </p>
 
         <div className="space-y-3 mb-4">
-          {sortedPreview.length === 0 && (
+          {rows.length === 0 && (
             <p className="text-sm text-gray-400 py-2">
               No windows yet. Add days/times when you are available for monthly meetings.
             </p>
@@ -416,7 +409,7 @@ export default function CalendarTab() {
         <p className="text-sm text-gray-500 mb-4">
           Next 14 days of {status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES}-minute
           exclusive openings from your saved windows ({slotCount} total). Standing monthly times:{' '}
-          {uniqueWeekly.length}. Bookings will remove slots in a later step.
+          {uniqueWeekly.length}. Student bookings remove those times from this list.
         </p>
 
         {slotsLoading ? (
@@ -439,7 +432,7 @@ export default function CalendarTab() {
                   {DAY_LABELS[slot.dayOfWeek]} {slot.localDate}
                 </span>
                 <span className="text-gray-600">
-                  {slot.localTime}–{formatEndLocal(slot.localTime, status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES)}{' '}
+                  {slot.localTime}–{formatEndHhMm(slot.localTime, status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES)}{' '}
                   <span className="text-gray-400">({timezone.replace(/_/g, ' ')})</span>
                 </span>
                 <span className="font-mono text-xs text-gray-400">{slot.weeklyKey}</span>
@@ -455,12 +448,4 @@ export default function CalendarTab() {
       </section>
     </div>
   );
-}
-
-function formatEndLocal(startHhMm: string, durationMinutes: number): string {
-  const [h, m] = startHhMm.split(':').map(Number);
-  const total = h * 60 + m + durationMinutes;
-  const eh = Math.floor(total / 60) % 24;
-  const em = total % 60;
-  return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
 }

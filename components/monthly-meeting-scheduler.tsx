@@ -39,14 +39,12 @@ type MonthlyMeetingSchedulerProps = {
   /** Show skip link (onboarding only). */
   showSkip?: boolean;
   onSkip?: () => void;
-  variant?: 'onboarding' | 'account';
 };
 
 export default function MonthlyMeetingScheduler({
   onSaved,
   showSkip,
   onSkip,
-  variant = 'account',
 }: MonthlyMeetingSchedulerProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -151,7 +149,7 @@ export default function MonthlyMeetingScheduler({
   }
 
   return (
-    <div className={variant === 'account' ? '' : ''}>
+    <div>
       <div className="flex items-start gap-3 mb-4">
         <Calendar className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
         <div>

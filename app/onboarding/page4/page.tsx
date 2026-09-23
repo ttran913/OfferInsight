@@ -28,7 +28,6 @@ export default function OnboardingPage4() {
         </div>
 
         <MonthlyMeetingScheduler
-          variant="onboarding"
           showSkip
           onSkip={() => router.push('/dashboard')}
           onSaved={() => router.push('/dashboard')}

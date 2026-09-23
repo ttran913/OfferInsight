@@ -216,8 +216,6 @@ export async function PUT(request: NextRequest) {
       onboardingProgress: 4,
       emailSent,
       emailError,
-      // Google Calendar write comes in the next step
-      googleSynced: false,
     });
   } catch (error) {
     console.error('Error saving monthly meeting:', error);
