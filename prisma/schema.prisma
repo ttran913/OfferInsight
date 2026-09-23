@@ -197,6 +197,39 @@ model Instructor {
   role              InstructorRole @default(ADMIN)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  googleCalendar    InstructorGoogleCalendar?
+  availabilityWindows InstructorAvailabilityWindow[]
+}
+
+/// OAuth tokens for writing monthly 1:1s on the instructor's Google Calendar.
+model InstructorGoogleCalendar {
+  id                 String     @id @default(cuid())
+  instructorId       String     @unique
+  instructor         Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  googleEmail        String?
+  accessTokenEnc     String
+  refreshTokenEnc    String
+  expiryDate         DateTime?
+  scope              String?
+  connectedAt        DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+/// Weekly windows when students may book 20-min exclusive monthly 1:1s.
+model InstructorAvailabilityWindow {
+  id           String     @id @default(cuid())
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  /// 0 = Sunday … 6 = Saturday (JS Date.getDay())
+  dayOfWeek    Int
+  /// Local time HH:mm (24h), in `timezone`
+  startTime    String
+  endTime      String
+  timezone     String     @default("America/Los_Angeles")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([instructorId])
 }
 
 enum InstructorRole {

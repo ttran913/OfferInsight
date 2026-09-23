@@ -1,14 +1,25 @@
 "use client"
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Users, Calendar } from 'lucide-react';
 import UsersTab from './components/UsersTab';
 import CalendarTab from './components/CalendarTab';
 
 type InstructorTab = 'users' | 'calendar';
 
-export default function InstructorDashboard() {
-  const [activeTab, setActiveTab] = useState<InstructorTab>('users');
+function InstructorDashboardInner() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<InstructorTab>(
+    tabParam === 'calendar' ? 'calendar' : 'users'
+  );
+
+  useEffect(() => {
+    if (tabParam === 'calendar' || tabParam === 'users') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   return (
     <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900">
@@ -50,5 +61,22 @@ export default function InstructorDashboard() {
         {activeTab === 'calendar' && <CalendarTab />}
       </div>
     </div>
+  );
+}
+
+export default function InstructorDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900">
+          <div className="container mx-auto px-4 py-8">
+            <h1 className="text-3xl font-bold mb-6">Instructor Dashboard</h1>
+            <div className="text-gray-400">Loading…</div>
+          </div>
+        </div>
+      }
+    >
+      <InstructorDashboardInner />
+    </Suspense>
   );
 }
