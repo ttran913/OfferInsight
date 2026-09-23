@@ -17,6 +17,16 @@ type WindowRow = {
   endTime: string;
 };
 
+type SlotPreview = {
+  start: string;
+  end: string;
+  dayOfWeek: number;
+  localDate: string;
+  localTime: string;
+  weeklyKey: string;
+  timezone: string;
+};
+
 type CalendarStatus = {
   googleConfigured: boolean;
   canEdit: boolean;
@@ -62,6 +72,31 @@ export default function CalendarTab() {
   const [rows, setRows] = useState<WindowRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotPreview, setSlotPreview] = useState<SlotPreview[]>([]);
+  const [uniqueWeekly, setUniqueWeekly] = useState<SlotPreview[]>([]);
+  const [slotCount, setSlotCount] = useState(0);
+
+  const loadSlots = useCallback(async () => {
+    setSlotsLoading(true);
+    try {
+      const res = await fetch('/api/instructor/calendar/slots?days=14');
+      if (!res.ok) {
+        throw new Error('Failed to load slots');
+      }
+      const data = await res.json();
+      setSlotPreview((data.slots as SlotPreview[]).slice(0, 24));
+      setUniqueWeekly((data.uniqueWeekly as SlotPreview[]) || []);
+      setSlotCount(typeof data.slotCount === 'number' ? data.slotCount : 0);
+    } catch (err) {
+      console.error(err);
+      setSlotPreview([]);
+      setUniqueWeekly([]);
+      setSlotCount(0);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,13 +118,14 @@ export default function CalendarTab() {
             }))
           : []
       );
+      await loadSlots();
     } catch (err) {
       console.error(err);
       setError('Could not load calendar settings.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadSlots]);
 
   useEffect(() => {
     load();
@@ -148,6 +184,7 @@ export default function CalendarTab() {
         }))
       );
       setMessage('Availability saved.');
+      await loadSlots();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save availability');
     } finally {
@@ -373,6 +410,57 @@ export default function CalendarTab() {
           </div>
         )}
       </section>
+
+      <section className="border border-gray-200 rounded-lg bg-white p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">Bookable slots preview</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Next 14 days of {status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES}-minute
+          exclusive openings from your saved windows ({slotCount} total). Standing monthly times:{' '}
+          {uniqueWeekly.length}. Bookings will remove slots in a later step.
+        </p>
+
+        {slotsLoading ? (
+          <div className="flex items-center gap-2 text-gray-400 text-sm py-4">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Generating slots…
+          </div>
+        ) : slotPreview.length === 0 ? (
+          <p className="text-sm text-gray-400 py-2">
+            No upcoming slots. Save at least one availability window first.
+          </p>
+        ) : (
+          <div className="max-h-72 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-100">
+            {slotPreview.map((slot) => (
+              <div
+                key={`${slot.start}-${slot.weeklyKey}`}
+                className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+              >
+                <span className="text-gray-900 font-medium">
+                  {DAY_LABELS[slot.dayOfWeek]} {slot.localDate}
+                </span>
+                <span className="text-gray-600">
+                  {slot.localTime}–{formatEndLocal(slot.localTime, status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES)}{' '}
+                  <span className="text-gray-400">({timezone.replace(/_/g, ' ')})</span>
+                </span>
+                <span className="font-mono text-xs text-gray-400">{slot.weeklyKey}</span>
+              </div>
+            ))}
+            {slotCount > slotPreview.length && (
+              <div className="px-3 py-2 text-xs text-gray-400">
+                Showing first {slotPreview.length} of {slotCount}…
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function formatEndLocal(startHhMm: string, durationMinutes: number): string {
+  const [h, m] = startHhMm.split(':').map(Number);
+  const total = h * 60 + m + durationMinutes;
+  const eh = Math.floor(total / 60) % 24;
+  const em = total % 60;
+  return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
 }
