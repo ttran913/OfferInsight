@@ -16,6 +16,8 @@ export type MeetingSummary = {
   localTime: string;
   timezone: string;
   firstOccurrence: string;
+  nextOccurrence?: string | null;
+  nextOccurrenceLabel?: string | null;
 };
 
 type SlotOption = {
@@ -35,6 +37,8 @@ type MonthlyMeetingSchedulerProps = {
     onboardingProgress: number;
     emailSent: boolean;
     emailError: string | null;
+    googleSynced?: boolean;
+    googleError?: string | null;
   }) => void;
   /** Show skip link (onboarding only). */
   showSkip?: boolean;
@@ -122,14 +126,21 @@ export default function MonthlyMeetingScheduler({
         : data.emailError
           ? ` (Invite email failed: ${data.emailError})`
           : '';
+      const googleNote = data.googleSynced
+        ? ' Added to instructor Google Calendar.'
+        : data.googleError && data.googleError !== 'Instructor Google Calendar is not connected.'
+          ? ` (Google Calendar: ${friendlyGoogleError(data.googleError)})`
+          : '';
       setMessage(
-        `${wasReschedule ? 'Meeting updated.' : 'Meeting scheduled.'}${emailNote}`
+        `${wasReschedule ? 'Meeting updated.' : 'Meeting scheduled.'}${emailNote}${googleNote}`
       );
       onSaved?.({
         meeting: data.meeting,
         onboardingProgress: data.onboardingProgress,
         emailSent: data.emailSent,
         emailError: data.emailError,
+        googleSynced: data.googleSynced,
+        googleError: data.googleError,
       });
       await load();
     } catch (err) {
@@ -177,13 +188,21 @@ export default function MonthlyMeetingScheduler({
 
       {meeting && (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          Current schedule:{' '}
-          <span className="font-semibold text-gray-900">
-            {meeting.dayLabel}s at {meeting.localTime}
-          </span>{' '}
-          <span className="text-gray-400">
-            ({meeting.timezone.replace(/_/g, ' ')})
-          </span>
+          <div>
+            Current schedule:{' '}
+            <span className="font-semibold text-gray-900">
+              {meeting.dayLabel}s at {meeting.localTime}
+            </span>{' '}
+            <span className="text-gray-400">
+              ({meeting.timezone.replace(/_/g, ' ')})
+            </span>
+          </div>
+          {meeting.nextOccurrenceLabel && (
+            <div className="mt-1.5 text-gray-900">
+              Next meeting:{' '}
+              <span className="font-semibold">{meeting.nextOccurrenceLabel}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -242,4 +261,11 @@ export default function MonthlyMeetingScheduler({
       </div>
     </div>
   );
+}
+
+function friendlyGoogleError(message: string): string {
+  if (/insufficient authentication scopes/i.test(message)) {
+    return 'missing calendar permission — on the instructor Calendar tab, Disconnect Google, then Connect again and allow calendar access';
+  }
+  return message;
 }

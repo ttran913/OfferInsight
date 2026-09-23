@@ -14,8 +14,48 @@ import {
   getInstructorDisplayName,
   resolveSchedulingInstructor,
 } from '@/app/lib/calendar/scheduling-instructor';
+import {
+  anchorLocalDateFromOccurrence,
+  formatNextMeetingLabel,
+  getNextMonthlyOccurrence,
+} from '@/app/lib/calendar/next-occurrence';
 import { sendEmail } from '@/app/lib/email';
+import { syncMonthlyMeetingOnInstructorCalendar } from '@/app/lib/calendar/google-calendar';
 import { prisma } from '@/db';
+
+function meetingPayload(m: {
+  id: string;
+  weeklyKey: string;
+  dayOfWeek: number;
+  localTime: string;
+  timezone: string;
+  firstOccurrence: Date;
+}) {
+  const anchorLocalDate = anchorLocalDateFromOccurrence(
+    m.firstOccurrence,
+    m.timezone
+  );
+  const next = getNextMonthlyOccurrence({
+    dayOfWeek: m.dayOfWeek,
+    localTime: m.localTime,
+    timezone: m.timezone,
+    anchorLocalDate,
+  });
+
+  return {
+    id: m.id,
+    weeklyKey: m.weeklyKey,
+    dayOfWeek: m.dayOfWeek,
+    dayLabel: DAY_LABELS[m.dayOfWeek],
+    localTime: m.localTime,
+    timezone: m.timezone,
+    firstOccurrence: m.firstOccurrence.toISOString(),
+    nextOccurrence: next?.startIso ?? null,
+    nextOccurrenceLabel: next
+      ? formatNextMeetingLabel(next.startIso, m.timezone)
+      : null,
+  };
+}
 
 export async function GET() {
   try {
@@ -48,15 +88,7 @@ export async function GET() {
 
     const m = user.monthlyMeeting;
     return NextResponse.json({
-      meeting: {
-        id: m.id,
-        weeklyKey: m.weeklyKey,
-        dayOfWeek: m.dayOfWeek,
-        dayLabel: DAY_LABELS[m.dayOfWeek],
-        localTime: m.localTime,
-        timezone: m.timezone,
-        firstOccurrence: m.firstOccurrence.toISOString(),
-      },
+      meeting: meetingPayload(m),
       instructorName,
       onboardingProgress: user.onboardingProgress,
     });
@@ -134,6 +166,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const isReschedule = Boolean(user.monthlyMeeting);
+    const previousGoogleEventId = user.monthlyMeeting?.googleEventId ?? null;
     const instructorName = getInstructorDisplayName();
 
     const meeting = await prisma.$transaction(async (tx) => {
@@ -155,7 +188,6 @@ export async function PUT(request: NextRequest) {
           localTime: match.localTime,
           timezone: match.timezone,
           firstOccurrence: new Date(match.start),
-          googleEventId: null,
         },
       });
 
@@ -166,6 +198,31 @@ export async function PUT(request: NextRequest) {
 
       return saved;
     });
+
+    let googleSynced = false;
+    let googleError: string | null = null;
+    try {
+      const eventId = await syncMonthlyMeetingOnInstructorCalendar({
+        instructorId: instructor.id,
+        previousEventId: previousGoogleEventId,
+        slot: match,
+        studentName: user.name,
+        studentEmail: user.email,
+      });
+      if (eventId) {
+        await prisma.studentMonthlyMeeting.update({
+          where: { id: meeting.id },
+          data: { googleEventId: eventId },
+        });
+        googleSynced = true;
+      } else {
+        googleError = 'Instructor Google Calendar is not connected.';
+      }
+    } catch (err) {
+      console.error('Failed to sync meeting to Google Calendar:', err);
+      googleError =
+        err instanceof Error ? err.message : 'Failed to sync Google Calendar';
+    }
 
     let emailSent = false;
     let emailError: string | null = null;
@@ -203,19 +260,16 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({
-      meeting: {
-        id: meeting.id,
-        weeklyKey: meeting.weeklyKey,
-        dayOfWeek: meeting.dayOfWeek,
-        dayLabel: DAY_LABELS[meeting.dayOfWeek],
-        localTime: meeting.localTime,
-        timezone: meeting.timezone,
-        firstOccurrence: meeting.firstOccurrence.toISOString(),
-      },
+      meeting: meetingPayload({
+        ...meeting,
+        firstOccurrence: meeting.firstOccurrence,
+      }),
       instructorName,
       onboardingProgress: 4,
       emailSent,
       emailError,
+      googleSynced,
+      googleError,
     });
   } catch (error) {
     console.error('Error saving monthly meeting:', error);
