@@ -98,6 +98,7 @@ model User {
   lastInactivityWarningSent DateTime?
   inactivityWarningCount    Int       @default(0)
   removedFromResumeBook     Boolean   @default(false)
+  monthlyMeeting         StudentMonthlyMeeting?
 }
 
 model Partnership {
@@ -199,6 +200,28 @@ model Instructor {
   updatedAt         DateTime @updatedAt
   googleCalendar    InstructorGoogleCalendar?
   availabilityWindows InstructorAvailabilityWindow[]
+  studentMeetings   StudentMonthlyMeeting[]
+}
+
+/// Standing monthly 1:1 booked by a student (same weekday + time each month).
+model StudentMonthlyMeeting {
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instructorId    String
+  instructor      Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  /// `${dayOfWeek}|${localTime}` e.g. "3|10:00"
+  weeklyKey       String
+  dayOfWeek       Int
+  localTime       String
+  timezone        String     @default("America/Los_Angeles")
+  /// Next / first occurrence start (UTC)
+  firstOccurrence DateTime
+  googleEventId   String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([instructorId, weeklyKey])
 }
 
 /// OAuth tokens for writing monthly 1:1s on the instructor's Google Calendar.

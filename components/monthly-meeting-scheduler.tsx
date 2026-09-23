@@ -1,0 +1,247 @@
+"use client"
+
+import { useCallback, useEffect, useState } from 'react';
+import { Calendar, Loader2 } from 'lucide-react';
+import {
+  DAY_LABELS,
+  MEETING_DURATION_MINUTES,
+} from '@/app/lib/calendar/constants';
+import { formatEndHhMm } from '@/app/lib/calendar/ics';
+
+export type MeetingSummary = {
+  id: string;
+  weeklyKey: string;
+  dayOfWeek: number;
+  dayLabel: string;
+  localTime: string;
+  timezone: string;
+  firstOccurrence: string;
+};
+
+type SlotOption = {
+  start: string;
+  end: string;
+  dayOfWeek: number;
+  localDate: string;
+  localTime: string;
+  weeklyKey: string;
+  timezone: string;
+};
+
+type MonthlyMeetingSchedulerProps = {
+  /** After successful save (e.g. navigate to dashboard on onboarding). */
+  onSaved?: (result: {
+    meeting: MeetingSummary;
+    onboardingProgress: number;
+    emailSent: boolean;
+    emailError: string | null;
+  }) => void;
+  /** Show skip link (onboarding only). */
+  showSkip?: boolean;
+  onSkip?: () => void;
+  variant?: 'onboarding' | 'account';
+};
+
+export default function MonthlyMeetingScheduler({
+  onSaved,
+  showSkip,
+  onSkip,
+  variant = 'account',
+}: MonthlyMeetingSchedulerProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [instructorName, setInstructorName] = useState('Utsab');
+  const [slots, setSlots] = useState<SlotOption[]>([]);
+  const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [meetingRes, slotsRes] = await Promise.all([
+        fetch('/api/calendar/meeting'),
+        fetch('/api/calendar/slots?mode=unique&days=42'),
+      ]);
+
+      if (!meetingRes.ok || !slotsRes.ok) {
+        const meetingErr = meetingRes.ok ? null : await meetingRes.text().catch(() => '');
+        const slotsErr = slotsRes.ok ? null : await slotsRes.text().catch(() => '');
+        console.error('Scheduling load failed', {
+          meetingStatus: meetingRes.status,
+          slotsStatus: slotsRes.status,
+          meetingErr,
+          slotsErr,
+        });
+        throw new Error('Failed to load scheduling data');
+      }
+
+      const meetingData = await meetingRes.json();
+      const slotsData = await slotsRes.json();
+
+      setInstructorName(meetingData.instructorName || slotsData.instructorName || 'Utsab');
+      setMeeting(meetingData.meeting ?? null);
+      setSelectedKey(meetingData.meeting?.weeklyKey ?? null);
+      setSlots((slotsData.slots as SlotOption[]) || []);
+      setEmptyMessage(slotsData.message || null);
+    } catch (err) {
+      console.error(err);
+      setError('Could not load available meeting times.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleSave() {
+    if (!selectedKey) {
+      setError('Select a monthly meeting time first.');
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    const wasReschedule = Boolean(meeting);
+    try {
+      const res = await fetch('/api/calendar/meeting', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weeklyKey: selectedKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save schedule');
+      }
+      setMeeting(data.meeting);
+      const emailNote = data.emailSent
+        ? ' Calendar invite emailed.'
+        : data.emailError
+          ? ` (Invite email failed: ${data.emailError})`
+          : '';
+      setMessage(
+        `${wasReschedule ? 'Meeting updated.' : 'Meeting scheduled.'}${emailNote}`
+      );
+      onSaved?.({
+        meeting: data.meeting,
+        onboardingProgress: data.onboardingProgress,
+        emailSent: data.emailSent,
+        emailError: data.emailError,
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save schedule');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-gray-400 py-6">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Loading meeting times…
+      </div>
+    );
+  }
+
+  return (
+    <div className={variant === 'account' ? '' : ''}>
+      <div className="flex items-start gap-3 mb-4">
+        <Calendar className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Monthly meeting with {instructorName}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Pick a standing {MEETING_DURATION_MINUTES}-minute time (same weekday each month).
+            We&apos;ll email you a calendar invite (.ics).
+          </p>
+        </div>
+      </div>
+
+      {(message || error) && (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            error
+              ? 'border-red-300 bg-red-50 text-red-800'
+              : 'border-green-300 bg-green-50 text-green-800'
+          }`}
+        >
+          {error || message}
+        </div>
+      )}
+
+      {meeting && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          Current schedule:{' '}
+          <span className="font-semibold text-gray-900">
+            {meeting.dayLabel}s at {meeting.localTime}
+          </span>{' '}
+          <span className="text-gray-400">
+            ({meeting.timezone.replace(/_/g, ' ')})
+          </span>
+        </div>
+      )}
+
+      {slots.length === 0 ? (
+        <p className="text-sm text-gray-500 py-2">
+          {emptyMessage ||
+            `No open times right now. Check back after ${instructorName} updates availability.`}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-80 overflow-y-auto">
+          {slots.map((slot) => {
+            const selected = selectedKey === slot.weeklyKey;
+            return (
+              <button
+                key={slot.weeklyKey}
+                type="button"
+                onClick={() => setSelectedKey(slot.weeklyKey)}
+                className={`text-left rounded-lg border px-4 py-3 transition-colors ${
+                  selected
+                    ? 'border-electric-blue bg-blue-50 ring-2 ring-electric-blue/30'
+                    : 'border-gray-200 bg-white hover:border-electric-blue'
+                }`}
+              >
+                <div className="font-semibold text-gray-900">
+                  {DAY_LABELS[slot.dayOfWeek]}s · {slot.localTime}–
+                  {formatEndHhMm(slot.localTime, MEETING_DURATION_MINUTES)}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Next: {slot.localDate} ({slot.timezone.replace(/_/g, ' ')})
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !selectedKey || slots.length === 0}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Save schedule
+        </button>
+        {showSkip && onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
+          >
+            Skip for now
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

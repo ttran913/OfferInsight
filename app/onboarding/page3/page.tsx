@@ -242,7 +242,7 @@ function Page3Content() {
     });
 
     if (response.ok) {
-      router.push('/dashboard');
+      router.push('/onboarding/page4');
     } else {
       console.error('Failed to update user plan');
     }

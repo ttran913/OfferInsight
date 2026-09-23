@@ -34,14 +34,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const meetings = await prisma.studentMonthlyMeeting.findMany({
+      where: { instructorId: instructor.id },
+      select: { weeklyKey: true },
+    });
+
     const timezone = windows[0]?.timezone || DEFAULT_AVAILABILITY_TIMEZONE;
     const slots = generateAvailableSlots({
       windows,
       days,
       timezone,
       durationMinutes: MEETING_DURATION_MINUTES,
-      // Bookings come in a later step — occupied stays empty for now.
-      occupied: [],
+      occupied: meetings.map((m) => ({ weeklyKey: m.weeklyKey })),
     });
 
     return NextResponse.json({

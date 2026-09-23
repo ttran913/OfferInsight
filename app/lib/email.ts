@@ -7,9 +7,20 @@ interface SendEmailOptions {
   subject: string;
   text: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }
 
-export async function sendEmail({ to, subject, text, html }: SendEmailOptions): Promise<void> {
+export async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+  attachments,
+}: SendEmailOptions): Promise<void> {
   if (!process.env.EMAIL_SERVER || !process.env.EMAIL_FROM) {
     throw new Error("EMAIL_SERVER and EMAIL_FROM environment variables must be set");
   }
@@ -20,6 +31,11 @@ export async function sendEmail({ to, subject, text, html }: SendEmailOptions): 
     subject,
     text,
     html: html || text,
+    attachments: attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType || "application/octet-stream",
+    })),
   });
 }
 

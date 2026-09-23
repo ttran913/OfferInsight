@@ -7,6 +7,9 @@ export function getUserDashboardPath(onboardingProgress: number | null | undefin
     case 2:
       return '/onboarding/page3';
     case 3:
+      // Soft: dashboard allowed without a meeting; page4 is offered in the funnel after page3
+      return '/dashboard';
+    case 4:
       return '/dashboard';
     default:
       return '/onboarding/page1';

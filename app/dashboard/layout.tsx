@@ -28,8 +28,9 @@ export default async function Layout({ children }: { children: React.ReactNode }
     case 2:
       redirect('/onboarding/page3')
     case 3:
+    case 4:
     default:
-      // Onboarding complete, allow dashboard access
+      // Dashboard allowed at 3 (soft) and 4 (meeting saved)
       break
   }
 
