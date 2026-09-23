@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { getUserIdForRequest } from '@/app/lib/api-user-helper';
 import {
   DEFAULT_AVAILABILITY_TIMEZONE,
   DAY_LABELS,
@@ -57,15 +58,15 @@ function meetingPayload(m: {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { userId, error } = await getUserIdForRequest(request);
+    if (!userId) {
+      return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: userId },
       select: {
         id: true,
         onboardingProgress: true,
@@ -86,9 +87,8 @@ export async function GET() {
       });
     }
 
-    const m = user.monthlyMeeting;
     return NextResponse.json({
-      meeting: meetingPayload(m),
+      meeting: meetingPayload(user.monthlyMeeting),
       instructorName,
       onboardingProgress: user.onboardingProgress,
     });

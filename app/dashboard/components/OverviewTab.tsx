@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText, Users, GitBranch, Code } from 'lucide-react';
+import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
 import { ModalOverlay, ModalPanel } from './shared';
 
@@ -148,6 +148,56 @@ export default function OverviewTab({
   const [activityItems, setActivityItems] = useState<OpenSourceActivityItem[]>([]);
   const [logLoading, setLogLoading] = useState(false);
   const [logError, setLogError] = useState('');
+  const [meetingLoading, setMeetingLoading] = useState(true);
+  const [instructorName, setInstructorName] = useState('Utsab');
+  const [meetingSummary, setMeetingSummary] = useState<{
+    dayLabel: string;
+    localTime: string;
+    timezone: string;
+    nextOccurrenceLabel: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMeetingLoading(true);
+
+    const url = instructorViewUserId
+      ? `/api/calendar/meeting?userId=${encodeURIComponent(instructorViewUserId)}`
+      : '/api/calendar/meeting';
+
+    fetch(url)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load meeting');
+        }
+        if (cancelled) return;
+        setInstructorName(data.instructorName || 'Utsab');
+        if (data.meeting) {
+          setMeetingSummary({
+            dayLabel: data.meeting.dayLabel,
+            localTime: data.meeting.localTime,
+            timezone: data.meeting.timezone,
+            nextOccurrenceLabel: data.meeting.nextOccurrenceLabel ?? null,
+          });
+        } else {
+          setMeetingSummary(null);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) {
+          setMeetingSummary(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMeetingLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [instructorViewUserId]);
 
   useEffect(() => {
     if (!instructorViewUserId) {
@@ -323,6 +373,49 @@ export default function OverviewTab({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-4 md:mt-6 bg-white border border-gray-200 rounded-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <Calendar className="w-5 h-5 text-electric-blue shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            {meetingLoading ? (
+              <p className="text-sm text-gray-400">Loading meeting…</p>
+            ) : meetingSummary ? (
+              <>
+                <p className="text-sm text-gray-900">
+                  Monthly meeting with {instructorName}:{' '}
+                  <span className="font-semibold">
+                    {meetingSummary.dayLabel}s at {meetingSummary.localTime}
+                  </span>{' '}
+                  <span className="text-gray-400">
+                    ({meetingSummary.timezone.replace(/_/g, ' ')})
+                  </span>
+                </p>
+                {meetingSummary.nextOccurrenceLabel && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Next meeting:{' '}
+                    <span className="font-medium text-gray-900">
+                      {meetingSummary.nextOccurrenceLabel}
+                    </span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-gray-700">
+                No meeting scheduled yet with {instructorName}
+              </p>
+            )}
+          </div>
+        </div>
+        {!instructorViewUserId && (
+          <Link
+            href="/account"
+            className="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 transition-opacity"
+          >
+            {meetingSummary ? 'Manage meeting' : 'Schedule meeting'}
+          </Link>
+        )}
       </div>
 
       {leetCodeUrlModalOpen && (
