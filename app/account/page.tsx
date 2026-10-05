@@ -244,7 +244,7 @@ export default function AccountPage() {
         </section>
 
         <section className="bg-white border border-gray-200 rounded-lg p-5 sm:p-6 mt-6">
-          <MonthlyMeetingScheduler />
+          <MonthlyMeetingScheduler collapsible />
         </section>
       </main>
 

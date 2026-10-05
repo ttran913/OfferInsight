@@ -43,15 +43,19 @@ type MonthlyMeetingSchedulerProps = {
   /** Show skip link (onboarding only). */
   showSkip?: boolean;
   onSkip?: () => void;
+  /** Start collapsed; slot picker only opens after the student chooses to change. */
+  collapsible?: boolean;
 };
 
 export default function MonthlyMeetingScheduler({
   onSaved,
   showSkip,
   onSkip,
+  collapsible = false,
 }: MonthlyMeetingSchedulerProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(!collapsible);
   const [instructorName, setInstructorName] = useState('Utsab');
   const [slots, setSlots] = useState<SlotOption[]>([]);
   const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
@@ -142,6 +146,7 @@ export default function MonthlyMeetingScheduler({
         googleSynced: data.googleSynced,
         googleError: data.googleError,
       });
+      if (collapsible) setExpanded(false);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save schedule');
@@ -149,6 +154,20 @@ export default function MonthlyMeetingScheduler({
       setSaving(false);
     }
   }
+
+  function handleExpand() {
+    setMessage(null);
+    setError(null);
+    setExpanded(true);
+  }
+
+  function handleCancel() {
+    setSelectedKey(meeting?.weeklyKey ?? null);
+    setError(null);
+    setExpanded(false);
+  }
+
+  const selectionUnchanged = Boolean(meeting) && selectedKey === meeting?.weeklyKey;
 
   if (loading) {
     return (
@@ -186,7 +205,7 @@ export default function MonthlyMeetingScheduler({
         </div>
       )}
 
-      {meeting && (
+      {meeting ? (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
           <div>
             Current schedule:{' '}
@@ -204,61 +223,89 @@ export default function MonthlyMeetingScheduler({
             </div>
           )}
         </div>
-      )}
-
-      {slots.length === 0 ? (
-        <p className="text-sm text-gray-500 py-2">
-          {emptyMessage ||
-            `No open times right now. Check back after ${instructorName} updates availability.`}
-        </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-80 overflow-y-auto">
-          {slots.map((slot) => {
-            const selected = selectedKey === slot.weeklyKey;
-            return (
-              <button
-                key={slot.weeklyKey}
-                type="button"
-                onClick={() => setSelectedKey(slot.weeklyKey)}
-                className={`text-left rounded-lg border px-4 py-3 transition-colors ${
-                  selected
-                    ? 'border-electric-blue bg-blue-50 ring-2 ring-electric-blue/30'
-                    : 'border-gray-200 bg-white hover:border-electric-blue'
-                }`}
-              >
-                <div className="font-semibold text-gray-900">
-                  {DAY_LABELS[slot.dayOfWeek]}s · {slot.localTime}–
-                  {formatEndHhMm(slot.localTime, MEETING_DURATION_MINUTES)}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Next: {slot.localDate} ({slot.timezone.replace(/_/g, ' ')})
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        collapsible && (
+          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            No meeting scheduled yet with {instructorName}
+          </div>
+        )
       )}
 
-      <div className="flex flex-wrap items-center gap-3 pt-1">
+      {!expanded ? (
         <button
           type="button"
-          onClick={handleSave}
-          disabled={saving || !selectedKey || slots.length === 0}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleExpand}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold border border-electric-blue text-electric-blue hover:bg-blue-50"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Save schedule
+          {meeting ? 'Change schedule' : 'Schedule meeting'}
         </button>
-        {showSkip && onSkip && (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
-          >
-            Skip for now
-          </button>
-        )}
-      </div>
+      ) : (
+        <>
+          {slots.length === 0 ? (
+            <p className="text-sm text-gray-500 py-2">
+              {emptyMessage ||
+                `No open times right now. Check back after ${instructorName} updates availability.`}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-80 overflow-y-auto">
+              {slots.map((slot) => {
+                const selected = selectedKey === slot.weeklyKey;
+                return (
+                  <button
+                    key={slot.weeklyKey}
+                    type="button"
+                    onClick={() => setSelectedKey(slot.weeklyKey)}
+                    className={`text-left rounded-lg border px-4 py-3 transition-colors ${
+                      selected
+                        ? 'border-electric-blue bg-blue-50 ring-2 ring-electric-blue/30'
+                        : 'border-gray-200 bg-white hover:border-electric-blue'
+                    }`}
+                  >
+                    <div className="font-semibold text-gray-900">
+                      {DAY_LABELS[slot.dayOfWeek]}s · {slot.localTime}–
+                      {formatEndHhMm(slot.localTime, MEETING_DURATION_MINUTES)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Next: {slot.localDate} ({slot.timezone.replace(/_/g, ' ')})
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !selectedKey || slots.length === 0 || selectionUnchanged}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Save schedule
+            </button>
+            {collapsible && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            )}
+            {showSkip && onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
+              >
+                Skip for now
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
