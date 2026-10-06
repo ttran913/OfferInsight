@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getInstructorSession } from '@/app/lib/instructor-auth';
-import { canInstructorMutateUserData } from '@/app/lib/instructor-permissions';
 import {
   getGoogleAuthUrl,
   isGoogleCalendarConfigured,
@@ -11,12 +10,6 @@ export async function GET() {
     const instructor = await getInstructorSession();
     if (!instructor) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-    if (!canInstructorMutateUserData(instructor)) {
-      return NextResponse.json(
-        { error: 'Read-only instructors cannot connect Google Calendar' },
-        { status: 403 }
-      );
     }
     if (!isGoogleCalendarConfigured()) {
       return NextResponse.json(

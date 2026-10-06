@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInstructorSession } from '@/app/lib/instructor-auth';
-import { canInstructorMutateUserData } from '@/app/lib/instructor-permissions';
+import { canInstructorAssignStudents } from '@/app/lib/instructor-permissions';
 import {
   DEFAULT_AVAILABILITY_TIMEZONE,
+  INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH,
   MEETING_DURATION_MINUTES,
   MEETING_MAX_HEADCOUNT,
   validateAvailabilityWindows,
@@ -11,6 +12,7 @@ import {
 import { isGoogleCalendarConfigured } from '@/app/lib/calendar/google-oauth';
 import { getInstructorBusyIntervals } from '@/app/lib/calendar/busy';
 import { nthWeekdayForLocalDate } from '@/app/lib/calendar/ics';
+import { loadSchedulingRoster } from '@/app/lib/calendar/scheduling-instructor';
 import {
   anchorLocalDateFromOccurrence,
   formatNextMeetingLabel,
@@ -24,6 +26,16 @@ function normalizeHhMm(value: string): string {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** Which instructor unassigned students currently book with, from this instructor's point of view. */
+async function defaultSchedulerInfo(instructorId: string) {
+  const roster = await loadSchedulingRoster();
+  const current = roster.instructors.find((i) => i.id === roster.defaultInstructorId) ?? null;
+  return {
+    defaultInstructorLabel: current?.label ?? null,
+    isDefaultInstructor: roster.defaultInstructorId === instructorId,
+  };
+}
+
 export async function GET() {
   try {
     const instructor = await getInstructorSession();
@@ -31,7 +43,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const [connection, windows, meetings] = await Promise.all([
+    const [profile, connection, windows, meetings, defaultInfo] = await Promise.all([
+      prisma.instructor.findUnique({
+        where: { id: instructor.id },
+        select: { displayName: true, isDefaultScheduler: true },
+      }),
       prisma.instructorGoogleCalendar.findUnique({
         where: { instructorId: instructor.id },
         select: {
@@ -65,6 +81,7 @@ export async function GET() {
           user: { select: { id: true, name: true, email: true } },
         },
       }),
+      defaultSchedulerInfo(instructor.id),
     ]);
 
     const busy = connection
@@ -95,7 +112,10 @@ export async function GET() {
 
     return NextResponse.json({
       googleConfigured: isGoogleCalendarConfigured(),
-      canEdit: canInstructorMutateUserData(instructor),
+      canManageDefault: canInstructorAssignStudents(instructor),
+      displayName: profile?.displayName ?? '',
+      isDefaultScheduler: profile?.isDefaultScheduler ?? false,
+      ...defaultInfo,
       meetingDurationMinutes: MEETING_DURATION_MINUTES,
       meetingMaxHeadcount: MEETING_MAX_HEADCOUNT,
       defaultTimezone: DEFAULT_AVAILABILITY_TIMEZONE,
@@ -117,17 +137,77 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
     const instructor = await getInstructorSession();
     if (!instructor) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    if (!canInstructorMutateUserData(instructor)) {
-      return NextResponse.json(
-        { error: 'Read-only instructors cannot edit calendar settings' },
-        { status: 403 }
-      );
+
+    const body = (await request.json().catch(() => null)) ?? {};
+    const data: { displayName?: string | null; isDefaultScheduler?: boolean } = {};
+
+    if ('displayName' in body) {
+      if (typeof body.displayName !== 'string') {
+        return NextResponse.json({ error: 'displayName must be a string' }, { status: 400 });
+      }
+      const displayName = body.displayName.trim().replace(/\s+/g, ' ');
+      if (displayName.length > INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH) {
+        return NextResponse.json(
+          { error: `Display name must be ${INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH} characters or fewer.` },
+          { status: 400 }
+        );
+      }
+      data.displayName = displayName || null;
+    }
+
+    if ('isDefaultScheduler' in body) {
+      if (!canInstructorAssignStudents(instructor)) {
+        return NextResponse.json(
+          { error: 'Only admins can choose the default instructor' },
+          { status: 403 }
+        );
+      }
+      if (typeof body.isDefaultScheduler !== 'boolean') {
+        return NextResponse.json({ error: 'isDefaultScheduler must be a boolean' }, { status: 400 });
+      }
+      data.isDefaultScheduler = body.isDefaultScheduler;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (data.isDefaultScheduler) {
+        await tx.instructor.updateMany({
+          where: { isDefaultScheduler: true, NOT: { id: instructor.id } },
+          data: { isDefaultScheduler: false },
+        });
+      }
+      return tx.instructor.update({
+        where: { id: instructor.id },
+        data,
+        select: { displayName: true, isDefaultScheduler: true },
+      });
+    });
+
+    return NextResponse.json({
+      displayName: updated.displayName ?? '',
+      isDefaultScheduler: updated.isDefaultScheduler,
+      ...(await defaultSchedulerInfo(instructor.id)),
+    });
+  } catch (error) {
+    console.error('Error saving instructor profile:', error);
+    return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const instructor = await getInstructorSession();
+    if (!instructor) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const body = await request.json();

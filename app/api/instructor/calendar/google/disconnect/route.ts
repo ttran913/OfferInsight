@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getInstructorSession } from '@/app/lib/instructor-auth';
-import { canInstructorMutateUserData } from '@/app/lib/instructor-permissions';
 import { prisma } from '@/db';
 
 export async function POST() {
@@ -8,12 +7,6 @@ export async function POST() {
     const instructor = await getInstructorSession();
     if (!instructor) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-    if (!canInstructorMutateUserData(instructor)) {
-      return NextResponse.json(
-        { error: 'Read-only instructors cannot disconnect Google Calendar' },
-        { status: 403 }
-      );
     }
 
     await prisma.instructorGoogleCalendar.deleteMany({

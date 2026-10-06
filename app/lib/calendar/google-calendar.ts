@@ -96,42 +96,60 @@ function localDateTime(slot: GeneratedSlot, hhmm: string): string {
   return `${slot.localDate}T${hhmm}:00`;
 }
 
+/**
+ * Remove a monthly 1:1 series from an instructor's primary calendar. No-op if that
+ * instructor is not connected; already-deleted events are ignored and other
+ * failures are logged rather than thrown.
+ */
+export async function deleteMonthlyMeetingEvent(
+  instructorId: string,
+  eventId: string
+): Promise<void> {
+  const calendar = await getCalendarClientForInstructor(instructorId);
+  if (!calendar) return;
+  try {
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId,
+      sendUpdates: 'none',
+    });
+  } catch (err: unknown) {
+    const status =
+      (err as { code?: number | string; response?: { status?: number } })?.response
+        ?.status ?? Number((err as { code?: number | string })?.code);
+    if (status !== 404 && status !== 410) {
+      console.warn('Failed to delete Google Calendar event:', err);
+    }
+  }
+}
+
 export type SyncMonthlyMeetingParams = {
   instructorId: string;
   previousEventId: string | null;
+  /** Calendar that holds previousEventId, when it differs from instructorId. */
+  previousInstructorId?: string | null;
   slot: GeneratedSlot;
   studentName: string | null;
   studentEmail: string;
 };
 
 /**
- * Delete previous Google event (if any) and create a new monthly series on the
- * instructor primary calendar. Returns the new event id, or null if Google
- * is not connected for this instructor.
+ * Delete the previous Google event (from whichever instructor's calendar holds it)
+ * and create a new monthly series on the target instructor's primary calendar.
+ * Returns the new event id, or null if the target instructor is not connected.
  */
 export async function syncMonthlyMeetingOnInstructorCalendar(
   params: SyncMonthlyMeetingParams
 ): Promise<string | null> {
+  if (params.previousEventId) {
+    await deleteMonthlyMeetingEvent(
+      params.previousInstructorId ?? params.instructorId,
+      params.previousEventId
+    );
+  }
+
   const calendar = await getCalendarClientForInstructor(params.instructorId);
   if (!calendar) return null;
-
-  if (params.previousEventId) {
-    try {
-      await calendar.events.delete({
-        calendarId: 'primary',
-        eventId: params.previousEventId,
-        sendUpdates: 'none',
-      });
-    } catch (err: unknown) {
-      // Already deleted / not found — continue with create
-      const status =
-        (err as { code?: number | string; response?: { status?: number } })?.response
-          ?.status ?? Number((err as { code?: number | string })?.code);
-      if (status !== 404 && status !== 410) {
-        console.warn('Failed to delete previous Google Calendar event:', err);
-      }
-    }
-  }
 
   const studentLabel = params.studentName || params.studentEmail;
   const endLocal = formatEndHhMm(params.slot.localTime, MEETING_DURATION_MINUTES);

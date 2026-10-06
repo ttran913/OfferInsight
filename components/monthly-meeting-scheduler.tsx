@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Calendar, Loader2 } from 'lucide-react';
 import {
   DAY_LABELS,
+  INSTRUCTOR_DISPLAY_NAME_FALLBACK,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
 import { formatEndHhMm } from '@/app/lib/calendar/ics';
@@ -57,7 +58,7 @@ export default function MonthlyMeetingScheduler({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(!collapsible);
-  const [instructorName, setInstructorName] = useState('Utsab');
+  const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
   const [slots, setSlots] = useState<SlotOption[]>([]);
   const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -89,7 +90,9 @@ export default function MonthlyMeetingScheduler({
       const meetingData = await meetingRes.json();
       const slotsData = await slotsRes.json();
 
-      setInstructorName(meetingData.instructorName || slotsData.instructorName || 'Utsab');
+      setInstructorName(
+        meetingData.instructorName || slotsData.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK
+      );
       setMeeting(meetingData.meeting ?? null);
       setSelectedKey(meetingData.meeting?.weeklyKey ?? null);
       setSlots((slotsData.slots as SlotOption[]) || []);

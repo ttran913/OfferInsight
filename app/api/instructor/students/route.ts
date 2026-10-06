@@ -4,6 +4,9 @@ import { prisma } from "@/db";
 import { getCurrentMonthDateRange } from "@/app/lib/date-utils";
 import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteria-progress";
 import { buildCriteria } from "@/app/lib/partnership-criteria";
+import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
+import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
+import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
@@ -21,18 +24,28 @@ export async function GET() {
     const now = new Date();
 
     // Fetch all users
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        removedFromResumeBook: true,
-        inactivityWarningCount: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const [users, roster] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          removedFromResumeBook: true,
+          inactivityWarningCount: true,
+          assignedInstructorId: true,
+          monthlyMeeting: {
+            select: {
+              instructorId: true,
+              instructor: { select: { displayName: true, username: true } },
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      }),
+      loadSchedulingRoster(),
+    ]);
 
     const studentsData = await Promise.all(
       users.map(async (user) => {
@@ -224,6 +237,17 @@ export async function GET() {
           referralCount,
           removedFromResumeBook: user.removedFromResumeBook,
           inactivityWarningCount: user.inactivityWarningCount,
+          assignedInstructorId: user.assignedInstructorId,
+          effectiveInstructorId: roster.effectiveInstructorId(
+            user.assignedInstructorId,
+            user.monthlyMeeting?.instructorId ?? null
+          ),
+          meeting: user.monthlyMeeting
+            ? {
+                instructorId: user.monthlyMeeting.instructorId,
+                instructorLabel: instructorLabel(user.monthlyMeeting.instructor),
+              }
+            : null,
           openSource: {
             issuesCompleted: issuesCompletedCount,
             partnershipsCompleted: completedPartnershipsCount,
@@ -246,7 +270,13 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ students: studentsData });
+    return NextResponse.json({
+      students: studentsData,
+      instructors: roster.instructors,
+      defaultInstructorId: roster.defaultInstructorId,
+      currentInstructorId: instructor.id,
+      canAssign: canInstructorAssignStudents(instructor),
+    });
   } catch (error) {
     console.error("Error fetching students data:", error);
     return NextResponse.json(

@@ -11,6 +11,7 @@ import {
 import { resolveStandingTimes, type BusyInterval } from '@/app/lib/calendar/conflicts';
 import { generateAvailableSlots } from '@/app/lib/calendar/slots';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
+import DisplayNameCard from './calendar/DisplayNameCard';
 import MonthCalendar from './calendar/MonthCalendar';
 import StandingWeekView from './calendar/StandingWeekView';
 import {
@@ -26,7 +27,11 @@ import {
 
 type CalendarStatus = {
   googleConfigured: boolean;
-  canEdit: boolean;
+  canManageDefault: boolean;
+  displayName: string;
+  isDefaultScheduler: boolean;
+  defaultInstructorLabel: string | null;
+  isDefaultInstructor: boolean;
   meetingDurationMinutes: number;
   meetingMaxHeadcount: number;
   defaultTimezone: string;
@@ -98,7 +103,6 @@ export default function CalendarTab() {
   }, [searchParams]);
 
   const timezone = status?.defaultTimezone ?? DEFAULT_AVAILABILITY_TIMEZONE;
-  const canEdit = status?.canEdit ?? false;
   const duration = status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES;
   const bookings = useMemo(() => status?.bookings ?? [], [status]);
 
@@ -124,7 +128,7 @@ export default function CalendarTab() {
   }, [bookings, draftWindows, duration]);
 
   async function handleSave() {
-    if (!canEdit || !isDirty || hasErrors) return;
+    if (!isDirty || hasErrors) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -150,7 +154,6 @@ export default function CalendarTab() {
   }
 
   async function handleDisconnect() {
-    if (!canEdit) return;
     setDisconnecting(true);
     setMessage(null);
     setError(null);
@@ -196,6 +199,16 @@ export default function CalendarTab() {
         </div>
       )}
 
+      <DisplayNameCard
+        initialName={status?.displayName ?? ''}
+        canManageDefault={status?.canManageDefault ?? false}
+        initialDefault={{
+          isDefaultScheduler: status?.isDefaultScheduler ?? false,
+          defaultInstructorLabel: status?.defaultInstructorLabel ?? null,
+          isDefaultInstructor: status?.isDefaultInstructor ?? false,
+        }}
+      />
+
       <section className="border border-gray-200 rounded-lg bg-white px-5 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           <div className="flex items-center gap-3 min-w-0">
@@ -223,29 +236,28 @@ export default function CalendarTab() {
             </div>
           </div>
 
-          {canEdit &&
-            (status?.google.connected ? (
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={disconnecting}
-                className="shrink-0 px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {disconnecting ? 'Disconnecting…' : 'Disconnect'}
-              </button>
-            ) : (
-              <a
-                href="/api/instructor/calendar/google/connect"
-                className={`shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                  status?.googleConfigured
-                    ? 'bg-electric-blue text-white hover:opacity-90'
-                    : 'bg-gray-200 text-gray-500 pointer-events-none'
-                }`}
-                aria-disabled={!status?.googleConfigured}
-              >
-                Connect Google Calendar
-              </a>
-            ))}
+          {status?.google.connected ? (
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="shrink-0 px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {disconnecting ? 'Disconnecting…' : 'Disconnect'}
+            </button>
+          ) : (
+            <a
+              href="/api/instructor/calendar/google/connect"
+              className={`shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                status?.googleConfigured
+                  ? 'bg-electric-blue text-white hover:opacity-90'
+                  : 'bg-gray-200 text-gray-500 pointer-events-none'
+              }`}
+              aria-disabled={!status?.googleConfigured}
+            >
+              Connect Google Calendar
+            </a>
+          )}
         </div>
 
         {!status?.googleConfigured && (
@@ -273,9 +285,6 @@ export default function CalendarTab() {
               the same weekday. All times are{' '}
               <span className="font-medium text-gray-700">{timezoneLabel}</span>.
             </p>
-            {!canEdit && (
-              <p className="text-sm text-gray-500 mt-2">You have read-only access.</p>
-            )}
           </div>
         </div>
 
@@ -283,59 +292,56 @@ export default function CalendarTab() {
           <AvailabilityEditor
             days={days}
             onChange={setDays}
-            canEdit={canEdit}
             durationMinutes={duration}
           />
         </div>
 
-        {canEdit && (
-          <div className="sticky bottom-0 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-200 bg-white/95 backdrop-blur px-5 py-3 rounded-b-lg">
-            <div className="text-sm">
-              {isDirty ? (
-                <span className="inline-flex items-center gap-2 text-amber-700 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  Unsaved changes
-                </span>
-              ) : (
-                <span className="text-gray-400">All changes saved</span>
-              )}
-              {isDirty && bookingsOutsideDraft.length > 0 && (
-                <p className="flex items-start gap-1.5 text-xs text-amber-700 mt-1">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
-                  {bookingsOutsideDraft.length === 1
-                    ? '1 booked student falls outside these hours.'
-                    : `${bookingsOutsideDraft.length} booked students fall outside these hours.`}{' '}
-                  They keep their meeting until they reschedule.
-                </p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDays(savedDays)}
-                disabled={!isDirty || saving}
-                className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Discard
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!isDirty || hasErrors || saving}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save availability'
-                )}
-              </button>
-            </div>
+        <div className="sticky bottom-0 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-200 bg-white/95 backdrop-blur px-5 py-3 rounded-b-lg">
+          <div className="text-sm">
+            {isDirty ? (
+              <span className="inline-flex items-center gap-2 text-amber-700 font-medium">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                Unsaved changes
+              </span>
+            ) : (
+              <span className="text-gray-400">All changes saved</span>
+            )}
+            {isDirty && bookingsOutsideDraft.length > 0 && (
+              <p className="flex items-start gap-1.5 text-xs text-amber-700 mt-1">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                {bookingsOutsideDraft.length === 1
+                  ? '1 booked student falls outside these hours.'
+                  : `${bookingsOutsideDraft.length} booked students fall outside these hours.`}{' '}
+                They keep their meeting until they reschedule.
+              </p>
+            )}
           </div>
-        )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDays(savedDays)}
+              disabled={!isDirty || saving}
+              className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!isDirty || hasErrors || saving}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                'Save availability'
+              )}
+            </button>
+          </div>
+        </div>
       </section>
 
       <section className="border border-gray-200 rounded-lg bg-white p-5">

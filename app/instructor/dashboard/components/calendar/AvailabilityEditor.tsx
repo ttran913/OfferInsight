@@ -17,7 +17,6 @@ import {
 type Props = {
   days: DayAvailability[];
   onChange: (days: DayAvailability[]) => void;
-  canEdit: boolean;
   durationMinutes: number;
 };
 
@@ -29,13 +28,11 @@ function addMinutes(hhmm: string, delta: number): string {
 
 function TimeSelect({
   value,
-  disabled,
   invalid,
   onChange,
   label,
 }: {
   value: string;
-  disabled?: boolean;
   invalid?: boolean;
   onChange: (value: string) => void;
   label: string;
@@ -44,10 +41,9 @@ function TimeSelect({
   return (
     <select
       value={value}
-      disabled={disabled}
       aria-label={label}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-full px-2 py-1.5 bg-white border rounded-lg text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-500 ${
+      className={`w-full px-2 py-1.5 bg-white border rounded-lg text-sm text-gray-900 ${
         invalid ? 'border-red-400 focus:outline-red-500' : 'border-gray-300'
       }`}
     >
@@ -144,7 +140,7 @@ function CopyMenu({
   );
 }
 
-export default function AvailabilityEditor({ days, onChange, canEdit, durationMinutes }: Props) {
+export default function AvailabilityEditor({ days, onChange, durationMinutes }: Props) {
   function updateDay(dayOfWeek: number, update: (day: DayAvailability) => DayAvailability) {
     onChange(days.map((d) => (d.dayOfWeek === dayOfWeek ? update(d) : d)));
   }
@@ -218,28 +214,24 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
                   >
                     <TimeSelect
                       value={range.startTime}
-                      disabled={!canEdit}
                       invalid={Boolean(errors[range.key])}
                       onChange={(startTime) => updateRange(day.dayOfWeek, range.key, { startTime })}
                       label={`${DAY_LABELS[day.dayOfWeek]} start time`}
                     />
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[11px] text-gray-400">to</span>
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => removeRange(day.dayOfWeek, range.key)}
-                          className="p-0.5 text-gray-400 hover:text-red-600 rounded transition-colors"
-                          aria-label="Remove time range"
-                          title="Remove"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeRange(day.dayOfWeek, range.key)}
+                        className="p-0.5 text-gray-400 hover:text-red-600 rounded transition-colors"
+                        aria-label="Remove time range"
+                        title="Remove"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <TimeSelect
                       value={range.endTime}
-                      disabled={!canEdit}
                       invalid={Boolean(errors[range.key])}
                       onChange={(endTime) => updateRange(day.dayOfWeek, range.key, { endTime })}
                       label={`${DAY_LABELS[day.dayOfWeek]} end time`}
@@ -249,7 +241,7 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
                     )}
                   </div>
                 ))
-              ) : canEdit ? (
+              ) : (
                 <button
                   type="button"
                   onClick={() => addRange(day.dayOfWeek)}
@@ -259,12 +251,10 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
                   <Plus className="w-4 h-4" />
                   Add hours
                 </button>
-              ) : (
-                <p className="text-xs text-gray-400 text-center py-4">No hours set</p>
               )}
             </div>
 
-            {canEdit && hasRanges && (
+            {hasRanges && (
               <div className="flex items-center justify-between gap-1 px-1.5 pb-1.5">
                 <button
                   type="button"

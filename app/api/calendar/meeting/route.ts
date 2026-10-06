@@ -15,7 +15,7 @@ import {
 } from '@/app/lib/calendar/ics';
 import {
   getInstructorDisplayName,
-  resolveSchedulingInstructor,
+  resolveSchedulingInstructorForUser,
 } from '@/app/lib/calendar/scheduling-instructor';
 import {
   anchorLocalDateFromOccurrence,
@@ -79,14 +79,18 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         onboardingProgress: true,
-        monthlyMeeting: true,
+        monthlyMeeting: {
+          include: { instructor: { select: { displayName: true } } },
+        },
       },
     });
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const instructorName = getInstructorDisplayName();
+    const instructorName = getInstructorDisplayName(
+      user.monthlyMeeting?.instructor ?? (await resolveSchedulingInstructorForUser(user.id))
+    );
 
     if (!user.monthlyMeeting) {
       return NextResponse.json({
@@ -136,7 +140,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const instructor = await resolveSchedulingInstructor();
+    const instructor = await resolveSchedulingInstructorForUser(user.id);
     if (!instructor || instructor.availabilityWindows.length === 0) {
       return NextResponse.json(
         { error: 'Instructor availability is not configured yet.' },
@@ -178,7 +182,7 @@ export async function PUT(request: NextRequest) {
 
     const isReschedule = Boolean(user.monthlyMeeting);
     const previousGoogleEventId = user.monthlyMeeting?.googleEventId ?? null;
-    const instructorName = getInstructorDisplayName();
+    const instructorName = getInstructorDisplayName(instructor);
 
     const meeting = await prisma.$transaction(async (tx) => {
       const saved = await tx.studentMonthlyMeeting.upsert({
@@ -199,6 +203,7 @@ export async function PUT(request: NextRequest) {
           localTime: match.localTime,
           timezone: match.timezone,
           firstOccurrence: new Date(match.start),
+          googleEventId: null,
         },
       });
 
@@ -215,6 +220,7 @@ export async function PUT(request: NextRequest) {
     try {
       const eventId = await syncMonthlyMeetingOnInstructorCalendar({
         instructorId: instructor.id,
+        previousInstructorId: user.monthlyMeeting?.instructorId ?? null,
         previousEventId: previousGoogleEventId,
         slot: match,
         studentName: user.name,

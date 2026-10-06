@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
+import { INSTRUCTOR_DISPLAY_NAME_FALLBACK } from '@/app/lib/calendar/constants';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
 import { ModalOverlay, ModalPanel } from './shared';
 
@@ -149,7 +150,7 @@ export default function OverviewTab({
   const [logLoading, setLogLoading] = useState(false);
   const [logError, setLogError] = useState('');
   const [meetingLoading, setMeetingLoading] = useState(true);
-  const [instructorName, setInstructorName] = useState('Utsab');
+  const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
   const [meetingSummary, setMeetingSummary] = useState<{
     scheduleLabel: string;
     timezone: string;
@@ -171,7 +172,7 @@ export default function OverviewTab({
           throw new Error(data.error || 'Failed to load meeting');
         }
         if (cancelled) return;
-        setInstructorName(data.instructorName || 'Utsab');
+        setInstructorName(data.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK);
         if (data.meeting) {
           setMeetingSummary({
             scheduleLabel: data.meeting.scheduleLabel,

@@ -10,7 +10,7 @@ import { getBusyIntervalsForBooking } from '@/app/lib/calendar/busy';
 import { resolveStandingTimes } from '@/app/lib/calendar/conflicts';
 import {
   getInstructorDisplayName,
-  resolveSchedulingInstructor,
+  resolveSchedulingInstructorForUser,
 } from '@/app/lib/calendar/scheduling-instructor';
 import { prisma } from '@/db';
 
@@ -29,26 +29,23 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const instructor = await resolveSchedulingInstructor();
+    const instructor = await resolveSchedulingInstructorForUser(user.id);
     if (!instructor) {
       return NextResponse.json({
-        instructorName: getInstructorDisplayName(),
+        instructorName: getInstructorDisplayName(null),
         timezone: DEFAULT_AVAILABILITY_TIMEZONE,
         durationMinutes: MEETING_DURATION_MINUTES,
         slots: [],
-        uniqueWeekly: [],
         message: 'No instructor is available for scheduling yet.',
       });
     }
 
     if (instructor.availabilityWindows.length === 0) {
       return NextResponse.json({
-        instructorName: getInstructorDisplayName(),
-        instructorId: instructor.id,
+        instructorName: getInstructorDisplayName(instructor),
         timezone: DEFAULT_AVAILABILITY_TIMEZONE,
         durationMinutes: MEETING_DURATION_MINUTES,
         slots: [],
-        uniqueWeekly: [],
         message: 'The instructor has not set availability windows yet.',
       });
     }
@@ -77,16 +74,11 @@ export async function GET() {
       busy,
       durationMinutes: MEETING_DURATION_MINUTES,
     });
-    const unique = [...anchors.values()].sort((a, b) => a.start.localeCompare(b.start));
-
     return NextResponse.json({
-      instructorName: getInstructorDisplayName(),
-      instructorId: instructor.id,
+      instructorName: getInstructorDisplayName(instructor),
       timezone,
       durationMinutes: MEETING_DURATION_MINUTES,
-      days: BOOKING_CANDIDATE_DAYS,
-      slots: unique,
-      uniqueWeekly: unique,
+      slots: [...anchors.values()].sort((a, b) => a.start.localeCompare(b.start)),
     });
   } catch (error) {
     console.error('Error listing student calendar slots:', error);

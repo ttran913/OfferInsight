@@ -54,27 +54,32 @@ export type MonthlyInviteInput = {
   uid?: string;
 };
 
-export function buildMonthlyMeetingIcs(input: MonthlyInviteInput): {
-  filename: string;
-  content: string;
-  rrule: string;
-} {
+/** Stable invite UID for a student's standing time; reused to cancel that invite. */
+export function monthlyMeetingUid(weeklyKey: string, studentEmail: string): string {
+  return `monthly-1on1-${weeklyKey.replace('|', '-')}-${Buffer.from(studentEmail).toString('base64url').slice(0, 12)}@offerinsight`;
+}
+
+function buildMonthlyIcs(
+  input: MonthlyInviteInput,
+  variant: { method: 'REQUEST' | 'CANCEL'; status: 'CONFIRMED' | 'CANCELLED'; sequence: number }
+): { filename: string; content: string; rrule: string } {
   const { slot, studentName, studentEmail, instructorName } = input;
   const start = new Date(slot.start);
   const end = new Date(slot.end);
-  const uid =
-    input.uid ||
-    `monthly-1on1-${slot.weeklyKey.replace('|', '-')}-${Buffer.from(studentEmail).toString('base64url').slice(0, 12)}@offerinsight`;
+  const uid = input.uid || monthlyMeetingUid(slot.weeklyKey, studentEmail);
   const rrule = buildMonthlyByDayRrule(slot.dayOfWeek, slot.localDate);
   const summary = `Monthly 1:1 with ${instructorName}`;
-  const description = `Standing monthly meeting (${DAY_LABELS[slot.dayOfWeek]} ${slot.localTime}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+  const description =
+    variant.method === 'CANCEL'
+      ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
+      : `Standing monthly meeting (${DAY_LABELS[slot.dayOfWeek]} ${slot.localTime}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//OfferInsight//Monthly 1:1//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:REQUEST',
+    `METHOD:${variant.method}`,
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${formatIcsUtc(new Date())}`,
@@ -87,18 +92,28 @@ export function buildMonthlyMeetingIcs(input: MonthlyInviteInput): {
     foldLine(
       `ATTENDEE;CN=${escapeText(studentName || studentEmail)};RSVP=TRUE:mailto:${studentEmail}`
     ),
-    'STATUS:CONFIRMED',
-    'SEQUENCE:0',
+    `STATUS:${variant.status}`,
+    `SEQUENCE:${variant.sequence}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ];
 
   const dayLabel = DAY_LABELS[slot.dayOfWeek].toLowerCase();
+  const prefix = variant.method === 'CANCEL' ? 'cancel-monthly-1on1' : 'monthly-1on1';
   return {
-    filename: `monthly-1on1-${dayLabel}-${slot.localTime.replace(':', '')}.ics`,
+    filename: `${prefix}-${dayLabel}-${slot.localTime.replace(':', '')}.ics`,
     content: lines.join('\r\n') + '\r\n',
     rrule,
   };
+}
+
+export function buildMonthlyMeetingIcs(input: MonthlyInviteInput) {
+  return buildMonthlyIcs(input, { method: 'REQUEST', status: 'CONFIRMED', sequence: 0 });
+}
+
+/** Cancels the invite previously sent for the same standing time (same UID). */
+export function buildMonthlyMeetingCancelIcs(input: MonthlyInviteInput) {
+  return buildMonthlyIcs(input, { method: 'CANCEL', status: 'CANCELLED', sequence: 1 });
 }
 
 export function buildMonthlyMeetingEmail(input: {
@@ -142,6 +157,45 @@ OfferInsight`;
   <strong>Duration:</strong> ${MEETING_DURATION_MINUTES} minutes</p>
   <p>A calendar invite (<code>.ics</code>) is attached — open it to add this series to your calendar.</p>
   <p>You can reschedule anytime from your OfferInsight Account page.</p>
+  <p>Best,<br/>OfferInsight</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
+export function buildInstructorChangedEmail(input: {
+  studentName: string | null;
+  oldInstructorName: string;
+  newInstructorName: string;
+}): { subject: string; text: string; html: string } {
+  const name = input.studentName || 'there';
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
+  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+
+  const subject = `Your monthly 1:1 is now with ${input.newInstructorName}`;
+
+  const text = `Hi ${name},
+
+You've been assigned a new mentor: ${input.newInstructorName}.
+
+Your monthly 1:1 with ${input.oldInstructorName} has been cancelled. The attached calendar file (.ics) removes it from your calendar.
+
+Please pick a new monthly time with ${input.newInstructorName} from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+
+Best,
+OfferInsight`;
+
+  const html = `<!DOCTYPE html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+  <h2 style="color:#007ACC;">Your monthly 1:1 is now with ${escapeHtml(input.newInstructorName)}</h2>
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>You've been assigned a new mentor: <strong>${escapeHtml(input.newInstructorName)}</strong>.</p>
+  <p>Your monthly 1:1 with ${escapeHtml(input.oldInstructorName)} has been cancelled. The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
+  <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${
+    accountUrl
+      ? `<a href="${escapeHtml(accountUrl)}" style="color:#007ACC;">OfferInsight Account page</a>`
+      : 'OfferInsight Account page'
+  }.</p>
   <p>Best,<br/>OfferInsight</p>
 </body></html>`;
 

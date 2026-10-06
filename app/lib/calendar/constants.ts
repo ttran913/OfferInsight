@@ -3,6 +3,8 @@
 export const MEETING_DURATION_MINUTES = 20;
 export const MEETING_MAX_HEADCOUNT = 1;
 export const DEFAULT_AVAILABILITY_TIMEZONE = 'America/Los_Angeles';
+export const INSTRUCTOR_DISPLAY_NAME_FALLBACK = 'your instructor';
+export const INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH = 60;
 /** How far ahead a student's first monthly meeting may start. */
 export const BOOKING_CANDIDATE_DAYS = 42;
 /** A start date is usable only if this many monthly meetings in a row are conflict-free. */

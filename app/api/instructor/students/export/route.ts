@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
+import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 
 /** Escape a CSV cell: wrap in quotes and escape internal quotes */
 function csvEscape(value: string): string {
@@ -71,10 +72,30 @@ export async function GET(request: NextRequest) {
     const minIssues = minIssuesParam === "" ? null : Math.max(0, parseInt(minIssuesParam, 10));
     const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
-    const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, createdAt: true, expectedGraduationDate: true },
-      orderBy: { name: "asc" },
-    });
+    const mineOnly = searchParams.get("mine") === "1";
+
+    const [allUsers, roster] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          expectedGraduationDate: true,
+          assignedInstructorId: true,
+          monthlyMeeting: { select: { instructorId: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+      mineOnly ? loadSchedulingRoster() : null,
+    ]);
+    const users = roster
+      ? allUsers.filter(
+          (u) =>
+            roster.effectiveInstructorId(u.assignedInstructorId, u.monthlyMeeting?.instructorId ?? null) ===
+            instructor.id
+        )
+      : allUsers;
 
     const userIds = users.map((u) => u.id);
     if (userIds.length === 0) {

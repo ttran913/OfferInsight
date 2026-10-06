@@ -99,6 +99,11 @@ model User {
   inactivityWarningCount    Int       @default(0)
   removedFromResumeBook     Boolean   @default(false)
   monthlyMeeting         StudentMonthlyMeeting?
+  /// Instructor this student books monthly 1:1s with; null = default instructor
+  assignedInstructorId   String?
+  assignedInstructor     Instructor? @relation("AssignedStudents", fields: [assignedInstructorId], references: [id], onDelete: SetNull)
+
+  @@index([assignedInstructorId])
 }
 
 model Partnership {
@@ -196,11 +201,16 @@ model Instructor {
   username          String   @unique
   password          String
   role              InstructorRole @default(ADMIN)
+  /// Shown to students, e.g. "Monthly meeting with {displayName}"
+  displayName       String?
+  /// Unassigned students book with this instructor (at most one is true)
+  isDefaultScheduler Boolean @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   googleCalendar    InstructorGoogleCalendar?
   availabilityWindows InstructorAvailabilityWindow[]
   studentMeetings   StudentMonthlyMeeting[]
+  assignedStudents  User[] @relation("AssignedStudents")
 }
 
 /// Standing monthly 1:1 booked by a student (same weekday + time each month).

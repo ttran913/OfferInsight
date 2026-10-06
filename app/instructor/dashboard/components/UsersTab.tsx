@@ -12,6 +12,9 @@ interface UserData {
   referralCount: number;
   removedFromResumeBook: boolean;
   inactivityWarningCount: number;
+  assignedInstructorId?: string | null;
+  effectiveInstructorId?: string | null;
+  meeting?: { instructorId: string; instructorLabel: string } | null;
   openSource: {
     issuesCompleted: number;
     partnershipsCompleted?: number;
@@ -30,6 +33,17 @@ interface UserData {
     lastMonth: number;
     allTime: number;
   };
+}
+
+interface AssignableInstructor {
+  id: string;
+  label: string;
+}
+
+interface AssignResult {
+  userId: string;
+  tone: 'success' | 'warning' | 'error';
+  message: string;
 }
 
 const DEBUG_MODE = false;
@@ -107,6 +121,13 @@ export default function UsersTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [minIssuesFilter, setMinIssuesFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<'name-asc' | 'name-desc' | 'issues-high' | 'issues-low'>('name-asc');
+  const [instructors, setInstructors] = useState<AssignableInstructor[]>([]);
+  const [defaultInstructorId, setDefaultInstructorId] = useState<string | null>(null);
+  const [currentInstructorId, setCurrentInstructorId] = useState<string | null>(null);
+  const [canAssign, setCanAssign] = useState(false);
+  const [showAll, setShowAll] = useState(true);
+  const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
+  const [assignResult, setAssignResult] = useState<AssignResult | null>(null);
 
   useEffect(() => {
     if (DEBUG_MODE) {
@@ -123,6 +144,10 @@ export default function UsersTab() {
         }
         const data = await response.json();
         setUsers(data.students || []);
+        setInstructors(data.instructors || []);
+        setDefaultInstructorId(data.defaultInstructorId ?? null);
+        setCurrentInstructorId(data.currentInstructorId ?? null);
+        setCanAssign(Boolean(data.canAssign));
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
@@ -182,10 +207,77 @@ export default function UsersTab() {
     }
   }
 
+  function instructorLabelFor(id: string | null | undefined): string {
+    return instructors.find((i) => i.id === id)?.label ?? 'None';
+  }
+
+  async function handleAssignInstructor(user: UserData, value: string) {
+    const nextAssignedId = value || null;
+    const nextEffectiveId = nextAssignedId ?? defaultInstructorId;
+    const cancelsMeeting = Boolean(user.meeting && user.meeting.instructorId !== nextEffectiveId);
+
+    if (
+      cancelsMeeting &&
+      !window.confirm(
+        `${user.name} has a monthly meeting with ${user.meeting!.instructorLabel}. ` +
+          `Changing their instructor will cancel it and email them to rebook with ${instructorLabelFor(nextEffectiveId)}. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setAssigningUserId(user.id);
+    setAssignResult(null);
+    try {
+      const response = await fetch('/api/instructor/students/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, instructorId: nextAssignedId }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to update instructor');
+      }
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? {
+                ...u,
+                assignedInstructorId: data.assignedInstructorId,
+                effectiveInstructorId: data.effectiveInstructorId,
+                meeting: data.meetingCancelled ? null : u.meeting,
+              }
+            : u
+        )
+      );
+      setAssignResult(
+        data.meetingCancelled
+          ? data.emailSent
+            ? { userId: user.id, tone: 'success', message: 'Meeting cancelled; student emailed to rebook.' }
+            : { userId: user.id, tone: 'warning', message: 'Meeting cancelled, but the email could not be sent.' }
+          : { userId: user.id, tone: 'success', message: 'Instructor updated.' }
+      );
+    } catch (error) {
+      console.error('Error assigning instructor:', error);
+      setAssignResult({
+        userId: user.id,
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update instructor',
+      });
+    } finally {
+      setAssigningUserId(null);
+    }
+  }
+
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
   const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
-  const filteredAndSortedUsers = users
+  const scopedUsers = showAll
+    ? users
+    : users.filter((user) => user.effectiveInstructorId === currentInstructorId);
+
+  const filteredAndSortedUsers = scopedUsers
     .filter((user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -215,6 +307,29 @@ export default function UsersTab() {
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-4 mb-6 flex-wrap">
+        {!DEBUG_MODE && (
+          <div className="inline-flex rounded-lg border border-gray-300 bg-gray-100 p-1 self-start" role="group" aria-label="Student scope">
+            {[
+              { value: true, label: 'All students' },
+              { value: false, label: 'My students' },
+            ].map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => setShowAll(option.value)}
+                aria-pressed={showAll === option.value}
+                className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors whitespace-nowrap ${
+                  showAll === option.value
+                    ? 'bg-white text-electric-blue shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
@@ -256,6 +371,7 @@ export default function UsersTab() {
             const params = new URLSearchParams();
             if (searchQuery.trim()) params.set('search', searchQuery.trim());
             if (minIssuesValid && minIssues !== null) params.set('minIssues', String(minIssues));
+            if (!showAll) params.set('mine', '1');
             const url = `/api/instructor/students/export${params.toString() ? `?${params.toString()}` : ''}`;
             window.open(url, '_blank', 'noopener,noreferrer');
           }}
@@ -267,7 +383,8 @@ export default function UsersTab() {
 
       {users.length > 0 && (
         <div className="text-gray-400 text-sm mb-4">
-          Showing {filteredAndSortedUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
+          Showing {filteredAndSortedUsers.length} of {scopedUsers.length} user{scopedUsers.length !== 1 ? 's' : ''}
+          {!showAll && ' assigned to you'}
           {searchQuery && ` matching "${searchQuery}"`}
           {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
         </div>
@@ -313,6 +430,49 @@ export default function UsersTab() {
                   }`}>
                     Warning {user.inactivityWarningCount}/2
                   </span>
+                )}
+                {!DEBUG_MODE && instructors.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    {canAssign ? (
+                      <label className="block">
+                        <span className="block mb-0.5">Instructor</span>
+                        <select
+                          value={user.assignedInstructorId ?? ''}
+                          onChange={(e) => handleAssignInstructor(user, e.target.value)}
+                          disabled={assigningUserId === user.id}
+                          className="w-full px-1.5 py-1 bg-gray-100 border border-gray-300 rounded text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue disabled:opacity-50"
+                        >
+                          <option value="">Default ({instructorLabelFor(defaultInstructorId)})</option>
+                          {instructors.map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <span>
+                        Instructor:{' '}
+                        <span className="text-gray-900 font-medium">
+                          {instructorLabelFor(user.effectiveInstructorId)}
+                        </span>
+                        {!user.assignedInstructorId && ' (default)'}
+                      </span>
+                    )}
+                    {assignResult?.userId === user.id && (
+                      <p
+                        className={`mt-1 ${
+                          assignResult.tone === 'success'
+                            ? 'text-green-700'
+                            : assignResult.tone === 'warning'
+                            ? 'text-amber-700'
+                            : 'text-red-700'
+                        }`}
+                      >
+                        {assignResult.message}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -410,7 +570,11 @@ export default function UsersTab() {
 
       {filteredAndSortedUsers.length === 0 && (
         <div className="text-gray-400 text-center py-8">
-          {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+          {searchQuery
+            ? 'No users found matching your search.'
+            : showAll
+            ? 'No users found.'
+            : 'No students are assigned to you yet.'}
         </div>
       )}
     </>
