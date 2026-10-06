@@ -59,6 +59,39 @@ export async function getCalendarClientForInstructor(
   return google.calendar({ version: 'v3', auth: oauth2 });
 }
 
+/**
+ * All non-cancelled events on the instructor's primary calendar in [timeMin, timeMax),
+ * with recurring series expanded into single instances. Null if Google is not connected.
+ */
+export async function listPrimaryCalendarEvents(
+  instructorId: string,
+  timeMin: Date,
+  timeMax: Date
+): Promise<calendar_v3.Schema$Event[] | null> {
+  const calendar = await getCalendarClientForInstructor(instructorId);
+  if (!calendar) return null;
+
+  const events: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
+  do {
+    const res = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 250,
+      pageToken,
+    });
+    for (const event of res.data.items ?? []) {
+      if (event.status !== 'cancelled') events.push(event);
+    }
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
+  return events;
+}
+
 function localDateTime(slot: GeneratedSlot, hhmm: string): string {
   return `${slot.localDate}T${hhmm}:00`;
 }

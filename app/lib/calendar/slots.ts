@@ -1,6 +1,7 @@
 import {
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
+  slotStartTimesInWindow,
   type AvailabilityWindowInput,
 } from './constants';
 
@@ -140,17 +141,6 @@ function addCalendarDays(
   };
 }
 
-function minutesFromMidnight(hhmm: string): number {
-  const { hours, minutes } = parseHhMm(hhmm);
-  return hours * 60 + minutes;
-}
-
-function hhmmFromMinutes(total: number): string {
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  return `${pad2(hours)}:${pad2(minutes)}`;
-}
-
 /**
  * Carve instructor weekly windows into exclusive 20-min (default) slots
  * across a date range in the instructor timezone.
@@ -198,11 +188,7 @@ export function generateAvailableSlots(options: GenerateSlotsOptions): Generated
     const localDate = `${cursor.year}-${pad2(cursor.month)}-${pad2(cursor.day)}`;
 
     for (const window of dayWindows) {
-      const startMin = minutesFromMidnight(window.startTime);
-      const endMin = minutesFromMidnight(window.endTime);
-
-      for (let t = startMin; t + duration <= endMin; t += duration) {
-        const localTime = hhmmFromMinutes(t);
+      for (const localTime of slotStartTimesInWindow(window.startTime, window.endTime, duration)) {
         const { hours, minutes } = parseHhMm(localTime);
         const start = zonedWallTimeToUtc(
           cursor.year,

@@ -9,6 +9,12 @@ import {
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
 import { isGoogleCalendarConfigured } from '@/app/lib/calendar/google-oauth';
+import { nthWeekdayForLocalDate } from '@/app/lib/calendar/ics';
+import {
+  anchorLocalDateFromOccurrence,
+  formatNextMeetingLabel,
+  getNextMonthlyOccurrence,
+} from '@/app/lib/calendar/next-occurrence';
 import { prisma } from '@/db';
 
 function normalizeHhMm(value: string): string {
@@ -24,7 +30,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const [connection, windows] = await Promise.all([
+    const [connection, windows, meetings] = await Promise.all([
       prisma.instructorGoogleCalendar.findUnique({
         where: { instructorId: instructor.id },
         select: {
@@ -45,7 +51,42 @@ export async function GET() {
           timezone: true,
         },
       }),
+      prisma.studentMonthlyMeeting.findMany({
+        where: { instructorId: instructor.id },
+        orderBy: [{ dayOfWeek: 'asc' }, { localTime: 'asc' }],
+        select: {
+          id: true,
+          weeklyKey: true,
+          dayOfWeek: true,
+          localTime: true,
+          timezone: true,
+          firstOccurrence: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
     ]);
+
+    const bookings = meetings.map((m) => {
+      const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
+      const next = getNextMonthlyOccurrence({
+        dayOfWeek: m.dayOfWeek,
+        localTime: m.localTime,
+        timezone: m.timezone,
+        anchorLocalDate,
+      });
+      return {
+        id: m.id,
+        userId: m.user.id,
+        studentName: m.user.name || m.user.email || 'Student',
+        studentEmail: m.user.email,
+        weeklyKey: m.weeklyKey,
+        dayOfWeek: m.dayOfWeek,
+        localTime: m.localTime,
+        nthWeekday: nthWeekdayForLocalDate(anchorLocalDate),
+        nextOccurrence: next?.startIso ?? null,
+        nextOccurrenceLabel: next ? formatNextMeetingLabel(next.startIso, m.timezone) : null,
+      };
+    });
 
     return NextResponse.json({
       googleConfigured: isGoogleCalendarConfigured(),
@@ -62,6 +103,7 @@ export async function GET() {
           }
         : { connected: false },
       windows,
+      bookings,
     });
   } catch (error) {
     console.error('Error fetching instructor calendar settings:', error);

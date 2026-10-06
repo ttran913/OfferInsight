@@ -46,5 +46,37 @@ export function validateAvailabilityWindows(
       return `End time must be after start time for ${DAY_LABELS[window.dayOfWeek]}.`;
     }
   }
+
+  const sorted = [...windows].sort(
+    (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)
+  );
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (prev.dayOfWeek === curr.dayOfWeek && curr.startTime < prev.endTime) {
+      return `Time ranges overlap on ${DAY_LABELS[curr.dayOfWeek]}.`;
+    }
+  }
   return null;
+}
+
+/** Slot start times (HH:mm) that fit inside one availability window. */
+export function slotStartTimesInWindow(
+  startTime: string,
+  endTime: string,
+  durationMinutes: number = MEETING_DURATION_MINUTES
+): string[] {
+  const toMinutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const startMin = toMinutes(startTime);
+  const endMin = toMinutes(endTime);
+  const out: string[] = [];
+  for (let t = startMin; t + durationMinutes <= endMin; t += durationMinutes) {
+    out.push(
+      `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+    );
+  }
+  return out;
 }

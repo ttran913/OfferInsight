@@ -4,6 +4,7 @@ import {
   zonedWallTimeToUtc,
   getZonedParts,
 } from '../lib/calendar/slots';
+import { slotStartTimesInWindow, validateAvailabilityWindows } from '../lib/calendar/constants';
 
 describe('calendar slots', () => {
   const tz = 'America/Los_Angeles';
@@ -60,5 +61,26 @@ describe('calendar slots', () => {
     });
     const unique = uniqueWeeklyKeys(slots);
     expect(unique.map((s) => s.weeklyKey).sort()).toEqual(['3|10:00', '3|10:20']);
+  });
+
+  it('slotStartTimesInWindow drops a trailing partial slot', () => {
+    expect(slotStartTimesInWindow('10:00', '11:10', 20)).toEqual(['10:00', '10:20', '10:40']);
+    expect(slotStartTimesInWindow('10:00', '10:15', 20)).toEqual([]);
+  });
+
+  it('rejects overlapping ranges on the same day only', () => {
+    expect(
+      validateAvailabilityWindows([
+        { dayOfWeek: 3, startTime: '10:00', endTime: '12:00' },
+        { dayOfWeek: 3, startTime: '11:00', endTime: '13:00' },
+      ])
+    ).toBe('Time ranges overlap on Wednesday.');
+    expect(
+      validateAvailabilityWindows([
+        { dayOfWeek: 3, startTime: '10:00', endTime: '12:00' },
+        { dayOfWeek: 3, startTime: '12:00', endTime: '13:00' },
+        { dayOfWeek: 4, startTime: '11:00', endTime: '13:00' },
+      ])
+    ).toBeNull();
   });
 });

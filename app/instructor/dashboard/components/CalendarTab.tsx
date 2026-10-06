@@ -1,32 +1,25 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Loader2, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, CalendarCheck, Clock, Loader2 } from 'lucide-react';
 import {
-  DAY_LABELS,
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
-  MEETING_MAX_HEADCOUNT,
 } from '@/app/lib/calendar/constants';
-import { formatEndHhMm } from '@/app/lib/calendar/ics';
-
-type WindowRow = {
-  key: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
-
-type SlotPreview = {
-  start: string;
-  end: string;
-  dayOfWeek: number;
-  localDate: string;
-  localTime: string;
-  weeklyKey: string;
-  timezone: string;
-};
+import AvailabilityEditor from './calendar/AvailabilityEditor';
+import MonthCalendar from './calendar/MonthCalendar';
+import StandingWeekView from './calendar/StandingWeekView';
+import {
+  daysToWindows,
+  rangeErrors,
+  weeklyKeysForWindows,
+  windowsSignature,
+  windowsToDays,
+  type Booking,
+  type DayAvailability,
+  type SavedWindow,
+} from './calendar/availability-model';
 
 type CalendarStatus = {
   googleConfigured: boolean;
@@ -35,23 +28,9 @@ type CalendarStatus = {
   meetingMaxHeadcount: number;
   defaultTimezone: string;
   google: { connected: boolean; email?: string | null; connectedAt?: string };
-  windows: Array<{
-    id: string;
-    dayOfWeek: number;
-    startTime: string;
-    endTime: string;
-    timezone: string;
-  }>;
+  windows: SavedWindow[];
+  bookings: Booking[];
 };
-
-function newRow(dayOfWeek = 3): WindowRow {
-  return {
-    key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    dayOfWeek,
-    startTime: '10:00',
-    endTime: '23:00',
-  };
-}
 
 const ERROR_MESSAGES: Record<string, string> = {
   not_signed_in: 'Sign in as instructor again, then reconnect Google.',
@@ -70,34 +49,10 @@ export default function CalendarTab() {
   const [saving, setSaving] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [status, setStatus] = useState<CalendarStatus | null>(null);
-  const [rows, setRows] = useState<WindowRow[]>([]);
+  const [savedDays, setSavedDays] = useState<DayAvailability[]>(() => windowsToDays([]));
+  const [days, setDays] = useState<DayAvailability[]>(() => windowsToDays([]));
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotPreview, setSlotPreview] = useState<SlotPreview[]>([]);
-  const [uniqueWeekly, setUniqueWeekly] = useState<SlotPreview[]>([]);
-  const [slotCount, setSlotCount] = useState(0);
-
-  const loadSlots = useCallback(async () => {
-    setSlotsLoading(true);
-    try {
-      const res = await fetch('/api/instructor/calendar/slots?days=14');
-      if (!res.ok) {
-        throw new Error('Failed to load slots');
-      }
-      const data = await res.json();
-      setSlotPreview((data.slots as SlotPreview[]).slice(0, 24));
-      setUniqueWeekly((data.uniqueWeekly as SlotPreview[]) || []);
-      setSlotCount(typeof data.slotCount === 'number' ? data.slotCount : 0);
-    } catch (err) {
-      console.error(err);
-      setSlotPreview([]);
-      setUniqueWeekly([]);
-      setSlotCount(0);
-    } finally {
-      setSlotsLoading(false);
-    }
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,24 +64,16 @@ export default function CalendarTab() {
       }
       const data = (await res.json()) as CalendarStatus;
       setStatus(data);
-      setRows(
-        data.windows.length
-          ? data.windows.map((w) => ({
-              key: w.id,
-              dayOfWeek: w.dayOfWeek,
-              startTime: w.startTime,
-              endTime: w.endTime,
-            }))
-          : []
-      );
-      await loadSlots();
+      const loaded = windowsToDays(data.windows);
+      setSavedDays(loaded);
+      setDays(loaded);
     } catch (err) {
       console.error(err);
       setError('Could not load calendar settings.');
     } finally {
       setLoading(false);
     }
-  }, [loadSlots]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -145,9 +92,19 @@ export default function CalendarTab() {
 
   const timezone = status?.defaultTimezone ?? DEFAULT_AVAILABILITY_TIMEZONE;
   const canEdit = status?.canEdit ?? false;
+  const duration = status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES;
+  const bookings = useMemo(() => status?.bookings ?? [], [status]);
+
+  const draftWindows = useMemo(() => daysToWindows(days), [days]);
+  const isDirty = windowsSignature(draftWindows) !== windowsSignature(daysToWindows(savedDays));
+  const hasErrors = days.some((d) => Object.keys(rangeErrors(d)).length > 0);
+  const bookingsOutsideDraft = useMemo(() => {
+    const keys = weeklyKeysForWindows(draftWindows, duration);
+    return bookings.filter((b) => !keys.has(b.weeklyKey));
+  }, [bookings, draftWindows, duration]);
 
   async function handleSave() {
-    if (!canEdit) return;
+    if (!canEdit || !isDirty || hasErrors) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -155,29 +112,16 @@ export default function CalendarTab() {
       const res = await fetch('/api/instructor/calendar', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          timezone,
-          windows: rows.map(({ dayOfWeek, startTime, endTime }) => ({
-            dayOfWeek,
-            startTime,
-            endTime,
-          })),
-        }),
+        body: JSON.stringify({ timezone, windows: draftWindows }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to save');
       }
-      setRows(
-        (data.windows as CalendarStatus['windows']).map((w) => ({
-          key: w.id,
-          dayOfWeek: w.dayOfWeek,
-          startTime: w.startTime,
-          endTime: w.endTime,
-        }))
-      );
+      const saved = windowsToDays(data.windows as SavedWindow[]);
+      setSavedDays(saved);
+      setDays(saved);
       setMessage('Availability saved.');
-      await loadSlots();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save availability');
     } finally {
@@ -216,8 +160,10 @@ export default function CalendarTab() {
     );
   }
 
+  const timezoneLabel = timezone.replace(/_/g, ' ');
+
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-6">
       {(message || error) && (
         <div
           className={`rounded-lg border px-4 py-3 text-sm ${
@@ -230,55 +176,47 @@ export default function CalendarTab() {
         </div>
       )}
 
-      <section className="border border-gray-200 rounded-lg bg-white p-6">
-        <div className="flex items-start gap-3 mb-4">
-          <Calendar className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Google Calendar</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Connect so OfferInsight can create and update monthly 1:1 events on your calendar.
-              Students get an email invite (.ics); they do not need Google access.
-            </p>
-          </div>
-        </div>
-
-        {!status?.googleConfigured && (
-          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
-            Add <code className="font-mono text-xs">GOOGLE_CLIENT_ID</code> and{' '}
-            <code className="font-mono text-xs">GOOGLE_CLIENT_SECRET</code> to{' '}
-            <code className="font-mono text-xs">.env.local</code>, and set the OAuth redirect URI to{' '}
-            <code className="font-mono text-xs break-all">
-              {'{NEXTAUTH_URL}/api/instructor/calendar/google/callback'}
-            </code>
-            . You can still save availability below without connecting Google.
-          </p>
-        )}
-
-        {status?.google.connected ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <div className="text-sm text-gray-700">
-              Connected as{' '}
-              <span className="font-semibold text-gray-900">
-                {status.google.email || 'Google account'}
-              </span>
+      <section className="border border-gray-200 rounded-lg bg-white px-5 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <Calendar className="w-6 h-6 text-electric-blue shrink-0" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900">Google Calendar</h2>
+                {status?.google.connected ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                    Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                    Not connected
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 truncate">
+                {status?.google.connected
+                  ? `Monthly 1:1s are added to ${status.google.email || 'your Google account'}.`
+                  : 'Connect so student bookings show up on your calendar automatically.'}
+              </p>
             </div>
-            {canEdit && (
+          </div>
+
+          {canEdit &&
+            (status?.google.connected ? (
               <button
                 type="button"
                 onClick={handleDisconnect}
                 disabled={disconnecting}
-                className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className="shrink-0 px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
                 {disconnecting ? 'Disconnecting…' : 'Disconnect'}
               </button>
-            )}
-          </div>
-        ) : (
-          <div>
-            {canEdit ? (
+            ) : (
               <a
                 href="/api/instructor/calendar/google/connect"
-                className={`inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                className={`shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   status?.googleConfigured
                     ? 'bg-electric-blue text-white hover:opacity-90'
                     : 'bg-gray-200 text-gray-500 pointer-events-none'
@@ -287,164 +225,123 @@ export default function CalendarTab() {
               >
                 Connect Google Calendar
               </a>
-            ) : (
-              <p className="text-sm text-gray-500">Read-only instructors cannot connect Google.</p>
-            )}
-          </div>
+            ))}
+        </div>
+
+        {!status?.googleConfigured && (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mt-4">
+            Add <code className="font-mono text-xs">GOOGLE_CLIENT_ID</code> and{' '}
+            <code className="font-mono text-xs">GOOGLE_CLIENT_SECRET</code> to{' '}
+            <code className="font-mono text-xs">.env.local</code>, and set the OAuth redirect URI to{' '}
+            <code className="font-mono text-xs break-all">
+              {'{NEXTAUTH_URL}/api/instructor/calendar/google/callback'}
+            </code>
+            . You can still set availability without connecting Google.
+          </p>
         )}
       </section>
 
-      <section className="border border-gray-200 rounded-lg bg-white p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Weekly availability</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Students book {status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES}-minute
-          exclusive slots (max {status?.meetingMaxHeadcount ?? MEETING_MAX_HEADCOUNT} student per
-          slot) inside these windows. Times use{' '}
-          <span className="font-medium text-gray-700">{timezone.replace(/_/g, ' ')}</span>.
-        </p>
+      {status?.google.connected && <MonthCalendar timezone={timezone} />}
 
-        <div className="space-y-3 mb-4">
-          {rows.length === 0 && (
-            <p className="text-sm text-gray-400 py-2">
-              No windows yet. Add days/times when you are available for monthly meetings.
+      <section className="border border-gray-200 rounded-lg bg-white">
+        <div className="px-5 pt-5 pb-1 flex items-start gap-3">
+          <Clock className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Weekly hours</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Students pick a {duration}-minute time inside these hours, and it repeats monthly on
+              the same weekday. All times are{' '}
+              <span className="font-medium text-gray-700">{timezoneLabel}</span>.
             </p>
-          )}
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              className="flex flex-col sm:flex-row gap-2 sm:items-center border border-gray-100 rounded-lg p-3 bg-gray-50"
-            >
-              <select
-                value={row.dayOfWeek}
-                disabled={!canEdit}
-                onChange={(e) =>
-                  setRows((prev) =>
-                    prev.map((r) =>
-                      r.key === row.key
-                        ? { ...r, dayOfWeek: Number(e.target.value) }
-                        : r
-                    )
-                  )
-                }
-                className="sm:w-40 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm"
-              >
-                {DAY_LABELS.map((label, index) => (
-                  <option key={label} value={index}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="time"
-                value={row.startTime}
-                disabled={!canEdit}
-                onChange={(e) =>
-                  setRows((prev) =>
-                    prev.map((r) =>
-                      r.key === row.key ? { ...r, startTime: e.target.value } : r
-                    )
-                  )
-                }
-                className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm"
-              />
-              <span className="text-gray-400 text-sm hidden sm:inline">to</span>
-              <input
-                type="time"
-                value={row.endTime}
-                disabled={!canEdit}
-                onChange={(e) =>
-                  setRows((prev) =>
-                    prev.map((r) =>
-                      r.key === row.key ? { ...r, endTime: e.target.value } : r
-                    )
-                  )
-                }
-                className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm"
-              />
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
-                  className="p-2 text-gray-400 hover:text-red-600 transition-colors sm:ml-auto"
-                  aria-label="Remove window"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            {!canEdit && (
+              <p className="text-sm text-gray-500 mt-2">You have read-only access.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5">
+          <AvailabilityEditor
+            days={days}
+            onChange={setDays}
+            canEdit={canEdit}
+            durationMinutes={duration}
+          />
         </div>
 
         {canEdit && (
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setRows((prev) => [...prev, newRow()])}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              <Plus className="w-4 h-4" />
-              Add window
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving…
-                </>
+          <div className="sticky bottom-0 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-200 bg-white/95 backdrop-blur px-5 py-3 rounded-b-lg">
+            <div className="text-sm">
+              {isDirty ? (
+                <span className="inline-flex items-center gap-2 text-amber-700 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  Unsaved changes
+                </span>
               ) : (
-                'Save availability'
+                <span className="text-gray-400">All changes saved</span>
               )}
-            </button>
+              {isDirty && bookingsOutsideDraft.length > 0 && (
+                <p className="flex items-start gap-1.5 text-xs text-amber-700 mt-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  {bookingsOutsideDraft.length === 1
+                    ? '1 booked student falls outside these hours.'
+                    : `${bookingsOutsideDraft.length} booked students fall outside these hours.`}{' '}
+                  They keep their meeting until they reschedule.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDays(savedDays)}
+                disabled={!isDirty || saving}
+                className="px-4 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!isDirty || hasErrors || saving}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  'Save availability'
+                )}
+              </button>
+            </div>
           </div>
         )}
       </section>
 
-      <section className="border border-gray-200 rounded-lg bg-white p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Bookable slots preview</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Next 14 days of {status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES}-minute
-          exclusive openings from your saved windows ({slotCount} total). Standing monthly times:{' '}
-          {uniqueWeekly.length}. Student bookings remove those times from this list.
-        </p>
-
-        {slotsLoading ? (
-          <div className="flex items-center gap-2 text-gray-400 text-sm py-4">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating slots…
-          </div>
-        ) : slotPreview.length === 0 ? (
-          <p className="text-sm text-gray-400 py-2">
-            No upcoming slots. Save at least one availability window first.
-          </p>
-        ) : (
-          <div className="max-h-72 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-100">
-            {slotPreview.map((slot) => (
-              <div
-                key={`${slot.start}-${slot.weeklyKey}`}
-                className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
-              >
-                <span className="text-gray-900 font-medium">
-                  {DAY_LABELS[slot.dayOfWeek]} {slot.localDate}
+      <section className="border border-gray-200 rounded-lg bg-white p-5">
+        <div className="flex items-start gap-3 mb-4">
+          <CalendarCheck className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold text-gray-900">Standing week</h2>
+              {isDirty && (
+                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  Previewing unsaved changes
                 </span>
-                <span className="text-gray-600">
-                  {slot.localTime}–{formatEndHhMm(slot.localTime, status?.meetingDurationMinutes ?? MEETING_DURATION_MINUTES)}{' '}
-                  <span className="text-gray-400">({timezone.replace(/_/g, ' ')})</span>
-                </span>
-                <span className="font-mono text-xs text-gray-400">{slot.weeklyKey}</span>
-              </div>
-            ))}
-            {slotCount > slotPreview.length && (
-              <div className="px-3 py-2 text-xs text-gray-400">
-                Showing first {slotPreview.length} of {slotCount}…
-              </div>
-            )}
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Each time below is one monthly standing slot. Once a student books it, nobody else
+              can take that weekday and time. Hover a booking for details.
+            </p>
           </div>
-        )}
+        </div>
+        <StandingWeekView
+          windows={draftWindows}
+          bookings={bookings}
+          durationMinutes={duration}
+          timezone={timezone}
+        />
       </section>
     </div>
   );
