@@ -79,7 +79,7 @@ function TimeSelect({
       disabled={disabled}
       aria-label={label}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-32 px-3 py-2 bg-white border rounded-lg text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-500 ${
+      className={`w-full px-2 py-1.5 bg-white border rounded-lg text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-500 ${
         invalid ? 'border-red-400 focus:outline-red-500' : 'border-gray-300'
       }`}
     >
@@ -99,6 +99,7 @@ function CopyMenu({
   sourceDay: number;
   onApply: (targetDays: number[]) => void;
 }) {
+  const alignRight = sourceDay >= 4;
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
@@ -129,14 +130,17 @@ function CopyMenu({
           setSelected(new Set());
           setOpen((o) => !o);
         }}
-        className="p-2 text-gray-400 hover:text-electric-blue rounded-lg hover:bg-gray-100 transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-electric-blue rounded-md hover:bg-white transition-colors"
         aria-label={`Copy ${DAY_LABELS[sourceDay]} hours to other days`}
         title="Copy hours to other days"
       >
-        <Copy className="w-4 h-4" />
+        <Copy className="w-3.5 h-3.5" />
+        Copy
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-1 w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+        <div
+          className={`absolute ${alignRight ? 'right-0' : 'left-0'} z-20 mt-1 w-52 rounded-lg border border-gray-200 bg-white p-3 shadow-lg`}
+        >
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
             Copy times to
           </p>
@@ -225,91 +229,99 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
   }
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 py-4">
       {days.map((day) => {
         const errors = rangeErrors(day);
         const slotCount = slotCountForDay(day, durationMinutes);
         return (
           <div
             key={day.dayOfWeek}
-            className="flex flex-col sm:flex-row sm:items-start gap-3 py-4"
+            className={`flex flex-col rounded-lg border min-w-0 ${
+              day.enabled ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'
+            }`}
           >
-            <div className="flex items-center gap-3 sm:w-44 shrink-0 sm:pt-1.5">
+            <div className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-gray-200 bg-white rounded-t-lg">
+              <div className="min-w-0">
+                <div
+                  className={`text-sm font-semibold ${day.enabled ? 'text-gray-900' : 'text-gray-400'}`}
+                >
+                  {DAY_LABELS[day.dayOfWeek].slice(0, 3)}
+                </div>
+                <div className="text-[11px] text-gray-500">
+                  {day.enabled ? `${slotCount} ${slotCount === 1 ? 'slot' : 'slots'}` : 'Off'}
+                </div>
+              </div>
               <Switch
                 checked={day.enabled}
                 disabled={!canEdit}
                 onChange={(next) => toggleDay(day.dayOfWeek, next)}
                 label={`${DAY_LABELS[day.dayOfWeek]} available`}
               />
-              <span
-                className={`font-semibold ${day.enabled ? 'text-gray-900' : 'text-gray-400'}`}
-              >
-                {DAY_LABELS[day.dayOfWeek]}
-              </span>
             </div>
 
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 p-2 space-y-2">
               {day.enabled ? (
-                day.ranges.map((range, index) => (
-                  <div key={range.key}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <TimeSelect
-                        value={range.startTime}
-                        disabled={!canEdit}
-                        invalid={Boolean(errors[range.key])}
-                        onChange={(startTime) => updateRange(day.dayOfWeek, range.key, { startTime })}
-                        label={`${DAY_LABELS[day.dayOfWeek]} start time`}
-                      />
-                      <span className="text-gray-400">–</span>
-                      <TimeSelect
-                        value={range.endTime}
-                        disabled={!canEdit}
-                        invalid={Boolean(errors[range.key])}
-                        onChange={(endTime) => updateRange(day.dayOfWeek, range.key, { endTime })}
-                        label={`${DAY_LABELS[day.dayOfWeek]} end time`}
-                      />
+                day.ranges.map((range) => (
+                  <div
+                    key={range.key}
+                    className={`relative rounded-md border bg-white p-1.5 space-y-1 ${
+                      errors[range.key] ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                  >
+                    <TimeSelect
+                      value={range.startTime}
+                      disabled={!canEdit}
+                      invalid={Boolean(errors[range.key])}
+                      onChange={(startTime) => updateRange(day.dayOfWeek, range.key, { startTime })}
+                      label={`${DAY_LABELS[day.dayOfWeek]} start time`}
+                    />
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] text-gray-400">to</span>
                       {canEdit && (
                         <button
                           type="button"
                           onClick={() => removeRange(day.dayOfWeek, range.key)}
-                          className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="p-0.5 text-gray-400 hover:text-red-600 rounded transition-colors"
                           aria-label="Remove time range"
                           title="Remove"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      {canEdit && index === 0 && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => addRange(day.dayOfWeek)}
-                            className="p-2 text-gray-400 hover:text-electric-blue rounded-lg hover:bg-gray-100 transition-colors"
-                            aria-label={`Add another range on ${DAY_LABELS[day.dayOfWeek]}`}
-                            title="Add another range"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                          <CopyMenu
-                            sourceDay={day.dayOfWeek}
-                            onApply={(targets) => copyDay(day.dayOfWeek, targets)}
-                          />
-                        </>
-                      )}
                     </div>
+                    <TimeSelect
+                      value={range.endTime}
+                      disabled={!canEdit}
+                      invalid={Boolean(errors[range.key])}
+                      onChange={(endTime) => updateRange(day.dayOfWeek, range.key, { endTime })}
+                      label={`${DAY_LABELS[day.dayOfWeek]} end time`}
+                    />
                     {errors[range.key] && (
-                      <p className="text-xs text-red-600 mt-1">{errors[range.key]}</p>
+                      <p className="text-[11px] leading-tight text-red-600 px-1">{errors[range.key]}</p>
                     )}
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 sm:pt-2">Unavailable</p>
+                <p className="text-xs text-gray-400 text-center py-4">Unavailable</p>
               )}
             </div>
 
-            {day.enabled && (
-              <div className="text-xs text-gray-500 sm:w-20 sm:text-right sm:pt-2.5 shrink-0">
-                {slotCount} {slotCount === 1 ? 'slot' : 'slots'}
+            {canEdit && day.enabled && (
+              <div className="flex items-center justify-between gap-1 px-1.5 pb-1.5">
+                <button
+                  type="button"
+                  onClick={() => addRange(day.dayOfWeek)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-electric-blue rounded-md hover:bg-white transition-colors"
+                  aria-label={`Add another range on ${DAY_LABELS[day.dayOfWeek]}`}
+                  title="Add another range"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+                <CopyMenu
+                  sourceDay={day.dayOfWeek}
+                  onApply={(targets) => copyDay(day.dayOfWeek, targets)}
+                />
               </div>
             )}
           </div>
