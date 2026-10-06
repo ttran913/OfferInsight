@@ -13,6 +13,7 @@ export type MeetingSummary = {
   weeklyKey: string;
   dayOfWeek: number;
   dayLabel: string;
+  scheduleLabel: string;
   localTime: string;
   timezone: string;
   firstOccurrence: string;
@@ -210,7 +211,7 @@ export default function MonthlyMeetingScheduler({
           <div>
             Current schedule:{' '}
             <span className="font-semibold text-gray-900">
-              {meeting.dayLabel}s at {meeting.localTime}
+              {meeting.scheduleLabel}
             </span>{' '}
             <span className="text-gray-400">
               ({meeting.timezone.replace(/_/g, ' ')})

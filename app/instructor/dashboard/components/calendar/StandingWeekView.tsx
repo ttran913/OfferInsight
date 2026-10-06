@@ -9,7 +9,8 @@ import {
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
 import type { StandingTimeResolution, WeeklyConflict } from '@/app/lib/calendar/conflicts';
-import { formatTime12, nthLabel, type Booking } from './availability-model';
+import { nthOrdinalLabel } from '@/app/lib/calendar/next-occurrence';
+import { formatTime12, type Booking } from './availability-model';
 
 type Props = {
   windows: AvailabilityWindowInput[];
@@ -223,7 +224,7 @@ export default function StandingWeekView({
                           </div>
                           <div className="truncate">{cell.booking.studentName}</div>
                           <div className={cell.outsideHours ? 'text-amber-700' : 'text-white/80'}>
-                            {nthLabel(cell.booking.nthWeekday)} {col.label.slice(0, 3)}
+                            {nthOrdinalLabel(cell.booking.nthWeekday)} {col.label.slice(0, 3)}
                             {cell.booking.nextOccurrence &&
                               ` · ${formatShortDate(cell.booking.nextOccurrence, timezone)}`}
                           </div>

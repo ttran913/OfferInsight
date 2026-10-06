@@ -1,5 +1,6 @@
 import {
   getNextMonthlyOccurrence,
+  formatMonthlyScheduleLabel,
   formatNextMeetingLabel,
 } from '../lib/calendar/next-occurrence';
 
@@ -25,5 +26,10 @@ describe('next monthly occurrence', () => {
     expect(label).toContain('July');
     expect(label).toContain('2026');
     expect(label).toMatch(/Wednesday/);
+  });
+
+  it('formats the standing monthly schedule with the nth weekday', () => {
+    expect(formatMonthlyScheduleLabel(4, 4, '13:00')).toBe('4th Thursdays at 13:00');
+    expect(formatMonthlyScheduleLabel(-1, 3, '10:20')).toBe('Last Wednesdays at 10:20');
   });
 });

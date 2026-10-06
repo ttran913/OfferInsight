@@ -11,6 +11,7 @@ import { generateAvailableSlots } from '@/app/lib/calendar/slots';
 import {
   buildMonthlyMeetingEmail,
   buildMonthlyMeetingIcs,
+  nthWeekdayForLocalDate,
 } from '@/app/lib/calendar/ics';
 import {
   getInstructorDisplayName,
@@ -18,6 +19,7 @@ import {
 } from '@/app/lib/calendar/scheduling-instructor';
 import {
   anchorLocalDateFromOccurrence,
+  formatMonthlyScheduleLabel,
   formatNextMeetingLabel,
   getNextMonthlyOccurrence,
 } from '@/app/lib/calendar/next-occurrence';
@@ -46,11 +48,15 @@ function meetingPayload(m: {
     anchorLocalDate,
   });
 
+  const nthWeekday = nthWeekdayForLocalDate(anchorLocalDate);
+
   return {
     id: m.id,
     weeklyKey: m.weeklyKey,
     dayOfWeek: m.dayOfWeek,
     dayLabel: DAY_LABELS[m.dayOfWeek],
+    nthWeekday,
+    scheduleLabel: formatMonthlyScheduleLabel(nthWeekday, m.dayOfWeek, m.localTime),
     localTime: m.localTime,
     timezone: m.timezone,
     firstOccurrence: m.firstOccurrence.toISOString(),

@@ -1,3 +1,4 @@
+import { DAY_LABELS } from './constants';
 import { nthWeekdayForLocalDate } from './ics';
 import { getZonedParts, zonedWallTimeToUtc } from './slots';
 
@@ -99,6 +100,21 @@ export function anchorLocalDateFromOccurrence(
 ): string {
   const p = getZonedParts(occurrence, timezone);
   return `${p.year}-${pad2(p.month)}-${pad2(p.day)}`;
+}
+
+/** "1st".."4th", or "Last" for nth = -1. */
+export function nthOrdinalLabel(nth: number): string {
+  if (nth === -1) return 'Last';
+  return ['1st', '2nd', '3rd', '4th'][nth - 1] ?? `${nth}th`;
+}
+
+/** Standing monthly schedule, e.g. "4th Thursdays at 13:00". */
+export function formatMonthlyScheduleLabel(
+  nth: number,
+  dayOfWeek: number,
+  localTime: string
+): string {
+  return `${nthOrdinalLabel(nth)} ${DAY_LABELS[dayOfWeek]}s at ${localTime}`;
 }
 
 /** Human-readable next meeting line, e.g. "Wednesday, April 8, 2026 at 10:00 AM PDT". */

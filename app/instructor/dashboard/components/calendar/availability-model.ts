@@ -113,8 +113,3 @@ export function formatTime12(hhmm: string): string {
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
-
-export function nthLabel(nth: number): string {
-  if (nth === -1) return 'Last';
-  return ['1st', '2nd', '3rd', '4th'][nth - 1] ?? `${nth}th`;
-}

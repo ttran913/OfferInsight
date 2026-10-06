@@ -151,8 +151,7 @@ export default function OverviewTab({
   const [meetingLoading, setMeetingLoading] = useState(true);
   const [instructorName, setInstructorName] = useState('Utsab');
   const [meetingSummary, setMeetingSummary] = useState<{
-    dayLabel: string;
-    localTime: string;
+    scheduleLabel: string;
     timezone: string;
     nextOccurrenceLabel: string | null;
   } | null>(null);
@@ -175,8 +174,7 @@ export default function OverviewTab({
         setInstructorName(data.instructorName || 'Utsab');
         if (data.meeting) {
           setMeetingSummary({
-            dayLabel: data.meeting.dayLabel,
-            localTime: data.meeting.localTime,
+            scheduleLabel: data.meeting.scheduleLabel,
             timezone: data.meeting.timezone,
             nextOccurrenceLabel: data.meeting.nextOccurrenceLabel ?? null,
           });
@@ -386,7 +384,7 @@ export default function OverviewTab({
                 <p className="text-sm text-gray-900">
                   Monthly meeting with {instructorName}:{' '}
                   <span className="font-semibold">
-                    {meetingSummary.dayLabel}s at {meetingSummary.localTime}
+                    {meetingSummary.scheduleLabel}
                   </span>{' '}
                   <span className="text-gray-400">
                     ({meetingSummary.timezone.replace(/_/g, ' ')})
