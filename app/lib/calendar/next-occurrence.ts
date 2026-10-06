@@ -10,7 +10,7 @@ function daysInMonth(year: number, month: number): number {
 }
 
 /** Civil date (Y-M-D) of the nth weekday in a month. nth=-1 → last. */
-function dateOfNthWeekday(
+export function dateOfNthWeekday(
   year: number,
   month: number,
   dayOfWeek: number,

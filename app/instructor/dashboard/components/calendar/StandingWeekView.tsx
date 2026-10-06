@@ -3,22 +3,36 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import {
+  BOOKING_CANDIDATE_DAYS,
   DAY_LABELS,
   slotStartTimesInWindow,
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
+import type { StandingTimeResolution, WeeklyConflict } from '@/app/lib/calendar/conflicts';
 import { formatTime12, nthLabel, type Booking } from './availability-model';
 
 type Props = {
   windows: AvailabilityWindowInput[];
   bookings: Booking[];
+  /** Null when Google busy times are unavailable. */
+  resolution: StandingTimeResolution | null;
   durationMinutes: number;
   timezone: string;
 };
 
 type Cell =
-  | { kind: 'open'; localTime: string }
+  | {
+      kind: 'open';
+      localTime: string;
+      shifted?: { conflict: WeeklyConflict; firstMeeting: string };
+    }
+  | { kind: 'busy'; localTime: string; conflict: WeeklyConflict }
   | { kind: 'booked'; localTime: string; booking: Booking; outsideHours: boolean };
+
+const BUSY_STRIPES = {
+  backgroundImage:
+    'repeating-linear-gradient(135deg, rgb(243 244 246) 0 6px, rgb(229 231 235) 6px 12px)',
+};
 
 function formatShortDate(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -28,7 +42,13 @@ function formatShortDate(iso: string, timezone: string): string {
   }).format(new Date(iso));
 }
 
-export default function StandingWeekView({ windows, bookings, durationMinutes, timezone }: Props) {
+export default function StandingWeekView({
+  windows,
+  bookings,
+  resolution,
+  durationMinutes,
+  timezone,
+}: Props) {
   const [bookedOnly, setBookedOnly] = useState(false);
 
   const columns = useMemo(() => {
@@ -47,8 +67,16 @@ export default function StandingWeekView({ windows, bookings, durationMinutes, t
         .sort()
         .map((localTime) => {
           const booking = bookingByTime.get(localTime);
-          return booking
-            ? { kind: 'booked', localTime, booking, outsideHours: !times.has(localTime) }
+          if (booking) {
+            return { kind: 'booked', localTime, booking, outsideHours: !times.has(localTime) };
+          }
+          const key = `${dayOfWeek}|${localTime}`;
+          const blocked = resolution?.blocked.get(key);
+          if (blocked) return { kind: 'busy', localTime, conflict: blocked };
+          const shiftedBy = resolution?.shifted.get(key);
+          const anchor = resolution?.anchors.get(key);
+          return shiftedBy && anchor
+            ? { kind: 'open', localTime, shifted: { conflict: shiftedBy, firstMeeting: anchor.start } }
             : { kind: 'open', localTime };
         });
 
@@ -57,12 +85,14 @@ export default function StandingWeekView({ windows, bookings, durationMinutes, t
         label,
         cells,
         openCount: cells.filter((c) => c.kind === 'open').length,
+        busyCount: cells.filter((c) => c.kind === 'busy').length,
         bookedCount: dayBookings.length,
       };
     });
-  }, [windows, bookings, durationMinutes]);
+  }, [windows, bookings, resolution, durationMinutes]);
 
   const totalOpen = columns.reduce((sum, c) => sum + c.openCount, 0);
+  const totalBusy = columns.reduce((sum, c) => sum + c.busyCount, 0);
   const totalBooked = bookings.length;
   const hasOutsideHours = columns.some((col) =>
     col.cells.some((c) => c.kind === 'booked' && c.outsideHours)
@@ -80,6 +110,12 @@ export default function StandingWeekView({ windows, bookings, durationMinutes, t
             <span className="h-3 w-3 rounded-sm bg-electric-blue" />
             {totalBooked} booked
           </span>
+          {totalBusy > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-gray-700">
+              <span className="h-3 w-3 rounded-sm border border-gray-300" style={BUSY_STRIPES} />
+              {totalBusy} busy on Google Calendar
+            </span>
+          )}
           {hasOutsideHours && (
             <span className="inline-flex items-center gap-1.5 text-amber-700">
               <span className="h-3 w-3 rounded-sm bg-amber-400" />
@@ -121,24 +157,46 @@ export default function StandingWeekView({ windows, bookings, durationMinutes, t
                 <div className="px-2 py-2 border-b border-gray-200 bg-white rounded-t-lg text-center">
                   <div className="text-sm font-semibold text-gray-900">{col.label.slice(0, 3)}</div>
                   <div className="text-[11px] text-gray-500">
-                    {col.cells.length === 0
-                      ? 'Off'
-                      : `${col.openCount} open · ${col.bookedCount} booked`}
+                    {col.openCount} open · {col.bookedCount} booked
+                    {col.busyCount > 0 && ` · ${col.busyCount} busy`}
                   </div>
                 </div>
                 <div className="flex-1 max-h-[28rem] overflow-y-auto p-1.5 space-y-1">
                   {visible.length === 0 ? (
                     <p className="text-xs text-gray-400 text-center py-4">
-                      {col.cells.length === 0 ? 'Unavailable' : 'No bookings'}
+                      {col.cells.length === 0 ? 'No hours set' : 'No bookings'}
                     </p>
                   ) : (
                     visible.map((cell) =>
                       cell.kind === 'open' ? (
                         <div
                           key={cell.localTime}
+                          title={
+                            cell.shifted
+                              ? `First meeting would be ${formatShortDate(cell.shifted.firstMeeting, timezone)} because "${cell.shifted.conflict.title}" is on ${formatShortDate(cell.shifted.conflict.start, timezone)}.`
+                              : undefined
+                          }
                           className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500"
                         >
                           {formatTime12(cell.localTime)}
+                          {cell.shifted && (
+                            <div className="text-[11px] text-amber-700">
+                              starts {formatShortDate(cell.shifted.firstMeeting, timezone)}
+                            </div>
+                          )}
+                        </div>
+                      ) : cell.kind === 'busy' ? (
+                        <div
+                          key={cell.localTime}
+                          title={`Busy: none of the next ${BOOKING_CANDIDATE_DAYS / 7} weeks starts three free monthly meetings at this time. First conflict: "${cell.conflict.title}" on ${formatShortDate(cell.conflict.start, timezone)}. Hidden from students.`}
+                          style={BUSY_STRIPES}
+                          className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500"
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span>{formatTime12(cell.localTime)}</span>
+                            <span className="font-semibold">Busy</span>
+                          </div>
+                          <div className="truncate text-[11px]">{cell.conflict.title}</div>
                         </div>
                       ) : (
                         <div

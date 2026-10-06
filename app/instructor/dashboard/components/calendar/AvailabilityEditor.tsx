@@ -27,38 +27,6 @@ function addMinutes(hhmm: string, delta: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function Switch({
-  checked,
-  disabled,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-        checked ? 'bg-electric-blue' : 'bg-gray-300'
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0.5'
-        }`}
-      />
-    </button>
-  );
-}
-
 function TimeSelect({
   value,
   disabled,
@@ -188,15 +156,6 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
     }));
   }
 
-  function toggleDay(dayOfWeek: number, enabled: boolean) {
-    updateDay(dayOfWeek, (d) => ({
-      ...d,
-      enabled,
-      ranges:
-        enabled && d.ranges.length === 0 ? [{ key: newRangeKey(), ...DEFAULT_RANGE }] : d.ranges,
-    }));
-  }
-
   function addRange(dayOfWeek: number) {
     updateDay(dayOfWeek, (d) => {
       const last = [...d.ranges].sort((a, b) => a.endTime.localeCompare(b.endTime)).at(-1);
@@ -207,10 +166,7 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
   }
 
   function removeRange(dayOfWeek: number, key: string) {
-    updateDay(dayOfWeek, (d) => {
-      const ranges = d.ranges.filter((r) => r.key !== key);
-      return { ...d, ranges, enabled: ranges.length > 0 };
-    });
+    updateDay(dayOfWeek, (d) => ({ ...d, ranges: d.ranges.filter((r) => r.key !== key) }));
   }
 
   function copyDay(sourceDay: number, targetDays: number[]) {
@@ -220,7 +176,6 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
         targetDays.includes(d.dayOfWeek)
           ? {
               ...d,
-              enabled: true,
               ranges: source.ranges.map((r) => ({ ...r, key: newRangeKey() })),
             }
           : d
@@ -233,34 +188,27 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
       {days.map((day) => {
         const errors = rangeErrors(day);
         const slotCount = slotCountForDay(day, durationMinutes);
+        const hasRanges = day.ranges.length > 0;
         return (
           <div
             key={day.dayOfWeek}
             className={`flex flex-col rounded-lg border min-w-0 ${
-              day.enabled ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'
+              hasRanges ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'
             }`}
           >
-            <div className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-gray-200 bg-white rounded-t-lg">
-              <div className="min-w-0">
-                <div
-                  className={`text-sm font-semibold ${day.enabled ? 'text-gray-900' : 'text-gray-400'}`}
-                >
-                  {DAY_LABELS[day.dayOfWeek].slice(0, 3)}
-                </div>
-                <div className="text-[11px] text-gray-500">
-                  {day.enabled ? `${slotCount} ${slotCount === 1 ? 'slot' : 'slots'}` : 'Off'}
-                </div>
+            <div className="px-2.5 py-2 border-b border-gray-200 bg-white rounded-t-lg text-center">
+              <div
+                className={`text-sm font-semibold ${hasRanges ? 'text-gray-900' : 'text-gray-400'}`}
+              >
+                {DAY_LABELS[day.dayOfWeek].slice(0, 3)}
               </div>
-              <Switch
-                checked={day.enabled}
-                disabled={!canEdit}
-                onChange={(next) => toggleDay(day.dayOfWeek, next)}
-                label={`${DAY_LABELS[day.dayOfWeek]} available`}
-              />
+              <div className="text-[11px] text-gray-500">
+                {slotCount} {slotCount === 1 ? 'slot' : 'slots'}
+              </div>
             </div>
 
             <div className="flex-1 p-2 space-y-2">
-              {day.enabled ? (
+              {hasRanges ? (
                 day.ranges.map((range) => (
                   <div
                     key={range.key}
@@ -301,19 +249,29 @@ export default function AvailabilityEditor({ days, onChange, canEdit, durationMi
                     )}
                   </div>
                 ))
+              ) : canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => addRange(day.dayOfWeek)}
+                  className="w-full flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-gray-200 py-6 text-xs font-medium text-gray-500 hover:border-electric-blue hover:text-electric-blue transition-colors"
+                  aria-label={`Add hours on ${DAY_LABELS[day.dayOfWeek]}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add hours
+                </button>
               ) : (
-                <p className="text-xs text-gray-400 text-center py-4">Unavailable</p>
+                <p className="text-xs text-gray-400 text-center py-4">No hours set</p>
               )}
             </div>
 
-            {canEdit && day.enabled && (
+            {canEdit && hasRanges && (
               <div className="flex items-center justify-between gap-1 px-1.5 pb-1.5">
                 <button
                   type="button"
                   onClick={() => addRange(day.dayOfWeek)}
-                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-electric-blue rounded-md hover:bg-white transition-colors"
-                  aria-label={`Add another range on ${DAY_LABELS[day.dayOfWeek]}`}
-                  title="Add another range"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-electric-blue rounded-md hover:bg-gray-100 transition-colors"
+                  aria-label={`Add a time range on ${DAY_LABELS[day.dayOfWeek]}`}
+                  title="Add a time range"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add

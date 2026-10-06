@@ -1,6 +1,5 @@
 import {
   generateAvailableSlots,
-  uniqueWeeklyKeys,
   zonedWallTimeToUtc,
   getZonedParts,
 } from '../lib/calendar/slots';
@@ -48,19 +47,6 @@ describe('calendar slots', () => {
     });
 
     expect(slots.map((s) => s.localTime)).toEqual(['10:00', '10:40']);
-  });
-
-  it('uniqueWeeklyKeys keeps first occurrence of each standing time', () => {
-    const now = new Date('2026-06-10T15:00:00.000Z');
-    const slots = generateAvailableSlots({
-      windows: [{ dayOfWeek: 3, startTime: '10:00', endTime: '10:40' }],
-      rangeStart: now,
-      days: 14,
-      now,
-      timezone: tz,
-    });
-    const unique = uniqueWeeklyKeys(slots);
-    expect(unique.map((s) => s.weeklyKey).sort()).toEqual(['3|10:00', '3|10:20']);
   });
 
   it('slotStartTimesInWindow drops a trailing partial slot', () => {

@@ -224,15 +224,3 @@ export function generateAvailableSlots(options: GenerateSlotsOptions): Generated
 
   return slots;
 }
-
-/** Unique standing times (weekly keys) still free in the generated range — useful for monthly book picker. */
-export function uniqueWeeklyKeys(slots: GeneratedSlot[]): GeneratedSlot[] {
-  const seen = new Set<string>();
-  const out: GeneratedSlot[] = [];
-  for (const slot of slots) {
-    if (seen.has(slot.weeklyKey)) continue;
-    seen.add(slot.weeklyKey);
-    out.push(slot);
-  }
-  return out;
-}

@@ -3,6 +3,12 @@
 export const MEETING_DURATION_MINUTES = 20;
 export const MEETING_MAX_HEADCOUNT = 1;
 export const DEFAULT_AVAILABILITY_TIMEZONE = 'America/Los_Angeles';
+/** How far ahead a student's first monthly meeting may start. */
+export const BOOKING_CANDIDATE_DAYS = 42;
+/** A start date is usable only if this many monthly meetings in a row are conflict-free. */
+export const SERIES_CONFLICT_CHECK_COUNT = 3;
+/** Google busy lookahead: candidate window plus two more months of the series. */
+export const BUSY_LOOKAHEAD_DAYS = 110;
 
 export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',

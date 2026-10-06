@@ -8,7 +8,6 @@ export type TimeRange = { key: string; startTime: string; endTime: string };
 
 export type DayAvailability = {
   dayOfWeek: number;
-  enabled: boolean;
   ranges: TimeRange[];
 };
 
@@ -53,13 +52,12 @@ export function windowsToDays(windows: Pick<SavedWindow, 'dayOfWeek' | 'startTim
       .filter((w) => w.dayOfWeek === dayOfWeek)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
       .map((w) => ({ key: newRangeKey(), startTime: w.startTime, endTime: w.endTime }));
-    return { dayOfWeek, enabled: ranges.length > 0, ranges };
+    return { dayOfWeek, ranges };
   });
 }
 
 export function daysToWindows(days: DayAvailability[]): AvailabilityWindowInput[] {
   return days
-    .filter((d) => d.enabled)
     .flatMap((d) =>
       d.ranges.map((r) => ({ dayOfWeek: d.dayOfWeek, startTime: r.startTime, endTime: r.endTime }))
     )
@@ -73,7 +71,6 @@ export function windowsSignature(windows: AvailabilityWindowInput[]): string {
 /** Per-range validation messages for one day, keyed by range key. */
 export function rangeErrors(day: DayAvailability): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!day.enabled) return errors;
   for (const r of day.ranges) {
     if (r.startTime >= r.endTime) errors[r.key] = 'End must be after start';
   }
@@ -91,7 +88,6 @@ export function slotCountForDay(
   day: DayAvailability,
   durationMinutes: number = MEETING_DURATION_MINUTES
 ): number {
-  if (!day.enabled) return 0;
   return day.ranges.reduce(
     (sum, r) => sum + slotStartTimesInWindow(r.startTime, r.endTime, durationMinutes).length,
     0

@@ -70,7 +70,7 @@ export default function MonthlyMeetingScheduler({
     try {
       const [meetingRes, slotsRes] = await Promise.all([
         fetch('/api/calendar/meeting'),
-        fetch('/api/calendar/slots?mode=unique&days=42'),
+        fetch('/api/calendar/slots'),
       ]);
 
       if (!meetingRes.ok || !slotsRes.ok) {

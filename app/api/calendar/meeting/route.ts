@@ -3,10 +3,11 @@ import { auth } from '@/auth';
 import { getUserIdForRequest } from '@/app/lib/api-user-helper';
 import {
   DEFAULT_AVAILABILITY_TIMEZONE,
+  BOOKING_CANDIDATE_DAYS,
   DAY_LABELS,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
-import { generateAvailableSlots, uniqueWeeklyKeys } from '@/app/lib/calendar/slots';
+import { generateAvailableSlots } from '@/app/lib/calendar/slots';
 import {
   buildMonthlyMeetingEmail,
   buildMonthlyMeetingIcs,
@@ -22,6 +23,8 @@ import {
 } from '@/app/lib/calendar/next-occurrence';
 import { sendEmail } from '@/app/lib/email';
 import { syncMonthlyMeetingOnInstructorCalendar } from '@/app/lib/calendar/google-calendar';
+import { getBusyIntervalsForBooking } from '@/app/lib/calendar/busy';
+import { resolveStandingTimes } from '@/app/lib/calendar/conflicts';
 import { prisma } from '@/db';
 
 function meetingPayload(m: {
@@ -146,17 +149,19 @@ export async function PUT(request: NextRequest) {
     const timezone =
       instructor.availabilityWindows[0]?.timezone || DEFAULT_AVAILABILITY_TIMEZONE;
 
-    const slots = generateAvailableSlots({
+    const candidates = generateAvailableSlots({
       windows: instructor.availabilityWindows,
-      days: 62,
+      days: BOOKING_CANDIDATE_DAYS,
       timezone,
       durationMinutes: MEETING_DURATION_MINUTES,
       occupied: others.map((o) => ({ weeklyKey: o.weeklyKey })),
     });
-
-    const match =
-      uniqueWeeklyKeys(slots).find((s) => s.weeklyKey === weeklyKey) ||
-      slots.find((s) => s.weeklyKey === weeklyKey);
+    const busy = await getBusyIntervalsForBooking(instructor.id, timezone);
+    const match = resolveStandingTimes({
+      slots: candidates,
+      busy,
+      durationMinutes: MEETING_DURATION_MINUTES,
+    }).anchors.get(weeklyKey);
 
     if (!match) {
       return NextResponse.json(

@@ -1,17 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import {
+  BOOKING_CANDIDATE_DAYS,
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
-import { generateAvailableSlots, uniqueWeeklyKeys } from '@/app/lib/calendar/slots';
+import { generateAvailableSlots } from '@/app/lib/calendar/slots';
+import { getBusyIntervalsForBooking } from '@/app/lib/calendar/busy';
+import { resolveStandingTimes } from '@/app/lib/calendar/conflicts';
 import {
   getInstructorDisplayName,
   resolveSchedulingInstructor,
 } from '@/app/lib/calendar/scheduling-instructor';
 import { prisma } from '@/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -50,39 +53,39 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const daysParam = Number(request.nextUrl.searchParams.get('days') || '42');
-    const days = Number.isFinite(daysParam) ? Math.min(Math.max(daysParam, 7), 90) : 42;
-    const mode = request.nextUrl.searchParams.get('mode') || 'unique';
-
     const meetings = await prisma.studentMonthlyMeeting.findMany({
       where: { instructorId: instructor.id },
       select: { weeklyKey: true, userId: true },
     });
 
-    const occupied = meetings
-      .filter((m) => m.userId !== user.id)
-      .map((m) => ({ weeklyKey: m.weeklyKey }));
-
     const timezone =
       instructor.availabilityWindows[0]?.timezone || DEFAULT_AVAILABILITY_TIMEZONE;
 
-    const slots = generateAvailableSlots({
+    const candidates = generateAvailableSlots({
       windows: instructor.availabilityWindows,
-      days,
+      days: BOOKING_CANDIDATE_DAYS,
       timezone,
       durationMinutes: MEETING_DURATION_MINUTES,
-      occupied,
+      occupied: meetings
+        .filter((m) => m.userId !== user.id)
+        .map((m) => ({ weeklyKey: m.weeklyKey })),
     });
+    const busy = await getBusyIntervalsForBooking(instructor.id, timezone);
 
-    const unique = uniqueWeeklyKeys(slots);
+    const { anchors } = resolveStandingTimes({
+      slots: candidates,
+      busy,
+      durationMinutes: MEETING_DURATION_MINUTES,
+    });
+    const unique = [...anchors.values()].sort((a, b) => a.start.localeCompare(b.start));
 
     return NextResponse.json({
       instructorName: getInstructorDisplayName(),
       instructorId: instructor.id,
       timezone,
       durationMinutes: MEETING_DURATION_MINUTES,
-      days,
-      slots: mode === 'all' ? slots : unique,
+      days: BOOKING_CANDIDATE_DAYS,
+      slots: unique,
       uniqueWeekly: unique,
     });
   } catch (error) {

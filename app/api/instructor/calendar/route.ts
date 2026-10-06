@@ -9,6 +9,7 @@ import {
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
 import { isGoogleCalendarConfigured } from '@/app/lib/calendar/google-oauth';
+import { getInstructorBusyIntervals } from '@/app/lib/calendar/busy';
 import { nthWeekdayForLocalDate } from '@/app/lib/calendar/ics';
 import {
   anchorLocalDateFromOccurrence,
@@ -66,6 +67,10 @@ export async function GET() {
       }),
     ]);
 
+    const busy = connection
+      ? await getInstructorBusyIntervals(instructor.id, DEFAULT_AVAILABILITY_TIMEZONE)
+      : ({ status: 'not_connected' } as const);
+
     const bookings = meetings.map((m) => {
       const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
       const next = getNextMonthlyOccurrence({
@@ -104,6 +109,7 @@ export async function GET() {
         : { connected: false },
       windows,
       bookings,
+      busy,
     });
   } catch (error) {
     console.error('Error fetching instructor calendar settings:', error);

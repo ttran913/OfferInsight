@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Calendar, CalendarCheck, Clock, Loader2 } from 'lucide-react';
 import {
+  BOOKING_CANDIDATE_DAYS,
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
+import { resolveStandingTimes, type BusyInterval } from '@/app/lib/calendar/conflicts';
+import { generateAvailableSlots } from '@/app/lib/calendar/slots';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
 import MonthCalendar from './calendar/MonthCalendar';
 import StandingWeekView from './calendar/StandingWeekView';
@@ -30,6 +33,10 @@ type CalendarStatus = {
   google: { connected: boolean; email?: string | null; connectedAt?: string };
   windows: SavedWindow[];
   bookings: Booking[];
+  busy:
+    | { status: 'ok'; intervals: BusyInterval[] }
+    | { status: 'not_connected' }
+    | { status: 'error' };
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -98,6 +105,19 @@ export default function CalendarTab() {
   const draftWindows = useMemo(() => daysToWindows(days), [days]);
   const isDirty = windowsSignature(draftWindows) !== windowsSignature(daysToWindows(savedDays));
   const hasErrors = days.some((d) => Object.keys(rangeErrors(d)).length > 0);
+  const resolution = useMemo(() => {
+    if (status?.busy.status !== 'ok') return null;
+    return resolveStandingTimes({
+      slots: generateAvailableSlots({
+        windows: draftWindows,
+        days: BOOKING_CANDIDATE_DAYS,
+        timezone,
+        durationMinutes: duration,
+      }),
+      busy: status.busy.intervals,
+      durationMinutes: duration,
+    });
+  }, [status, draftWindows, timezone, duration]);
   const bookingsOutsideDraft = useMemo(() => {
     const keys = weeklyKeysForWindows(draftWindows, duration);
     return bookings.filter((b) => !keys.has(b.weeklyKey));
@@ -332,13 +352,30 @@ export default function CalendarTab() {
             </div>
             <p className="text-sm text-gray-500 mt-1">
               Each time below is one monthly standing slot. Once a student books it, nobody else
-              can take that weekday and time. Hover a booking for details.
+              can take that weekday and time. If a Google Calendar event gets in the way, the
+              student&apos;s first meeting moves to the next week where three monthly meetings in
+              a row are free. Times with no such week are busy and hidden from students. Hover a
+              slot for details.
             </p>
           </div>
         </div>
+        {status?.busy.status === 'error' && (
+          <p className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            Couldn&apos;t read your Google Calendar, so students can currently book times that
+            conflict with your other events. Disconnect and reconnect Google above to fix this.
+          </p>
+        )}
+        {status?.busy.status === 'not_connected' && (
+          <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 mb-4">
+            Connect Google Calendar to automatically block times that conflict with your other
+            events.
+          </p>
+        )}
         <StandingWeekView
           windows={draftWindows}
           bookings={bookings}
+          resolution={resolution}
           durationMinutes={duration}
           timezone={timezone}
         />
