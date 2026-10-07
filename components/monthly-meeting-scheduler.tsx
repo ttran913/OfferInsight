@@ -8,25 +8,24 @@ import {
   INSTRUCTOR_DISPLAY_NAME_FALLBACK,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
-import { formatEndHhMm, nthWeekdayForLocalDate } from '@/app/lib/calendar/ics';
+import { formatEndHhMm } from '@/app/lib/calendar/ics';
 import { formatTime12, nthOrdinalLabel } from '@/app/lib/calendar/labels';
 import { buildMonthGrid, localDateKey } from '@/app/lib/calendar/month-grid';
 import { followingMonthlyLocalDate } from '@/app/lib/calendar/next-occurrence';
 import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
+import SkipMeetingControl from '@/components/skip-meeting-control';
 
 export type MeetingSummary = {
-  id: string;
-  weeklyKey: string;
   dayOfWeek: number;
-  dayLabel: string;
   nthWeekday: number;
   scheduleLabel: string;
   localTime: string;
   timezone: string;
-  firstOccurrence: string;
-  nextOccurrence?: string | null;
-  nextOccurrenceDate?: string | null;
-  nextOccurrenceLabel?: string | null;
+  nextOccurrenceDate: string | null;
+  nextOccurrenceLabel: string | null;
+  /** What "next" becomes if the student skips the next meeting. */
+  followingOccurrenceLabel: string | null;
+  skippedOccurrence: { start: string; label: string; reason: string | null } | null;
 };
 
 type BookableDayOption = {
@@ -38,14 +37,7 @@ type BookableDayOption = {
 
 type MonthlyMeetingSchedulerProps = {
   /** After successful save (e.g. navigate to dashboard on onboarding). */
-  onSaved?: (result: {
-    meeting: MeetingSummary;
-    onboardingProgress: number;
-    emailSent: boolean;
-    emailError: string | null;
-    googleSynced?: boolean;
-    googleError?: string | null;
-  }) => void;
+  onSaved?: () => void;
   /** Show skip link (onboarding only). */
   showSkip?: boolean;
   onSkip?: () => void;
@@ -232,9 +224,9 @@ export default function MonthlyMeetingScheduler({
   const selectedDay = selectedDate ? dayByDate.get(selectedDate) ?? null : null;
   const followingDate = selectedDate ? followingMonthlyLocalDate(selectedDate) : null;
   const selectionUnchanged =
-    Boolean(meeting && selectedDate && selectedTime) &&
-    meeting!.dayOfWeek === selectedDay?.dayOfWeek &&
-    meeting!.nthWeekday === nthWeekdayForLocalDate(selectedDate!) &&
+    Boolean(meeting && selectedDay && selectedTime) &&
+    meeting!.dayOfWeek === selectedDay!.dayOfWeek &&
+    meeting!.nthWeekday === selectedDay!.nthWeekday &&
     meeting!.localTime === selectedTime;
 
   async function handleSave() {
@@ -268,14 +260,7 @@ export default function MonthlyMeetingScheduler({
         `${wasReschedule ? 'Meeting updated.' : 'Meeting scheduled.'}${emailNote}${googleNote}`
       );
       setConfirmOpen(false);
-      onSaved?.({
-        meeting: data.meeting,
-        onboardingProgress: data.onboardingProgress,
-        emailSent: data.emailSent,
-        emailError: data.emailError,
-        googleSynced: data.googleSynced,
-        googleError: data.googleError,
-      });
+      onSaved?.();
       if (collapsible) setExpanded(false);
       await load();
     } catch (err) {
@@ -309,7 +294,7 @@ export default function MonthlyMeetingScheduler({
   }
 
   const timezoneLabel = timezone.replace(/_/g, ' ');
-  const selectedNth = selectedDate ? nthOrdinalLabel(nthWeekdayForLocalDate(selectedDate)) : null;
+  const selectedNth = selectedDay ? nthOrdinalLabel(selectedDay.nthWeekday) : null;
   const selectedWeekday = selectedDay ? DAY_LABELS[selectedDay.dayOfWeek] : null;
 
   return (
@@ -352,6 +337,14 @@ export default function MonthlyMeetingScheduler({
               Next meeting: <span className="font-semibold">{meeting.nextOccurrenceLabel}</span>
             </div>
           )}
+          <SkipMeetingControl
+            meeting={meeting}
+            instructorName={instructorName}
+            onChange={(m) => {
+              setMessage(null);
+              setMeeting(m);
+            }}
+          />
         </div>
       ) : (
         collapsible && (

@@ -228,10 +228,24 @@ model StudentMonthlyMeeting {
   /// Next / first occurrence start (UTC)
   firstOccurrence DateTime
   googleEventId   String?
+  skips           SkippedMeeting[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
   @@index([instructorId, weeklyKey])
+}
+
+/// One date of a student's monthly series that they won't attend; the series itself is unchanged.
+model SkippedMeeting {
+  id              String                @id @default(cuid())
+  meetingId       String
+  meeting         StudentMonthlyMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  /// Start (UTC) of the skipped occurrence
+  occurrenceStart DateTime
+  reason          String?
+  createdAt       DateTime              @default(now())
+
+  @@unique([meetingId, occurrenceStart])
 }
 
 /// OAuth tokens for writing monthly 1:1s on the instructor's Google Calendar.

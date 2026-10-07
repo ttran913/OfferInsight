@@ -1,7 +1,6 @@
 /** Shared constants for monthly 1:1 scheduling. */
 
 export const MEETING_DURATION_MINUTES = 20;
-export const MEETING_MAX_HEADCOUNT = 1;
 export const DEFAULT_AVAILABILITY_TIMEZONE = 'America/Los_Angeles';
 export const INSTRUCTOR_DISPLAY_NAME_FALLBACK = 'your instructor';
 export const INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH = 60;

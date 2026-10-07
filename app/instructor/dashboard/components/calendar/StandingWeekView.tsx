@@ -226,6 +226,10 @@ export default function StandingWeekView({
                               title={[
                                 b.studentName,
                                 b.studentEmail,
+                                b.skippedOccurrence &&
+                                  `Skipping ${b.skippedOccurrence.label}${
+                                    b.skippedOccurrence.reason ? ` (${b.skippedOccurrence.reason})` : ''
+                                  }`,
                                 b.nextOccurrenceLabel && `Next: ${b.nextOccurrenceLabel}`,
                               ]
                                 .filter(Boolean)
@@ -236,6 +240,15 @@ export default function StandingWeekView({
                                 {nthOrdinalLabel(b.nthWeekday)}
                               </span>{' '}
                               {b.studentName}
+                              {b.skippedOccurrence && (
+                                <div
+                                  className={`truncate text-[11px] italic ${
+                                    cell.outsideHours ? 'text-amber-700' : 'text-white/80'
+                                  }`}
+                                >
+                                  skipping {formatShortDate(b.skippedOccurrence.start, timezone)}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

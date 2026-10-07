@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
 import { INSTRUCTOR_DISPLAY_NAME_FALLBACK } from '@/app/lib/calendar/constants';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
+import type { MeetingSummary } from '@/components/monthly-meeting-scheduler';
+import SkipMeetingControl from '@/components/skip-meeting-control';
 import { ModalOverlay, ModalPanel } from './shared';
 
 type OpenSourceActivityItem = {
@@ -151,11 +153,7 @@ export default function OverviewTab({
   const [logError, setLogError] = useState('');
   const [meetingLoading, setMeetingLoading] = useState(true);
   const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
-  const [meetingSummary, setMeetingSummary] = useState<{
-    scheduleLabel: string;
-    timezone: string;
-    nextOccurrenceLabel: string | null;
-  } | null>(null);
+  const [meetingSummary, setMeetingSummary] = useState<MeetingSummary | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,15 +171,7 @@ export default function OverviewTab({
         }
         if (cancelled) return;
         setInstructorName(data.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK);
-        if (data.meeting) {
-          setMeetingSummary({
-            scheduleLabel: data.meeting.scheduleLabel,
-            timezone: data.meeting.timezone,
-            nextOccurrenceLabel: data.meeting.nextOccurrenceLabel ?? null,
-          });
-        } else {
-          setMeetingSummary(null);
-        }
+        setMeetingSummary(data.meeting ?? null);
       })
       .catch((err) => {
         console.error(err);
@@ -399,6 +389,12 @@ export default function OverviewTab({
                     </span>
                   </p>
                 )}
+                <SkipMeetingControl
+                  meeting={meetingSummary}
+                  instructorName={instructorName}
+                  onChange={setMeetingSummary}
+                  readOnly={Boolean(instructorViewUserId)}
+                />
               </>
             ) : (
               <p className="text-sm text-gray-700">

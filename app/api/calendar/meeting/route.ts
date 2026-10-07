@@ -1,65 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserIdForRequest } from '@/app/lib/api-user-helper';
-import { DAY_LABELS } from '@/app/lib/calendar/constants';
-import {
-  buildMonthlyMeetingEmail,
-  buildMonthlyMeetingIcs,
-  nthWeekdayForLocalDate,
-} from '@/app/lib/calendar/ics';
+import { buildMonthlyMeetingEmail, buildMonthlyMeetingIcs } from '@/app/lib/calendar/ics';
+import { meetingPayload } from '@/app/lib/calendar/meeting-payload';
 import {
   getInstructorDisplayName,
   resolveSchedulingInstructorForUser,
 } from '@/app/lib/calendar/scheduling-instructor';
-import {
-  anchorLocalDateFromOccurrence,
-  formatMonthlyScheduleLabel,
-  formatNextMeetingLabel,
-  getNextMonthlyOccurrence,
-} from '@/app/lib/calendar/next-occurrence';
 import { sendEmail } from '@/app/lib/email';
 import { syncMonthlyMeetingOnInstructorCalendar } from '@/app/lib/calendar/google-calendar';
 import { loadBookableDaysForUser } from '@/app/lib/calendar/student-booking';
 import { prisma } from '@/db';
-
-function meetingPayload(m: {
-  id: string;
-  weeklyKey: string;
-  dayOfWeek: number;
-  localTime: string;
-  timezone: string;
-  firstOccurrence: Date;
-}) {
-  const anchorLocalDate = anchorLocalDateFromOccurrence(
-    m.firstOccurrence,
-    m.timezone
-  );
-  const next = getNextMonthlyOccurrence({
-    dayOfWeek: m.dayOfWeek,
-    localTime: m.localTime,
-    timezone: m.timezone,
-    anchorLocalDate,
-  });
-
-  const nthWeekday = nthWeekdayForLocalDate(anchorLocalDate);
-
-  return {
-    id: m.id,
-    weeklyKey: m.weeklyKey,
-    dayOfWeek: m.dayOfWeek,
-    dayLabel: DAY_LABELS[m.dayOfWeek],
-    nthWeekday,
-    scheduleLabel: formatMonthlyScheduleLabel(nthWeekday, m.dayOfWeek, m.localTime),
-    localTime: m.localTime,
-    timezone: m.timezone,
-    firstOccurrence: m.firstOccurrence.toISOString(),
-    nextOccurrence: next?.startIso ?? null,
-    nextOccurrenceDate: next?.localDate ?? null,
-    nextOccurrenceLabel: next
-      ? formatNextMeetingLabel(next.startIso, m.timezone)
-      : null,
-  };
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,9 +23,11 @@ export async function GET(request: NextRequest) {
       where: { id: userId },
       select: {
         id: true,
-        onboardingProgress: true,
         monthlyMeeting: {
-          include: { instructor: { select: { displayName: true } } },
+          include: {
+            instructor: { select: { displayName: true } },
+            skips: { orderBy: { occurrenceStart: 'asc' } },
+          },
         },
       },
     });
@@ -86,18 +39,11 @@ export async function GET(request: NextRequest) {
       user.monthlyMeeting?.instructor ?? (await resolveSchedulingInstructorForUser(user.id))
     );
 
-    if (!user.monthlyMeeting) {
-      return NextResponse.json({
-        meeting: null,
-        instructorName,
-        onboardingProgress: user.onboardingProgress,
-      });
-    }
-
     return NextResponse.json({
-      meeting: meetingPayload(user.monthlyMeeting),
+      meeting: user.monthlyMeeting
+        ? meetingPayload(user.monthlyMeeting, user.monthlyMeeting.skips)
+        : null,
       instructorName,
-      onboardingProgress: user.onboardingProgress,
     });
   } catch (error) {
     console.error('Error fetching monthly meeting:', error);
@@ -181,6 +127,8 @@ export async function PUT(request: NextRequest) {
         },
       });
 
+      await tx.skippedMeeting.deleteMany({ where: { meetingId: saved.id } });
+
       await tx.user.update({
         where: { id: user.id },
         data: { onboardingProgress: 4 },
@@ -251,12 +199,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({
-      meeting: meetingPayload({
-        ...meeting,
-        firstOccurrence: meeting.firstOccurrence,
-      }),
-      instructorName,
-      onboardingProgress: 4,
+      meeting: meetingPayload(meeting),
       emailSent,
       emailError,
       googleSynced,

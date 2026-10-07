@@ -52,7 +52,6 @@ export type MonthlyInviteInput = {
   studentName: string | null;
   studentEmail: string;
   instructorName: string;
-  uid?: string;
 };
 
 /** Stable invite UID for a student's standing time; reused to cancel that invite. */
@@ -71,61 +70,161 @@ function monthlyWhenLabel(slot: GeneratedSlot): string {
   return `${nth} ${DAY_LABELS[slot.dayOfWeek]} of every month at ${formatTime12(slot.localTime)}`;
 }
 
-function buildMonthlyIcs(
-  input: MonthlyInviteInput,
-  variant: { method: 'REQUEST' | 'CANCEL'; status: 'CONFIRMED' | 'CANCELLED'; sequence: number }
-): { filename: string; content: string; rrule: string } {
-  const { slot, studentName, studentEmail, instructorName } = input;
-  const start = new Date(slot.start);
-  const end = new Date(slot.end);
-  const uid = input.uid || monthlyMeetingUid(slot, studentEmail);
-  const rrule = buildMonthlyByDayRrule(slot.dayOfWeek, slot.localDate);
-  const summary = `Monthly 1:1 with ${instructorName}`;
-  const description =
-    variant.method === 'CANCEL'
-      ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
-      : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+type IcsMethod = 'REQUEST' | 'CANCEL';
 
+/** One-event calendar; `eventLines` go inside the VEVENT after the shared UID/summary/people lines. */
+function buildIcsContent(
+  method: IcsMethod,
+  input: MonthlyInviteInput,
+  eventLines: string[]
+): string {
+  const { slot, studentName, studentEmail, instructorName } = input;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//OfferInsight//Monthly 1:1//EN',
     'CALSCALE:GREGORIAN',
-    `METHOD:${variant.method}`,
+    `METHOD:${method}`,
     'BEGIN:VEVENT',
-    `UID:${uid}`,
+    `UID:${monthlyMeetingUid(slot, studentEmail)}`,
     `DTSTAMP:${formatIcsUtc(new Date())}`,
-    `DTSTART:${formatIcsUtc(start)}`,
-    `DTEND:${formatIcsUtc(end)}`,
-    `RRULE:${rrule}`,
-    foldLine(`SUMMARY:${escapeText(summary)}`),
-    foldLine(`DESCRIPTION:${escapeText(description)}`),
+    foldLine(`SUMMARY:${escapeText(`Monthly 1:1 with ${instructorName}`)}`),
     foldLine(`ORGANIZER;CN=${escapeText(instructorName)}:mailto:${process.env.EMAIL_FROM || 'noreply@offerinsight.local'}`),
     foldLine(
       `ATTENDEE;CN=${escapeText(studentName || studentEmail)};RSVP=TRUE:mailto:${studentEmail}`
     ),
-    `STATUS:${variant.status}`,
-    `SEQUENCE:${variant.sequence}`,
+    ...eventLines,
     'END:VEVENT',
     'END:VCALENDAR',
   ];
+  return lines.join('\r\n') + '\r\n';
+}
+
+function buildMonthlyIcs(
+  input: MonthlyInviteInput,
+  method: IcsMethod
+): { filename: string; content: string } {
+  const { slot } = input;
+  const cancel = method === 'CANCEL';
+  const description = cancel
+    ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
+    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+
+  const content = buildIcsContent(method, input, [
+    `DTSTART:${formatIcsUtc(new Date(slot.start))}`,
+    `DTEND:${formatIcsUtc(new Date(slot.end))}`,
+    `RRULE:${buildMonthlyByDayRrule(slot.dayOfWeek, slot.localDate)}`,
+    foldLine(`DESCRIPTION:${escapeText(description)}`),
+    `STATUS:${cancel ? 'CANCELLED' : 'CONFIRMED'}`,
+    `SEQUENCE:${cancel ? 1 : 0}`,
+  ]);
 
   const dayLabel = DAY_LABELS[slot.dayOfWeek].toLowerCase();
-  const prefix = variant.method === 'CANCEL' ? 'cancel-monthly-1on1' : 'monthly-1on1';
+  const prefix = cancel ? 'cancel-monthly-1on1' : 'monthly-1on1';
   return {
     filename: `${prefix}-${dayLabel}-${slot.localTime.replace(':', '')}.ics`,
-    content: lines.join('\r\n') + '\r\n',
-    rrule,
+    content,
   };
 }
 
 export function buildMonthlyMeetingIcs(input: MonthlyInviteInput) {
-  return buildMonthlyIcs(input, { method: 'REQUEST', status: 'CONFIRMED', sequence: 0 });
+  return buildMonthlyIcs(input, 'REQUEST');
 }
 
 /** Cancels the invite previously sent for the same standing time (same UID). */
 export function buildMonthlyMeetingCancelIcs(input: MonthlyInviteInput) {
-  return buildMonthlyIcs(input, { method: 'CANCEL', status: 'CANCELLED', sequence: 1 });
+  return buildMonthlyIcs(input, 'CANCEL');
+}
+
+/**
+ * Cancels one date of the series (or restores it after an undo), matched to the
+ * original invite by UID + RECURRENCE-ID. `slot` must be the series' first slot.
+ */
+export function buildMonthlyOccurrenceIcs(
+  input: MonthlyInviteInput & { occurrenceStart: string; cancelled: boolean }
+): { filename: string; content: string } {
+  const { cancelled } = input;
+  const start = new Date(input.occurrenceStart);
+  const end = new Date(start.getTime() + MEETING_DURATION_MINUTES * 60 * 1000);
+  const content = buildIcsContent(cancelled ? 'CANCEL' : 'REQUEST', input, [
+    `RECURRENCE-ID:${formatIcsUtc(start)}`,
+    `DTSTART:${formatIcsUtc(start)}`,
+    `DTEND:${formatIcsUtc(end)}`,
+    `STATUS:${cancelled ? 'CANCELLED' : 'CONFIRMED'}`,
+    `SEQUENCE:${cancelled ? 1 : 2}`,
+  ]);
+  return {
+    filename: `${cancelled ? 'skip' : 'restore'}-1on1-${start.toISOString().slice(0, 10)}.ics`,
+    content,
+  };
+}
+
+const EMAIL_WRAPPER_START = `<!DOCTYPE html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">`;
+
+/** To the student after they skip one meeting, or undo that skip. */
+export function buildMeetingSkipStudentEmail(input: {
+  studentName: string | null;
+  instructorName: string;
+  /** e.g. "Wednesday, June 10, 2026 at 10:00 AM PDT" */
+  occurrenceLabel: string;
+  nextLabel: string | null;
+  undone: boolean;
+}): { subject: string; text: string; html: string } {
+  const name = input.studentName || 'there';
+  const subject = input.undone
+    ? `Back on: your 1:1 with ${input.instructorName}`
+    : `Skipped: your 1:1 with ${input.instructorName}`;
+  const lead = input.undone
+    ? `Your 1:1 with ${input.instructorName} on ${input.occurrenceLabel} is back on.`
+    : `You've skipped your 1:1 with ${input.instructorName} on ${input.occurrenceLabel}. Your monthly schedule stays the same.`;
+  const next = !input.undone && input.nextLabel ? `Next meeting: ${input.nextLabel}` : '';
+  const ics = input.undone
+    ? 'The attached calendar file (.ics) puts it back on your calendar.'
+    : 'The attached calendar file (.ics) removes just that date from your calendar.';
+
+  const text = `Hi ${name},
+
+${lead}
+${next ? `\n${next}\n` : ''}
+${ics}
+
+Best,
+OfferInsight`;
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>${escapeHtml(lead)}</p>
+  ${next ? `<p><strong>${escapeHtml(next)}</strong></p>` : ''}
+  <p>${escapeHtml(ics)}</p>
+  <p>Best,<br/>OfferInsight</p>
+</body></html>`;
+  return { subject, text, html };
+}
+
+/** To the instructor when a student skips one meeting, or undoes that skip. */
+export function buildMeetingSkipInstructorEmail(input: {
+  studentName: string;
+  occurrenceLabel: string;
+  reason: string | null;
+  undone: boolean;
+}): { subject: string; text: string; html: string } {
+  const subject = input.undone
+    ? `${input.studentName} will make their 1:1 after all`
+    : `${input.studentName} can't make their 1:1`;
+  const lead = input.undone
+    ? `${input.studentName} undid their skip. Their 1:1 on ${input.occurrenceLabel} is back on your calendar.`
+    : `${input.studentName} can't make their 1:1 on ${input.occurrenceLabel}. It has been removed from your calendar; the rest of their monthly series is unchanged.`;
+  const reason = !input.undone && input.reason ? `Reason: ${input.reason}` : '';
+
+  const text = [lead, reason, '', 'OfferInsight'].filter(Boolean).join('\n\n');
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  <p>${escapeHtml(lead)}</p>
+  ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(input.reason!)}</p>` : ''}
+  <p>OfferInsight</p>
+</body></html>`;
+  return { subject, text, html };
 }
 
 export function buildMonthlyMeetingEmail(input: {
@@ -166,8 +265,7 @@ You can reschedule anytime from your OfferInsight Account page.
 Best,
 OfferInsight`;
 
-  const html = `<!DOCTYPE html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+  const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Monthly 1:1 with ${escapeHtml(input.instructorName)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>Your monthly 1:1 has been <strong>${action}</strong>.</p>
@@ -204,8 +302,7 @@ Please pick a new monthly time with ${input.newInstructorName} from your OfferIn
 Best,
 OfferInsight`;
 
-  const html = `<!DOCTYPE html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+  const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Your monthly 1:1 is now with ${escapeHtml(input.newInstructorName)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>You've been assigned a new mentor: <strong>${escapeHtml(input.newInstructorName)}</strong>.</p>

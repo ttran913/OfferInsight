@@ -40,15 +40,12 @@ export function bookingWindowSlots(opts: {
   now?: Date;
 }): GeneratedSlot[] {
   const now = opts.now ?? new Date();
-  const rangeEnd = bookingWindowEnd(now, opts.timezone);
   return generateAvailableSlots({
     windows: opts.windows,
     timezone: opts.timezone,
     durationMinutes: opts.durationMinutes ?? MEETING_DURATION_MINUTES,
     now,
-    rangeStart: now,
-    rangeEnd,
-    days: Math.ceil((rangeEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)) + 1,
+    rangeEnd: bookingWindowEnd(now, opts.timezone),
   });
 }
 

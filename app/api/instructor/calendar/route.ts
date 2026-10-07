@@ -5,7 +5,6 @@ import {
   DEFAULT_AVAILABILITY_TIMEZONE,
   INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH,
   MEETING_DURATION_MINUTES,
-  MEETING_MAX_HEADCOUNT,
   validateAvailabilityWindows,
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
@@ -16,8 +15,8 @@ import { loadSchedulingRoster } from '@/app/lib/calendar/scheduling-instructor';
 import {
   anchorLocalDateFromOccurrence,
   formatNextMeetingLabel,
-  getNextMonthlyOccurrence,
 } from '@/app/lib/calendar/next-occurrence';
+import { findPendingSkip, nextAttendedOccurrence } from '@/app/lib/calendar/skips';
 import { prisma } from '@/db';
 
 function normalizeHhMm(value: string): string {
@@ -50,12 +49,7 @@ export async function GET() {
       }),
       prisma.instructorGoogleCalendar.findUnique({
         where: { instructorId: instructor.id },
-        select: {
-          googleEmail: true,
-          connectedAt: true,
-          updatedAt: true,
-          scope: true,
-        },
+        select: { googleEmail: true },
       }),
       prisma.instructorAvailabilityWindow.findMany({
         where: { instructorId: instructor.id },
@@ -78,7 +72,11 @@ export async function GET() {
           localTime: true,
           timezone: true,
           firstOccurrence: true,
-          user: { select: { id: true, name: true, email: true } },
+          user: { select: { name: true, email: true } },
+          skips: {
+            where: { occurrenceStart: { gt: new Date() } },
+            select: { occurrenceStart: true, reason: true },
+          },
         },
       }),
       defaultSchedulerInfo(instructor.id),
@@ -90,23 +88,24 @@ export async function GET() {
 
     const bookings = meetings.map((m) => {
       const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
-      const next = getNextMonthlyOccurrence({
-        dayOfWeek: m.dayOfWeek,
-        localTime: m.localTime,
-        timezone: m.timezone,
-        anchorLocalDate,
-      });
+      const next = nextAttendedOccurrence(m, m.skips);
+      const skip = findPendingSkip(m.skips);
       return {
         id: m.id,
-        userId: m.user.id,
         studentName: m.user.name || m.user.email || 'Student',
         studentEmail: m.user.email,
         weeklyKey: m.weeklyKey,
         dayOfWeek: m.dayOfWeek,
         localTime: m.localTime,
         nthWeekday: nthWeekdayForLocalDate(anchorLocalDate),
-        nextOccurrence: next?.startIso ?? null,
         nextOccurrenceLabel: next ? formatNextMeetingLabel(next.startIso, m.timezone) : null,
+        skippedOccurrence: skip
+          ? {
+              start: skip.occurrenceStart.toISOString(),
+              label: formatNextMeetingLabel(skip.occurrenceStart.toISOString(), m.timezone),
+              reason: skip.reason,
+            }
+          : null,
       };
     });
 
@@ -117,15 +116,9 @@ export async function GET() {
       isDefaultScheduler: profile?.isDefaultScheduler ?? false,
       ...defaultInfo,
       meetingDurationMinutes: MEETING_DURATION_MINUTES,
-      meetingMaxHeadcount: MEETING_MAX_HEADCOUNT,
       defaultTimezone: DEFAULT_AVAILABILITY_TIMEZONE,
       google: connection
-        ? {
-            connected: true,
-            email: connection.googleEmail,
-            connectedAt: connection.connectedAt,
-            updatedAt: connection.updatedAt,
-          }
+        ? { connected: true, email: connection.googleEmail }
         : { connected: false },
       windows,
       bookings,

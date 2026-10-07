@@ -20,13 +20,6 @@ export type GeneratedSlot = {
   timezone: string;
 };
 
-export type OccupiedSlot = {
-  /** Exact occurrence start (ISO), if known */
-  startIso?: string;
-  /** Standing weekly key that blocks all future occurrences */
-  weeklyKey?: string;
-};
-
 type GenerateSlotsOptions = {
   windows: AvailabilityWindowInput[];
   /** Inclusive range start (Date or ISO). Defaults to now. */
@@ -37,7 +30,6 @@ type GenerateSlotsOptions = {
   days?: number;
   durationMinutes?: number;
   timezone?: string;
-  occupied?: OccupiedSlot[];
   /** Skip slots that start before this instant. Default now. */
   now?: Date;
 };
@@ -154,16 +146,6 @@ export function generateAvailableSlots(options: GenerateSlotsOptions): Generated
   const rangeEnd =
     options.rangeEnd ?? new Date(rangeStart.getTime() + days * 24 * 60 * 60 * 1000);
 
-  const occupiedStarts = new Set(
-    (options.occupied ?? [])
-      .map((o) => o.startIso)
-      .filter((s): s is string => Boolean(s))
-      .map((s) => new Date(s).toISOString())
-  );
-  const occupiedWeekly = new Set(
-    (options.occupied ?? []).map((o) => o.weeklyKey).filter((k): k is string => Boolean(k))
-  );
-
   const windowsByDay = new Map<number, AvailabilityWindowInput[]>();
   for (const w of options.windows) {
     const list = windowsByDay.get(w.dayOfWeek) ?? [];
@@ -176,7 +158,7 @@ export function generateAvailableSlots(options: GenerateSlotsOptions): Generated
 
   // Walk calendar days until past rangeEnd (in timezone)
   const slots: GeneratedSlot[] = [];
-  const maxDays = Math.max(days * 2, 60); // safety
+  const maxDays = Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (24 * 60 * 60 * 1000)) + 2;
 
   for (let i = 0; i < maxDays; i++) {
     const dayStartUtc = zonedWallTimeToUtc(cursor.year, cursor.month, cursor.day, 0, 0, timezone);
@@ -203,17 +185,13 @@ export function generateAvailableSlots(options: GenerateSlotsOptions): Generated
         if (start < now) continue;
         if (start >= rangeEnd) continue;
 
-        const weeklyKey = `${dayOfWeek}|${localTime}`;
-        if (occupiedWeekly.has(weeklyKey)) continue;
-        if (occupiedStarts.has(start.toISOString())) continue;
-
         slots.push({
           start: start.toISOString(),
           end: end.toISOString(),
           dayOfWeek,
           localDate,
           localTime,
-          weeklyKey,
+          weeklyKey: `${dayOfWeek}|${localTime}`,
           timezone,
         });
       }

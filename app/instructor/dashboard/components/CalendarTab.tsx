@@ -32,9 +32,8 @@ type CalendarStatus = {
   defaultInstructorLabel: string | null;
   isDefaultInstructor: boolean;
   meetingDurationMinutes: number;
-  meetingMaxHeadcount: number;
   defaultTimezone: string;
-  google: { connected: boolean; email?: string | null; connectedAt?: string };
+  google: { connected: boolean; email?: string | null };
   windows: SavedWindow[];
   bookings: Booking[];
   busy:

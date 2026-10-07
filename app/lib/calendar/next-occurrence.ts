@@ -1,7 +1,7 @@
-import { DAY_LABELS } from './constants';
+import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
 import { nthWeekdayForLocalDate } from './ics';
 import { nthOrdinalLabel } from './labels';
-import { getZonedParts, zonedWallTimeToUtc } from './slots';
+import { getZonedParts, zonedWallTimeToUtc, type GeneratedSlot } from './slots';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -57,8 +57,11 @@ export function getNextMonthlyOccurrence(opts: {
   /** Local YYYY-MM-DD that defines which nth weekday (usually firstOccurrence). */
   anchorLocalDate: string;
   now?: Date;
+  /** Occurrence starts the student skipped; these are stepped over. */
+  skippedStarts?: Date[];
 }): NextMonthlyOccurrence | null {
   const now = opts.now ?? new Date();
+  const skipped = new Set((opts.skippedStarts ?? []).map((d) => d.getTime()));
   const nth = nthWeekdayForLocalDate(opts.anchorLocalDate);
   const [hours, minutes] = opts.localTime.split(':').map(Number);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
@@ -78,7 +81,7 @@ export function getNextMonthlyOccurrence(opts: {
         minutes,
         opts.timezone
       );
-      if (start.getTime() >= now.getTime()) {
+      if (start.getTime() >= now.getTime() && !skipped.has(start.getTime())) {
         return {
           startIso: start.toISOString(),
           localDate: `${year}-${pad2(month)}-${pad2(day)}`,
@@ -101,6 +104,27 @@ export function anchorLocalDateFromOccurrence(
 ): string {
   const p = getZonedParts(occurrence, timezone);
   return `${p.year}-${pad2(p.month)}-${pad2(p.day)}`;
+}
+
+/** First slot of a stored monthly series; the invite UID and RRULE are derived from it. */
+export function seriesAnchorSlot(meeting: {
+  weeklyKey: string;
+  dayOfWeek: number;
+  localTime: string;
+  timezone: string;
+  firstOccurrence: Date;
+}): GeneratedSlot {
+  return {
+    start: meeting.firstOccurrence.toISOString(),
+    end: new Date(
+      meeting.firstOccurrence.getTime() + MEETING_DURATION_MINUTES * 60 * 1000
+    ).toISOString(),
+    dayOfWeek: meeting.dayOfWeek,
+    localDate: anchorLocalDateFromOccurrence(meeting.firstOccurrence, meeting.timezone),
+    localTime: meeting.localTime,
+    weeklyKey: meeting.weeklyKey,
+    timezone: meeting.timezone,
+  };
 }
 
 /** Same nth weekday in the month after `localDate`, e.g. 2nd Wed Jun 10 → 2nd Wed Jul 8. */

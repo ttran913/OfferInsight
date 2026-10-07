@@ -21,7 +21,6 @@ export type SavedWindow = {
 
 export type Booking = {
   id: string;
-  userId: string;
   studentName: string;
   studentEmail: string | null;
   weeklyKey: string;
@@ -29,8 +28,9 @@ export type Booking = {
   localTime: string;
   /** 1–4, or -1 for "last" weekday of the month */
   nthWeekday: number;
-  nextOccurrence: string | null;
   nextOccurrenceLabel: string | null;
+  /** Upcoming date the student said they'll miss (series unchanged). */
+  skippedOccurrence: { start: string; label: string; reason: string | null } | null;
 };
 
 export const DEFAULT_RANGE = { startTime: '09:00', endTime: '17:00' };

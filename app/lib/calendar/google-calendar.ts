@@ -123,6 +123,43 @@ export async function deleteMonthlyMeetingEvent(
   }
 }
 
+/**
+ * Cancel (or restore) one occurrence of a monthly 1:1 series on the instructor's
+ * calendar, leaving the rest of the series alone. No-op if the instructor is not
+ * connected; throws if Google can't find or update that occurrence.
+ */
+export async function setMonthlyMeetingOccurrenceCancelled(
+  instructorId: string,
+  eventId: string,
+  occurrenceStart: Date,
+  cancelled: boolean
+): Promise<void> {
+  const calendar = await getCalendarClientForInstructor(instructorId);
+  if (!calendar) return;
+
+  const res = await calendar.events.instances({
+    calendarId: 'primary',
+    eventId,
+    timeMin: occurrenceStart.toISOString(),
+    timeMax: new Date(occurrenceStart.getTime() + 60_000).toISOString(),
+    showDeleted: true,
+    maxResults: 5,
+  });
+  const instance = res.data.items?.find(
+    (i) => Date.parse(i.originalStartTime?.dateTime ?? '') === occurrenceStart.getTime()
+  );
+  if (!instance?.id) {
+    throw new Error('That meeting was not found on the instructor’s Google Calendar');
+  }
+
+  await calendar.events.patch({
+    calendarId: 'primary',
+    eventId: instance.id,
+    sendUpdates: 'none',
+    requestBody: { status: cancelled ? 'cancelled' : 'confirmed' },
+  });
+}
+
 export type SyncMonthlyMeetingParams = {
   instructorId: string;
   previousEventId: string | null;

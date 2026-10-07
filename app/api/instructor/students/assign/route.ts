@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
-import { MEETING_DURATION_MINUTES } from "@/app/lib/calendar/constants";
 import { deleteMonthlyMeetingEvent } from "@/app/lib/calendar/google-calendar";
 import {
   buildInstructorChangedEmail,
   buildMonthlyMeetingCancelIcs,
 } from "@/app/lib/calendar/ics";
-import { anchorLocalDateFromOccurrence } from "@/app/lib/calendar/next-occurrence";
+import { seriesAnchorSlot } from "@/app/lib/calendar/next-occurrence";
 import {
   getInstructorDisplayName,
   resolveDefaultInstructor,
 } from "@/app/lib/calendar/scheduling-instructor";
-import type { GeneratedSlot } from "@/app/lib/calendar/slots";
 import { sendEmail } from "@/app/lib/email";
 import { prisma } from "@/db";
 
@@ -84,20 +82,9 @@ export async function POST(request: NextRequest) {
       if (user.email) {
         const oldInstructorName = getInstructorDisplayName(meeting.instructor);
         const newInstructorName = getInstructorDisplayName(effective);
-        const slot: GeneratedSlot = {
-          start: meeting.firstOccurrence.toISOString(),
-          end: new Date(
-            meeting.firstOccurrence.getTime() + MEETING_DURATION_MINUTES * 60 * 1000
-          ).toISOString(),
-          dayOfWeek: meeting.dayOfWeek,
-          localDate: anchorLocalDateFromOccurrence(meeting.firstOccurrence, meeting.timezone),
-          localTime: meeting.localTime,
-          weeklyKey: meeting.weeklyKey,
-          timezone: meeting.timezone,
-        };
         try {
           const ics = buildMonthlyMeetingCancelIcs({
-            slot,
+            slot: seriesAnchorSlot(meeting),
             studentName: user.name,
             studentEmail: user.email,
             instructorName: oldInstructorName,

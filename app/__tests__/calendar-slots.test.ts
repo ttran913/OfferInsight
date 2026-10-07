@@ -35,20 +35,6 @@ describe('calendar slots', () => {
     expect(slots[0].end).toBe('2026-06-10T17:20:00.000Z');
   });
 
-  it('excludes occupied weekly keys', () => {
-    const now = new Date('2026-06-10T15:00:00.000Z');
-    const slots = generateAvailableSlots({
-      windows: [{ dayOfWeek: 3, startTime: '10:00', endTime: '11:00' }],
-      rangeStart: now,
-      days: 1,
-      now,
-      timezone: tz,
-      occupied: [{ weeklyKey: '3|10:20' }],
-    });
-
-    expect(slots.map((s) => s.localTime)).toEqual(['10:00', '10:40']);
-  });
-
   it('slotStartTimesInWindow drops a trailing partial slot', () => {
     expect(slotStartTimesInWindow('10:00', '11:10', 20)).toEqual(['10:00', '10:20', '10:40']);
     expect(slotStartTimesInWindow('10:00', '10:15', 20)).toEqual([]);

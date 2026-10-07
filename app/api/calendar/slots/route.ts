@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { MEETING_DURATION_MINUTES } from '@/app/lib/calendar/constants';
 import { getInstructorDisplayName } from '@/app/lib/calendar/scheduling-instructor';
 import { loadBookableDaysForUser } from '@/app/lib/calendar/student-booking';
 import { prisma } from '@/db';
@@ -25,7 +24,6 @@ export async function GET() {
     return NextResponse.json({
       instructorName: getInstructorDisplayName(instructor),
       timezone,
-      durationMinutes: MEETING_DURATION_MINUTES,
       days: days.map((d) => ({
         localDate: d.localDate,
         dayOfWeek: d.dayOfWeek,
