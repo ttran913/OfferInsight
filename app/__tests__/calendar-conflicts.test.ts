@@ -1,48 +1,47 @@
-import { monthlySeriesStarts, resolveStandingTimes } from '../lib/calendar/conflicts';
+import {
+  findBlockedWeeklyTimes,
+  monthlySeriesStarts,
+  seriesConflict,
+} from '../lib/calendar/conflicts';
 import { generateAvailableSlots } from '../lib/calendar/slots';
 
-describe('resolveStandingTimes', () => {
-  const tz = 'America/Los_Angeles';
-  // Monday 2026-06-08 08:00 PDT
-  const now = new Date('2026-06-08T15:00:00.000Z');
-  // Wednesdays 10:00–10:20 only → one standing time "3|10:00"
-  const slots = generateAvailableSlots({
-    windows: [{ dayOfWeek: 3, startTime: '10:00', endTime: '10:20' }],
-    timezone: tz,
-    durationMinutes: 20,
-    days: 42,
-    now,
+const tz = 'America/Los_Angeles';
+// Monday 2026-06-08 08:00 PDT
+const now = new Date('2026-06-08T15:00:00.000Z');
+// Wednesdays 10:00–10:20 only → one weekly time "3|10:00"
+const slots = generateAvailableSlots({
+  windows: [{ dayOfWeek: 3, startTime: '10:00', endTime: '10:20' }],
+  timezone: tz,
+  durationMinutes: 20,
+  days: 42,
+  now,
+});
+const jun10 = slots[0];
+
+describe('seriesConflict', () => {
+  it('is null when the next three monthly meetings are free', () => {
+    expect(seriesConflict(jun10, [], 20)).toBeNull();
   });
 
-  function resolve(busy: { start: string; end: string; title: string }[]) {
-    return resolveStandingTimes({ slots, busy, durationMinutes: 20 });
-  }
-
-  it('uses the first upcoming week when nothing conflicts', () => {
-    const { anchors, blocked, shifted } = resolve([]);
-    expect(anchors.get('3|10:00')?.localDate).toBe('2026-06-10');
-    expect(blocked.size).toBe(0);
-    expect(shifted.size).toBe(0);
-  });
-
-  it('shifts the start past a one-off conflict on the first meeting', () => {
-    // Wed 2026-06-10 10:00 PDT is busy → next Wednesday works
-    const { anchors, shifted } = resolve([
-      { start: '2026-06-10T17:00:00.000Z', end: '2026-06-10T17:30:00.000Z', title: 'Dentist' },
-    ]);
-    expect(anchors.get('3|10:00')?.localDate).toBe('2026-06-17');
-    expect(shifted.get('3|10:00')?.title).toBe('Dentist');
-  });
-
-  it('shifts when a later monthly meeting in the series conflicts', () => {
+  it('reports a conflict on a later meeting in the series', () => {
     // Series from 2026-06-10 (2nd Wed) → Jul 8, Aug 12. Block Jul 8.
-    const { anchors } = resolve([
-      { start: '2026-07-08T17:00:00.000Z', end: '2026-07-08T17:20:00.000Z', title: 'Trip' },
-    ]);
-    expect(anchors.get('3|10:00')?.localDate).toBe('2026-06-17');
+    const busy = [{ start: '2026-07-08T17:00:00.000Z', end: '2026-07-08T17:20:00.000Z', title: 'Trip' }];
+    expect(seriesConflict(jun10, busy, 20)).toEqual({ start: '2026-07-08T17:00:00.000Z', title: 'Trip' });
   });
 
-  it('blocks a time when every candidate week conflicts (weekly recurring meeting)', () => {
+  it('treats back-to-back events as non-overlapping', () => {
+    const busy = [{ start: '2026-06-10T16:00:00.000Z', end: '2026-06-10T17:00:00.000Z', title: 'Standup' }];
+    expect(seriesConflict(jun10, busy, 20)).toBeNull();
+  });
+});
+
+describe('findBlockedWeeklyTimes', () => {
+  it('does not block a time when some date is still free', () => {
+    const busy = [{ start: '2026-06-10T17:00:00.000Z', end: '2026-06-10T17:30:00.000Z', title: 'Dentist' }];
+    expect(findBlockedWeeklyTimes({ slots, busy, durationMinutes: 20 }).size).toBe(0);
+  });
+
+  it('blocks a time when every candidate date conflicts (weekly recurring meeting)', () => {
     const busy = Array.from({ length: 16 }, (_, i) => {
       const start = new Date(Date.parse('2026-06-10T17:00:00.000Z') + i * 7 * 86400000);
       return {
@@ -51,31 +50,15 @@ describe('resolveStandingTimes', () => {
         title: 'Team sync',
       };
     });
-    const { anchors, blocked } = resolve(busy);
-    expect(anchors.has('3|10:00')).toBe(false);
+    const blocked = findBlockedWeeklyTimes({ slots, busy, durationMinutes: 20 });
     expect(blocked.get('3|10:00')).toEqual({ start: '2026-06-10T17:00:00.000Z', title: 'Team sync' });
-  });
-
-  it('treats back-to-back events as non-overlapping', () => {
-    const { anchors, shifted } = resolve([
-      { start: '2026-06-10T16:00:00.000Z', end: '2026-06-10T17:00:00.000Z', title: 'Standup' },
-    ]);
-    expect(anchors.get('3|10:00')?.localDate).toBe('2026-06-10');
-    expect(shifted.size).toBe(0);
   });
 });
 
 describe('monthlySeriesStarts', () => {
   it('follows the nth-weekday pattern across months', () => {
-    const [anchor] = generateAvailableSlots({
-      windows: [{ dayOfWeek: 3, startTime: '10:00', endTime: '10:20' }],
-      timezone: 'America/Los_Angeles',
-      durationMinutes: 20,
-      days: 7,
-      now: new Date('2026-06-08T15:00:00.000Z'),
-    });
     // 2026-06-10 is the 2nd Wednesday → Jul 8, Aug 12
-    expect(monthlySeriesStarts(anchor, 3).map((ms) => new Date(ms).toISOString())).toEqual([
+    expect(monthlySeriesStarts(jun10, 3).map((ms) => new Date(ms).toISOString())).toEqual([
       '2026-06-10T17:00:00.000Z',
       '2026-07-08T17:00:00.000Z',
       '2026-08-12T17:00:00.000Z',

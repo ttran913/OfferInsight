@@ -3,37 +3,42 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import {
-  BOOKING_CANDIDATE_DAYS,
   DAY_LABELS,
   slotStartTimesInWindow,
   type AvailabilityWindowInput,
 } from '@/app/lib/calendar/constants';
-import type { StandingTimeResolution, WeeklyConflict } from '@/app/lib/calendar/conflicts';
-import { nthOrdinalLabel } from '@/app/lib/calendar/next-occurrence';
-import { formatTime12, type Booking } from './availability-model';
+import type { WeeklyConflict } from '@/app/lib/calendar/conflicts';
+import { formatTime12, nthOrdinalLabel } from '@/app/lib/calendar/labels';
+import type { Booking } from './availability-model';
 
 type Props = {
   windows: AvailabilityWindowInput[];
   bookings: Booking[];
-  /** Null when Google busy times are unavailable. */
-  resolution: StandingTimeResolution | null;
+  /** weeklyKey → Google conflict, for times with no bookable date. Null when Google busy times are unavailable. */
+  blocked: Map<string, WeeklyConflict> | null;
   durationMinutes: number;
   timezone: string;
 };
 
 type Cell =
-  | {
-      kind: 'open';
-      localTime: string;
-      shifted?: { conflict: WeeklyConflict; firstMeeting: string };
-    }
+  | { kind: 'open'; localTime: string }
   | { kind: 'busy'; localTime: string; conflict: WeeklyConflict }
-  | { kind: 'booked'; localTime: string; booking: Booking; outsideHours: boolean };
+  | { kind: 'booked'; localTime: string; bookings: Booking[]; outsideHours: boolean; full: boolean };
 
 const BUSY_STRIPES = {
   backgroundImage:
     'repeating-linear-gradient(135deg, rgb(243 244 246) 0 6px, rgb(229 231 235) 6px 12px)',
 };
+
+/** Sort order for weeks of the month: 1st..4th, then Last. */
+function weekOrder(nth: number): number {
+  return nth === -1 ? 5 : nth;
+}
+
+/** A time is full once 1st, 2nd, 3rd and 4th/Last are taken (4th and Last collide). */
+function isFull(bookings: Booking[]): boolean {
+  return new Set(bookings.map((b) => (b.nthWeekday === -1 ? 4 : b.nthWeekday))).size >= 4;
+}
 
 function formatShortDate(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -46,7 +51,7 @@ function formatShortDate(iso: string, timezone: string): string {
 export default function StandingWeekView({
   windows,
   bookings,
-  resolution,
+  blocked,
   durationMinutes,
   timezone,
 }: Props) {
@@ -62,35 +67,40 @@ export default function StandingWeekView({
         }
       }
       const dayBookings = bookings.filter((b) => b.dayOfWeek === dayOfWeek);
-      const bookingByTime = new Map(dayBookings.map((b) => [b.localTime, b]));
+      const bookingsByTime = new Map<string, Booking[]>();
+      for (const b of dayBookings) {
+        bookingsByTime.set(b.localTime, [...(bookingsByTime.get(b.localTime) ?? []), b]);
+      }
 
-      const cells: Cell[] = [...new Set([...times, ...bookingByTime.keys()])]
+      const cells: Cell[] = [...new Set([...times, ...bookingsByTime.keys()])]
         .sort()
         .map((localTime) => {
-          const booking = bookingByTime.get(localTime);
-          if (booking) {
-            return { kind: 'booked', localTime, booking, outsideHours: !times.has(localTime) };
+          const atTime = bookingsByTime.get(localTime);
+          if (atTime) {
+            return {
+              kind: 'booked',
+              localTime,
+              bookings: [...atTime].sort((a, b) => weekOrder(a.nthWeekday) - weekOrder(b.nthWeekday)),
+              outsideHours: !times.has(localTime),
+              full: isFull(atTime),
+            };
           }
-          const key = `${dayOfWeek}|${localTime}`;
-          const blocked = resolution?.blocked.get(key);
-          if (blocked) return { kind: 'busy', localTime, conflict: blocked };
-          const shiftedBy = resolution?.shifted.get(key);
-          const anchor = resolution?.anchors.get(key);
-          return shiftedBy && anchor
-            ? { kind: 'open', localTime, shifted: { conflict: shiftedBy, firstMeeting: anchor.start } }
-            : { kind: 'open', localTime };
+          const conflict = blocked?.get(`${dayOfWeek}|${localTime}`);
+          return conflict ? { kind: 'busy', localTime, conflict } : { kind: 'open', localTime };
         });
 
       return {
         dayOfWeek,
         label,
         cells,
-        openCount: cells.filter((c) => c.kind === 'open').length,
+        openCount: cells.filter(
+          (c) => c.kind === 'open' || (c.kind === 'booked' && !c.full && !c.outsideHours)
+        ).length,
         busyCount: cells.filter((c) => c.kind === 'busy').length,
         bookedCount: dayBookings.length,
       };
     });
-  }, [windows, bookings, resolution, durationMinutes]);
+  }, [windows, bookings, blocked, durationMinutes]);
 
   const totalOpen = columns.reduce((sum, c) => sum + c.openCount, 0);
   const totalBusy = columns.reduce((sum, c) => sum + c.busyCount, 0);
@@ -105,7 +115,7 @@ export default function StandingWeekView({
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <span className="inline-flex items-center gap-1.5 text-gray-700">
             <span className="h-3 w-3 rounded-sm border border-gray-300 bg-white" />
-            {totalOpen} open
+            {totalOpen} times with room
           </span>
           <span className="inline-flex items-center gap-1.5 text-gray-700">
             <span className="h-3 w-3 rounded-sm bg-electric-blue" />
@@ -172,24 +182,14 @@ export default function StandingWeekView({
                       cell.kind === 'open' ? (
                         <div
                           key={cell.localTime}
-                          title={
-                            cell.shifted
-                              ? `First meeting would be ${formatShortDate(cell.shifted.firstMeeting, timezone)} because "${cell.shifted.conflict.title}" is on ${formatShortDate(cell.shifted.conflict.start, timezone)}.`
-                              : undefined
-                          }
                           className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500"
                         >
                           {formatTime12(cell.localTime)}
-                          {cell.shifted && (
-                            <div className="text-[11px] text-amber-700">
-                              starts {formatShortDate(cell.shifted.firstMeeting, timezone)}
-                            </div>
-                          )}
                         </div>
                       ) : cell.kind === 'busy' ? (
                         <div
                           key={cell.localTime}
-                          title={`Busy: none of the next ${BOOKING_CANDIDATE_DAYS / 7} weeks starts three free monthly meetings at this time. First conflict: "${cell.conflict.title}" on ${formatShortDate(cell.conflict.start, timezone)}. Hidden from students.`}
+                          title={`Busy: no date this month or next starts three free monthly meetings at this time. First conflict: "${cell.conflict.title}" on ${formatShortDate(cell.conflict.start, timezone)}. Hidden from students.`}
                           style={BUSY_STRIPES}
                           className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-500"
                         >
@@ -202,32 +202,42 @@ export default function StandingWeekView({
                       ) : (
                         <div
                           key={cell.localTime}
-                          title={[
-                            cell.booking.studentName,
-                            cell.booking.studentEmail,
-                            cell.booking.nextOccurrenceLabel &&
-                              `Next: ${cell.booking.nextOccurrenceLabel}`,
-                            cell.outsideHours &&
-                              'Outside your current hours. The student keeps this time until they reschedule.',
-                          ]
-                            .filter(Boolean)
-                            .join('\n')}
+                          title={
+                            cell.outsideHours
+                              ? 'Outside your current hours. These students keep their time until they reschedule.'
+                              : undefined
+                          }
                           className={`rounded-md px-2 py-1 text-xs ${
                             cell.outsideHours
                               ? 'bg-amber-50 border border-amber-300 text-amber-900'
                               : 'bg-electric-blue text-white'
                           }`}
                         >
-                          <div className="flex items-center gap-1 font-semibold">
-                            {cell.outsideHours && <AlertTriangle className="w-3 h-3 shrink-0" />}
-                            <span>{formatTime12(cell.localTime)}</span>
+                          <div className="flex items-center justify-between gap-1 font-semibold">
+                            <span className="inline-flex items-center gap-1">
+                              {cell.outsideHours && <AlertTriangle className="w-3 h-3 shrink-0" />}
+                              {formatTime12(cell.localTime)}
+                            </span>
+                            {cell.full && <span className="text-[10px] uppercase">Full</span>}
                           </div>
-                          <div className="truncate">{cell.booking.studentName}</div>
-                          <div className={cell.outsideHours ? 'text-amber-700' : 'text-white/80'}>
-                            {nthOrdinalLabel(cell.booking.nthWeekday)} {col.label.slice(0, 3)}
-                            {cell.booking.nextOccurrence &&
-                              ` · ${formatShortDate(cell.booking.nextOccurrence, timezone)}`}
-                          </div>
+                          {cell.bookings.map((b) => (
+                            <div
+                              key={b.id}
+                              title={[
+                                b.studentName,
+                                b.studentEmail,
+                                b.nextOccurrenceLabel && `Next: ${b.nextOccurrenceLabel}`,
+                              ]
+                                .filter(Boolean)
+                                .join('\n')}
+                              className="truncate"
+                            >
+                              <span className={cell.outsideHours ? 'text-amber-700' : 'text-white/80'}>
+                                {nthOrdinalLabel(b.nthWeekday)}
+                              </span>{' '}
+                              {b.studentName}
+                            </div>
+                          ))}
                         </div>
                       )
                     )

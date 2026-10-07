@@ -1,5 +1,6 @@
 import { DAY_LABELS } from './constants';
 import { nthWeekdayForLocalDate } from './ics';
+import { nthOrdinalLabel } from './labels';
 import { getZonedParts, zonedWallTimeToUtc } from './slots';
 
 function pad2(n: number): string {
@@ -102,10 +103,14 @@ export function anchorLocalDateFromOccurrence(
   return `${p.year}-${pad2(p.month)}-${pad2(p.day)}`;
 }
 
-/** "1st".."4th", or "Last" for nth = -1. */
-export function nthOrdinalLabel(nth: number): string {
-  if (nth === -1) return 'Last';
-  return ['1st', '2nd', '3rd', '4th'][nth - 1] ?? `${nth}th`;
+/** Same nth weekday in the month after `localDate`, e.g. 2nd Wed Jun 10 → 2nd Wed Jul 8. */
+export function followingMonthlyLocalDate(localDate: string): string | null {
+  const [y, m, d] = localDate.split('-').map(Number);
+  const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const nextYear = m === 12 ? y + 1 : y;
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const day = dateOfNthWeekday(nextYear, nextMonth, dayOfWeek, nthWeekdayForLocalDate(localDate));
+  return day == null ? null : `${nextYear}-${pad2(nextMonth)}-${pad2(day)}`;
 }
 
 /** Standing monthly schedule, e.g. "4th Thursdays at 13:00". */

@@ -16,7 +16,7 @@ function allDayToUtc(date: string, timezone: string): Date {
 
 /**
  * Busy time on the instructor's primary Google Calendar for the conflict lookahead window.
- * Ignores OfferInsight 1:1s (handled by weekly-key occupancy), events marked "Free",
+ * Ignores OfferInsight 1:1s (handled by booking occupancy), events marked "Free",
  * events the instructor declined, and working-location markers.
  */
 export async function getInstructorBusyIntervals(

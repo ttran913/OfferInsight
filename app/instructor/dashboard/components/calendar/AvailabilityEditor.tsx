@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Copy, Plus, X } from 'lucide-react';
 import { DAY_LABELS } from '@/app/lib/calendar/constants';
+import { formatTime12 } from '@/app/lib/calendar/labels';
 import {
   DEFAULT_RANGE,
   TIME_OPTIONS,
-  formatTime12,
   newRangeKey,
   rangeErrors,
   slotCountForDay,

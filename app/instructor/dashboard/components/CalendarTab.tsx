@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Calendar, CalendarCheck, Clock, Loader2 } from 'lucide-react';
 import {
-  BOOKING_CANDIDATE_DAYS,
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
-import { resolveStandingTimes, type BusyInterval } from '@/app/lib/calendar/conflicts';
-import { generateAvailableSlots } from '@/app/lib/calendar/slots';
+import { bookingWindowSlots } from '@/app/lib/calendar/bookable-days';
+import { findBlockedWeeklyTimes, type BusyInterval } from '@/app/lib/calendar/conflicts';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
 import DisplayNameCard from './calendar/DisplayNameCard';
 import MonthCalendar from './calendar/MonthCalendar';
@@ -109,15 +108,10 @@ export default function CalendarTab() {
   const draftWindows = useMemo(() => daysToWindows(days), [days]);
   const isDirty = windowsSignature(draftWindows) !== windowsSignature(daysToWindows(savedDays));
   const hasErrors = days.some((d) => Object.keys(rangeErrors(d)).length > 0);
-  const resolution = useMemo(() => {
+  const blocked = useMemo(() => {
     if (status?.busy.status !== 'ok') return null;
-    return resolveStandingTimes({
-      slots: generateAvailableSlots({
-        windows: draftWindows,
-        days: BOOKING_CANDIDATE_DAYS,
-        timezone,
-        durationMinutes: duration,
-      }),
+    return findBlockedWeeklyTimes({
+      slots: bookingWindowSlots({ windows: draftWindows, timezone, durationMinutes: duration }),
       busy: status.busy.intervals,
       durationMinutes: duration,
     });
@@ -357,11 +351,10 @@ export default function CalendarTab() {
               )}
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              Each time below is one monthly standing slot. Once a student books it, nobody else
-              can take that weekday and time. If a Google Calendar event gets in the way, the
-              student&apos;s first meeting moves to the next week where three monthly meetings in
-              a row are free. Times with no such week are busy and hidden from students. Hover a
-              slot for details.
+              Students pick a date, which sets their week of the month (e.g. 2nd Wednesday), so
+              one weekday and time can hold a student for each week. A date is only offered when
+              its next three monthly meetings are free on your Google Calendar; times with no such
+              date this month or next show as busy. Hover a slot for details.
             </p>
           </div>
         </div>
@@ -381,7 +374,7 @@ export default function CalendarTab() {
         <StandingWeekView
           windows={draftWindows}
           bookings={bookings}
-          resolution={resolution}
+          blocked={blocked}
           durationMinutes={duration}
           timezone={timezone}
         />

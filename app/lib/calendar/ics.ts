@@ -1,4 +1,5 @@
 import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
+import { formatTime12, nthOrdinalLabel } from './labels';
 import type { GeneratedSlot } from './slots';
 
 const BYDAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
@@ -55,8 +56,19 @@ export type MonthlyInviteInput = {
 };
 
 /** Stable invite UID for a student's standing time; reused to cancel that invite. */
-export function monthlyMeetingUid(weeklyKey: string, studentEmail: string): string {
-  return `monthly-1on1-${weeklyKey.replace('|', '-')}-${Buffer.from(studentEmail).toString('base64url').slice(0, 12)}@offerinsight`;
+export function monthlyMeetingUid(
+  slot: Pick<GeneratedSlot, 'weeklyKey' | 'localDate'>,
+  studentEmail: string
+): string {
+  const nth = nthWeekdayForLocalDate(slot.localDate);
+  const week = nth === -1 ? 'last' : String(nth);
+  return `monthly-1on1-${week}-${slot.weeklyKey.replace('|', '-')}-${Buffer.from(studentEmail).toString('base64url').slice(0, 12)}@offerinsight`;
+}
+
+/** e.g. "2nd Wednesday of every month at 10:00 AM" */
+function monthlyWhenLabel(slot: GeneratedSlot): string {
+  const nth = nthOrdinalLabel(nthWeekdayForLocalDate(slot.localDate));
+  return `${nth} ${DAY_LABELS[slot.dayOfWeek]} of every month at ${formatTime12(slot.localTime)}`;
 }
 
 function buildMonthlyIcs(
@@ -66,13 +78,13 @@ function buildMonthlyIcs(
   const { slot, studentName, studentEmail, instructorName } = input;
   const start = new Date(slot.start);
   const end = new Date(slot.end);
-  const uid = input.uid || monthlyMeetingUid(slot.weeklyKey, studentEmail);
+  const uid = input.uid || monthlyMeetingUid(slot, studentEmail);
   const rrule = buildMonthlyByDayRrule(slot.dayOfWeek, slot.localDate);
   const summary = `Monthly 1:1 with ${instructorName}`;
   const description =
     variant.method === 'CANCEL'
       ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
-      : `Standing monthly meeting (${DAY_LABELS[slot.dayOfWeek]} ${slot.localTime}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+      : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -123,9 +135,16 @@ export function buildMonthlyMeetingEmail(input: {
   isReschedule: boolean;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
-  const day = DAY_LABELS[input.slot.dayOfWeek];
-  const when = `${day}s at ${input.slot.localTime} (${input.slot.timezone.replace(/_/g, ' ')})`;
-  const first = `${input.slot.localDate} at ${input.slot.localTime}`;
+  const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
+  const first = new Intl.DateTimeFormat('en-US', {
+    timeZone: input.slot.timezone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(input.slot.start));
   const action = input.isReschedule ? 'updated' : 'scheduled';
 
   const subject = input.isReschedule

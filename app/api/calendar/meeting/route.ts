@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserIdForRequest } from '@/app/lib/api-user-helper';
-import {
-  DEFAULT_AVAILABILITY_TIMEZONE,
-  BOOKING_CANDIDATE_DAYS,
-  DAY_LABELS,
-  MEETING_DURATION_MINUTES,
-} from '@/app/lib/calendar/constants';
-import { generateAvailableSlots } from '@/app/lib/calendar/slots';
+import { DAY_LABELS } from '@/app/lib/calendar/constants';
 import {
   buildMonthlyMeetingEmail,
   buildMonthlyMeetingIcs,
@@ -25,8 +19,7 @@ import {
 } from '@/app/lib/calendar/next-occurrence';
 import { sendEmail } from '@/app/lib/email';
 import { syncMonthlyMeetingOnInstructorCalendar } from '@/app/lib/calendar/google-calendar';
-import { getBusyIntervalsForBooking } from '@/app/lib/calendar/busy';
-import { resolveStandingTimes } from '@/app/lib/calendar/conflicts';
+import { loadBookableDaysForUser } from '@/app/lib/calendar/student-booking';
 import { prisma } from '@/db';
 
 function meetingPayload(m: {
@@ -61,6 +54,7 @@ function meetingPayload(m: {
     timezone: m.timezone,
     firstOccurrence: m.firstOccurrence.toISOString(),
     nextOccurrence: next?.startIso ?? null,
+    nextOccurrenceDate: next?.localDate ?? null,
     nextOccurrenceLabel: next
       ? formatNextMeetingLabel(next.startIso, m.timezone)
       : null,
@@ -132,15 +126,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const weeklyKey = typeof body.weeklyKey === 'string' ? body.weeklyKey.trim() : '';
-    if (!weeklyKey || !/^[0-6]\|\d{2}:\d{2}$/.test(weeklyKey)) {
+    const localDate = typeof body.localDate === 'string' ? body.localDate.trim() : '';
+    const localTime = typeof body.localTime === 'string' ? body.localTime.trim() : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate) || !/^\d{2}:\d{2}$/.test(localTime)) {
       return NextResponse.json(
-        { error: 'weeklyKey is required (e.g. "3|10:00")' },
+        { error: 'localDate (YYYY-MM-DD) and localTime (HH:mm) are required' },
         { status: 400 }
       );
     }
 
-    const instructor = await resolveSchedulingInstructorForUser(user.id);
+    const { instructor, days } = await loadBookableDaysForUser(user.id);
     if (!instructor || instructor.availabilityWindows.length === 0) {
       return NextResponse.json(
         { error: 'Instructor availability is not configured yet.' },
@@ -148,30 +143,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const others = await prisma.studentMonthlyMeeting.findMany({
-      where: {
-        instructorId: instructor.id,
-        userId: { not: user.id },
-      },
-      select: { weeklyKey: true },
-    });
-
-    const timezone =
-      instructor.availabilityWindows[0]?.timezone || DEFAULT_AVAILABILITY_TIMEZONE;
-
-    const candidates = generateAvailableSlots({
-      windows: instructor.availabilityWindows,
-      days: BOOKING_CANDIDATE_DAYS,
-      timezone,
-      durationMinutes: MEETING_DURATION_MINUTES,
-      occupied: others.map((o) => ({ weeklyKey: o.weeklyKey })),
-    });
-    const busy = await getBusyIntervalsForBooking(instructor.id, timezone);
-    const match = resolveStandingTimes({
-      slots: candidates,
-      busy,
-      durationMinutes: MEETING_DURATION_MINUTES,
-    }).anchors.get(weeklyKey);
+    const match = days
+      .find((d) => d.localDate === localDate)
+      ?.slots.find((s) => s.localTime === localTime);
 
     if (!match) {
       return NextResponse.json(

@@ -5,12 +5,10 @@ export const MEETING_MAX_HEADCOUNT = 1;
 export const DEFAULT_AVAILABILITY_TIMEZONE = 'America/Los_Angeles';
 export const INSTRUCTOR_DISPLAY_NAME_FALLBACK = 'your instructor';
 export const INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH = 60;
-/** How far ahead a student's first monthly meeting may start. */
-export const BOOKING_CANDIDATE_DAYS = 42;
 /** A start date is usable only if this many monthly meetings in a row are conflict-free. */
 export const SERIES_CONFLICT_CHECK_COUNT = 3;
-/** Google busy lookahead: candidate window plus two more months of the series. */
-export const BUSY_LOOKAHEAD_DAYS = 110;
+/** Google busy lookahead: booking window (through end of next month) plus two more months of the series. */
+export const BUSY_LOOKAHEAD_DAYS = 130;
 
 export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
