@@ -151,13 +151,6 @@ export async function GET() {
           }),
         ]);
 
-        const referralCount = await prisma.linkedin_Outreach.count({
-          where: {
-            userId: user.id,
-            recievedReferral: true,
-          },
-        });
-
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const ninetyDaysAgo = new Date(now);
@@ -209,7 +202,6 @@ export async function GET() {
           email: user.email,
           activeStatus,
           progressStatus,
-          referralCount,
           removedFromResumeBook: user.removedFromResumeBook,
           inactivityWarningCount: user.inactivityWarningCount,
           openSource: {

@@ -13,10 +13,10 @@ export function computeActiveStatus(
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  if (entries.some((e) => e.dateModified && new Date(e.dateModified) >= sevenDaysAgo)) {
+  if (entries.some((e) => e.dateModified && e.dateModified >= sevenDaysAgo)) {
     return 2;
   }
-  if (entries.some((e) => e.dateModified && new Date(e.dateModified) >= thirtyDaysAgo)) {
+  if (entries.some((e) => e.dateModified && e.dateModified >= thirtyDaysAgo)) {
     return 1;
   }
   return 0;

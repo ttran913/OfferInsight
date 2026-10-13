@@ -9,7 +9,6 @@ interface UserData {
   email: string | null;
   activeStatus: number; // 0 = red, 1 = yellow, 2 = green
   progressStatus: number; // 0 = red, 1 = yellow, 2 = green
-  referralCount: number; // Number of referrals received
   removedFromResumeBook: boolean;
   inactivityWarningCount: number; // 0 = none, 1 = first warning, 2 = second warning, 3 = removed
   openSource: {
@@ -32,7 +31,10 @@ interface UserData {
   };
 }
 
-const ACTIVE_FILTER_OPTIONS: { value: 'all' | 2 | 1 | 0; label: string; dotClass: string | null; title: string }[] = [
+type ActiveFilter = 'all' | 2 | 1 | 0;
+type RemovedFilter = 'all' | 'removed' | 'not-removed';
+
+const ACTIVE_FILTER_OPTIONS: { value: ActiveFilter; label: string; dotClass: string | null; title: string }[] = [
   { value: 'all', label: 'All', dotClass: null, title: 'Show all activity levels' },
   { value: 2, label: 'Green', dotClass: 'bg-green-500', title: 'Active in the last 7 days' },
   { value: 1, label: 'Yellow', dotClass: 'bg-yellow-500', title: 'Active in the last 30 days' },
@@ -75,13 +77,6 @@ function generateDebugUsers(): UserData[] {
     const eventsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 3) + 1 : (hasMediumProgress ? Math.floor(Math.random() * 2) : 0);
     const coffeeChatsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 6) + 4 : (hasMediumProgress ? Math.floor(Math.random() * 5) + 2 : Math.floor(Math.random() * 3));
 
-    // Generate referral count - some users have referrals (exciting!)
-    const referralCount = hasGoodProgress && index % 5 === 0 
-      ? Math.floor(Math.random() * 3) + 1  // 1-3 referrals for some successful users
-      : hasGoodProgress && index % 7 === 0
-      ? Math.floor(Math.random() * 2) + 1  // 1-2 referrals for others
-      : 0; // Most users have 0 referrals
-    
     const issuesCompleted = Math.floor(Math.random() * 5);
     const partnershipsCompleted = Math.floor(Math.random() * 4);
     const totalCriteria = Math.max(issuesCompleted + Math.floor(Math.random() * 5), 1);
@@ -96,7 +91,6 @@ function generateDebugUsers(): UserData[] {
       email: `${name.toLowerCase().replace(' ', '.')}@example.com`,
       activeStatus,
       progressStatus,
-      referralCount,
       removedFromResumeBook,
       inactivityWarningCount,
       openSource: {
@@ -128,8 +122,8 @@ export default function InstructorDashboard() {
   const [canMutateUserData, setCanMutateUserData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [minIssuesFilter, setMinIssuesFilter] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 2 | 1 | 0>('all');
-  const [removedFilter, setRemovedFilter] = useState<'all' | 'removed' | 'not-removed'>('all');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
+  const [removedFilter, setRemovedFilter] = useState<RemovedFilter>('all');
   const [sortOrder, setSortOrder] = useState<'name-asc' | 'name-desc' | 'issues-high' | 'issues-low'>('name-asc');
 
   useEffect(() => {
@@ -216,7 +210,7 @@ export default function InstructorDashboard() {
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
   const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
-  const hasActiveFilters =
+  const hasFiltersSet =
     searchQuery.trim() !== '' ||
     minIssuesFilter.trim() !== '' ||
     activeFilter !== 'all' ||
@@ -277,7 +271,7 @@ export default function InstructorDashboard() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Instructor Dashboard</h1>
         
-        {/* Search and Sort Controls */}
+        {/* Search, Filter, and Sort Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 flex-wrap">
           {/* Search Input */}
           <div className="flex-1 min-w-[200px]">
@@ -321,7 +315,7 @@ export default function InstructorDashboard() {
           <div className="sm:w-44">
             <select
               value={removedFilter}
-              onChange={(e) => setRemovedFilter(e.target.value as 'all' | 'removed' | 'not-removed')}
+              onChange={(e) => setRemovedFilter(e.target.value as RemovedFilter)}
               className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
               aria-label="Filter by removed status"
             >
@@ -382,7 +376,7 @@ export default function InstructorDashboard() {
               {removedFilter === 'removed' && ' · Removed only'}
               {removedFilter === 'not-removed' && ' · Not removed'}
             </span>
-            {hasActiveFilters && (
+            {hasFiltersSet && (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -510,17 +504,6 @@ export default function InstructorDashboard() {
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
                     <span>Last Month: <span className="text-gray-900 font-medium">{user.coffeeChats.lastMonth}</span></span>
                     <span>All Time: <span className="text-gray-900 font-medium">{user.coffeeChats.allTime}</span></span>
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg w-fit border min-w-[120px] ${
-                      user.referralCount > 0
-                        ? 'bg-green-50 border-green-400'
-                        : 'bg-gray-50 border-gray-300'
-                    }`}>
-                      <span className={`font-bold text-sm whitespace-nowrap ${
-                        user.referralCount > 0 ? 'text-green-600' : 'text-gray-500'
-                      }`}>
-                        🎉 {user.referralCount} Referral{user.referralCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
@@ -532,7 +515,7 @@ export default function InstructorDashboard() {
 
         {filteredAndSortedUsers.length === 0 && (
           <div className="text-gray-400 text-center py-8">
-            {hasActiveFilters ? 'No users match the current filters.' : 'No users found.'}
+            {hasFiltersSet ? 'No users match the current filters.' : 'No users found.'}
           </div>
         )}
       </div>
