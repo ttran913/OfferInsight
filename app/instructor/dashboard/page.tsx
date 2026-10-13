@@ -32,6 +32,13 @@ interface UserData {
   };
 }
 
+const ACTIVE_FILTER_OPTIONS: { value: 'all' | 2 | 1 | 0; label: string; dotClass: string | null; title: string }[] = [
+  { value: 'all', label: 'All', dotClass: null, title: 'Show all activity levels' },
+  { value: 2, label: 'Green', dotClass: 'bg-green-500', title: 'Active in the last 7 days' },
+  { value: 1, label: 'Yellow', dotClass: 'bg-yellow-500', title: 'Active in the last 30 days' },
+  { value: 0, label: 'Red', dotClass: 'bg-red-500', title: 'No activity in the last 30 days' },
+];
+
 // ============================================================================
 // DEBUG MODE - Toggle this boolean to enable/disable dummy debug cards
 // Set to true to show 20 dummy user cards for testing the UI layout
@@ -121,6 +128,8 @@ export default function InstructorDashboard() {
   const [canMutateUserData, setCanMutateUserData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [minIssuesFilter, setMinIssuesFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 2 | 1 | 0>('all');
+  const [removedFilter, setRemovedFilter] = useState<'all' | 'removed' | 'not-removed'>('all');
   const [sortOrder, setSortOrder] = useState<'name-asc' | 'name-desc' | 'issues-high' | 'issues-low'>('name-asc');
 
   useEffect(() => {
@@ -207,6 +216,21 @@ export default function InstructorDashboard() {
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
   const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
+  const hasActiveFilters =
+    searchQuery.trim() !== '' ||
+    minIssuesFilter.trim() !== '' ||
+    activeFilter !== 'all' ||
+    removedFilter !== 'all';
+
+  function clearFilters() {
+    setSearchQuery('');
+    setMinIssuesFilter('');
+    setActiveFilter('all');
+    setRemovedFilter('all');
+  }
+
+  const activeFilterLabel = ACTIVE_FILTER_OPTIONS.find((option) => option.value === activeFilter)?.label;
+
   // Filter and sort users
   const filteredAndSortedUsers = users
     .filter((user) =>
@@ -216,6 +240,12 @@ export default function InstructorDashboard() {
       if (minIssuesValid && minIssues !== null) {
         return user.openSource.issuesCompleted >= minIssues;
       }
+      return true;
+    })
+    .filter((user) => activeFilter === 'all' || user.activeStatus === activeFilter)
+    .filter((user) => {
+      if (removedFilter === 'removed') return user.removedFromResumeBook;
+      if (removedFilter === 'not-removed') return !user.removedFromResumeBook;
       return true;
     })
     .sort((a, b) => {
@@ -287,13 +317,51 @@ export default function InstructorDashboard() {
             </select>
           </div>
 
-          {/* Export CSV - uses current search and min-issues filter */}
+          {/* Removed filter */}
+          <div className="sm:w-44">
+            <select
+              value={removedFilter}
+              onChange={(e) => setRemovedFilter(e.target.value as 'all' | 'removed' | 'not-removed')}
+              className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
+              aria-label="Filter by removed status"
+            >
+              <option value="all">Status: All</option>
+              <option value="not-removed">Not removed</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
+
+          {/* Active status filter */}
+          <div className="flex items-center gap-1" role="group" aria-label="Filter by active status">
+            <span className="text-gray-600 text-sm font-medium mr-1">Active:</span>
+            {ACTIVE_FILTER_OPTIONS.map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                title={option.title}
+                aria-pressed={activeFilter === option.value}
+                onClick={() => setActiveFilter(option.value)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-electric-blue ${
+                  activeFilter === option.value
+                    ? 'bg-white border-electric-blue text-gray-900'
+                    : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {option.dotClass && <span className={`w-3 h-3 rounded-full ${option.dotClass}`} />}
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Export CSV - uses current search, min-issues, active, and removed filters */}
           <button
             type="button"
             onClick={() => {
               const params = new URLSearchParams();
               if (searchQuery.trim()) params.set('search', searchQuery.trim());
               if (minIssuesValid && minIssues !== null) params.set('minIssues', String(minIssues));
+              if (activeFilter !== 'all') params.set('active', String(activeFilter));
+              if (removedFilter !== 'all') params.set('removed', removedFilter);
               const url = `/api/instructor/students/export${params.toString() ? `?${params.toString()}` : ''}`;
               window.open(url, '_blank', 'noopener,noreferrer');
             }}
@@ -305,10 +373,24 @@ export default function InstructorDashboard() {
         
         {/* Result Count */}
         {users.length > 0 && (
-          <div className="text-gray-400 text-sm mb-4">
-            Showing {filteredAndSortedUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
-            {searchQuery && ` matching "${searchQuery}"`}
-            {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
+          <div className="flex items-center gap-3 text-gray-400 text-sm mb-4">
+            <span>
+              Showing {filteredAndSortedUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
+              {searchQuery && ` matching "${searchQuery}"`}
+              {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
+              {activeFilter !== 'all' && ` · Active: ${activeFilterLabel?.toLowerCase()}`}
+              {removedFilter === 'removed' && ' · Removed only'}
+              {removedFilter === 'not-removed' && ' · Not removed'}
+            </span>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-electric-blue hover:underline font-medium"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         )}
         
@@ -450,7 +532,7 @@ export default function InstructorDashboard() {
 
         {filteredAndSortedUsers.length === 0 && (
           <div className="text-gray-400 text-center py-8">
-            {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+            {hasActiveFilters ? 'No users match the current filters.' : 'No users found.'}
           </div>
         )}
       </div>

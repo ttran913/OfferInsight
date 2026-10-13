@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
+import { computeActiveStatus, parseActiveStatusParam } from "@/app/lib/active-status";
 
 /** Escape a CSV cell: wrap in quotes and escape internal quotes */
 function csvEscape(value: string): string {
@@ -70,9 +71,19 @@ export async function GET(request: NextRequest) {
     const minIssuesParam = searchParams.get("minIssues") ?? "";
     const minIssues = minIssuesParam === "" ? null : Math.max(0, parseInt(minIssuesParam, 10));
     const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
+    const activeFilter = parseActiveStatusParam(searchParams.get("active"));
+    const removedParam = searchParams.get("removed");
+    const removedFilter = removedParam === "removed" || removedParam === "not-removed" ? removedParam : null;
 
     const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, createdAt: true, expectedGraduationDate: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        expectedGraduationDate: true,
+        removedFromResumeBook: true,
+      },
       orderBy: { name: "asc" },
     });
 
@@ -106,6 +117,9 @@ export async function GET(request: NextRequest) {
         (e) => e.criteriaType === "issue" && e.status === "done"
       ).length;
       if (minIssuesValid && minIssues !== null && issuesCompleted < minIssues) return false;
+      if (removedFilter === "removed" && !user.removedFromResumeBook) return false;
+      if (removedFilter === "not-removed" && user.removedFromResumeBook) return false;
+      if (activeFilter !== null && computeActiveStatus(userEntries) !== activeFilter) return false;
       return true;
     });
 
