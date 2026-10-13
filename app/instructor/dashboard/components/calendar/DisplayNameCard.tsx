@@ -115,7 +115,7 @@ export default function DisplayNameCard({ initialName, canManageDefault, initial
                 setFeedback(null);
               }}
               maxLength={INSTRUCTOR_DISPLAY_NAME_MAX_LENGTH}
-              placeholder="e.g. Utsab"
+              placeholder="e.g. John Doe"
               aria-label="Display name"
               className="flex-1 min-w-0 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900"
             />

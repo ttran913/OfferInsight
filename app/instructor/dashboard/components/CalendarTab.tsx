@@ -51,6 +51,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     'Google did not return a refresh token. Revoke app access in Google Account settings, then connect again.',
   callback_failed: 'Google connection failed. Try again.',
   access_denied: 'Google access was denied.',
+  missing_calendar_scope:
+    'Google Calendar was not connected because calendar access was not allowed. Click Connect Google Calendar again and, on the Google screen, tick the box to view and edit events on your calendars.',
 };
 
 export default function CalendarTab() {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getInstructorSession } from '@/app/lib/instructor-auth';
+import { GOOGLE_CALENDAR_SCOPES } from '@/app/lib/calendar/constants';
 import { createOAuth2Client, verifyOAuthState } from '@/app/lib/calendar/google-oauth';
 import { encryptToken } from '@/app/lib/calendar/token-crypto';
 import { prisma } from '@/db';
@@ -41,6 +42,12 @@ export async function GET(request: NextRequest) {
     const { tokens } = await client.getToken(code);
     if (!tokens.access_token) {
       return dashboardRedirect('no_access_token');
+    }
+
+    // Google's consent screen lets people untick individual permissions.
+    const granted = new Set((tokens.scope ?? '').split(' '));
+    if (!GOOGLE_CALENDAR_SCOPES.every((s) => granted.has(s))) {
+      return dashboardRedirect('missing_calendar_scope');
     }
 
     const existing = await prisma.instructorGoogleCalendar.findUnique({
