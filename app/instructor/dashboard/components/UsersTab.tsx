@@ -9,7 +9,6 @@ interface UserData {
   email: string | null;
   activeStatus: number; // 0 = red, 1 = yellow, 2 = green
   progressStatus: number; // 0 = red, 1 = yellow, 2 = green
-  referralCount: number;
   removedFromResumeBook: boolean;
   inactivityWarningCount: number;
   assignedInstructorId?: string | null;
@@ -46,6 +45,16 @@ interface AssignResult {
   message: string;
 }
 
+type ActiveFilter = 'all' | 2 | 1 | 0;
+type RemovedFilter = 'all' | 'removed' | 'not-removed';
+
+const ACTIVE_FILTER_OPTIONS: { value: ActiveFilter; label: string; dotClass: string | null; title: string }[] = [
+  { value: 'all', label: 'All', dotClass: null, title: 'Show all activity levels' },
+  { value: 2, label: 'Green', dotClass: 'bg-green-500', title: 'Active in the last 7 days' },
+  { value: 1, label: 'Yellow', dotClass: 'bg-yellow-500', title: 'Active in the last 30 days' },
+  { value: 0, label: 'Red', dotClass: 'bg-red-500', title: 'No activity in the last 30 days' },
+];
+
 const DEBUG_MODE = false;
 
 function generateDebugUsers(): UserData[] {
@@ -69,12 +78,6 @@ function generateDebugUsers(): UserData[] {
     const eventsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 3) + 1 : (hasMediumProgress ? Math.floor(Math.random() * 2) : 0);
     const coffeeChatsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 6) + 4 : (hasMediumProgress ? Math.floor(Math.random() * 5) + 2 : Math.floor(Math.random() * 3));
 
-    const referralCount = hasGoodProgress && index % 5 === 0
-      ? Math.floor(Math.random() * 3) + 1
-      : hasGoodProgress && index % 7 === 0
-      ? Math.floor(Math.random() * 2) + 1
-      : 0;
-
     const issuesCompleted = Math.floor(Math.random() * 5);
     const partnershipsCompleted = Math.floor(Math.random() * 4);
     const totalCriteria = Math.max(issuesCompleted + Math.floor(Math.random() * 5), 1);
@@ -88,7 +91,6 @@ function generateDebugUsers(): UserData[] {
       email: `${name.toLowerCase().replace(' ', '.')}@example.com`,
       activeStatus,
       progressStatus,
-      referralCount,
       removedFromResumeBook,
       inactivityWarningCount,
       openSource: {
@@ -120,6 +122,8 @@ export default function UsersTab() {
   const [canMutateUserData, setCanMutateUserData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [minIssuesFilter, setMinIssuesFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
+  const [removedFilter, setRemovedFilter] = useState<RemovedFilter>('all');
   const [sortOrder, setSortOrder] = useState<'name-asc' | 'name-desc' | 'issues-high' | 'issues-low'>('name-asc');
   const [instructors, setInstructors] = useState<AssignableInstructor[]>([]);
   const [defaultInstructorId, setDefaultInstructorId] = useState<string | null>(null);
@@ -273,6 +277,21 @@ export default function UsersTab() {
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
   const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
+  const hasFiltersSet =
+    searchQuery.trim() !== '' ||
+    minIssuesFilter.trim() !== '' ||
+    activeFilter !== 'all' ||
+    removedFilter !== 'all';
+
+  function clearFilters() {
+    setSearchQuery('');
+    setMinIssuesFilter('');
+    setActiveFilter('all');
+    setRemovedFilter('all');
+  }
+
+  const activeFilterLabel = ACTIVE_FILTER_OPTIONS.find((option) => option.value === activeFilter)?.label;
+
   const scopedUsers = showAll
     ? users
     : users.filter((user) => user.effectiveInstructorId === currentInstructorId);
@@ -285,6 +304,12 @@ export default function UsersTab() {
       if (minIssuesValid && minIssues !== null) {
         return user.openSource.issuesCompleted >= minIssues;
       }
+      return true;
+    })
+    .filter((user) => activeFilter === 'all' || user.activeStatus === activeFilter)
+    .filter((user) => {
+      if (removedFilter === 'removed') return user.removedFromResumeBook;
+      if (removedFilter === 'not-removed') return !user.removedFromResumeBook;
       return true;
     })
     .sort((a, b) => {
@@ -365,12 +390,48 @@ export default function UsersTab() {
           </select>
         </div>
 
+        <div className="sm:w-44">
+          <select
+            value={removedFilter}
+            onChange={(e) => setRemovedFilter(e.target.value as RemovedFilter)}
+            className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
+            aria-label="Filter by removed status"
+          >
+            <option value="all">Status: All</option>
+            <option value="not-removed">Not removed</option>
+            <option value="removed">Removed</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1" role="group" aria-label="Filter by active status">
+          <span className="text-gray-600 text-sm font-medium mr-1">Active:</span>
+          {ACTIVE_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              title={option.title}
+              aria-pressed={activeFilter === option.value}
+              onClick={() => setActiveFilter(option.value)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-electric-blue ${
+                activeFilter === option.value
+                  ? 'bg-white border-electric-blue text-gray-900'
+                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {option.dotClass && <span className={`w-3 h-3 rounded-full ${option.dotClass}`} />}
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
           onClick={() => {
             const params = new URLSearchParams();
             if (searchQuery.trim()) params.set('search', searchQuery.trim());
             if (minIssuesValid && minIssues !== null) params.set('minIssues', String(minIssues));
+            if (activeFilter !== 'all') params.set('active', String(activeFilter));
+            if (removedFilter !== 'all') params.set('removed', removedFilter);
             if (!showAll) params.set('mine', '1');
             const url = `/api/instructor/students/export${params.toString() ? `?${params.toString()}` : ''}`;
             window.open(url, '_blank', 'noopener,noreferrer');
@@ -382,11 +443,25 @@ export default function UsersTab() {
       </div>
 
       {users.length > 0 && (
-        <div className="text-gray-400 text-sm mb-4">
-          Showing {filteredAndSortedUsers.length} of {scopedUsers.length} user{scopedUsers.length !== 1 ? 's' : ''}
-          {!showAll && ' assigned to you'}
-          {searchQuery && ` matching "${searchQuery}"`}
-          {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
+        <div className="flex items-center gap-3 text-gray-400 text-sm mb-4">
+          <span>
+            Showing {filteredAndSortedUsers.length} of {scopedUsers.length} user{scopedUsers.length !== 1 ? 's' : ''}
+            {!showAll && ' assigned to you'}
+            {searchQuery && ` matching "${searchQuery}"`}
+            {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
+            {activeFilter !== 'all' && ` · Active: ${activeFilterLabel?.toLowerCase()}`}
+            {removedFilter === 'removed' && ' · Removed only'}
+            {removedFilter === 'not-removed' && ' · Not removed'}
+          </span>
+          {hasFiltersSet && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-electric-blue hover:underline font-medium"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       )}
 
@@ -549,17 +624,6 @@ export default function UsersTab() {
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
                     <span>Last Month: <span className="text-gray-900 font-medium">{user.coffeeChats.lastMonth}</span></span>
                     <span>All Time: <span className="text-gray-900 font-medium">{user.coffeeChats.allTime}</span></span>
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg w-fit border min-w-[120px] ${
-                      user.referralCount > 0
-                        ? 'bg-green-50 border-green-400'
-                        : 'bg-gray-50 border-gray-300'
-                    }`}>
-                      <span className={`font-bold text-sm whitespace-nowrap ${
-                        user.referralCount > 0 ? 'text-green-600' : 'text-gray-500'
-                      }`}>
-                        🎉 {user.referralCount} Referral{user.referralCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -570,8 +634,8 @@ export default function UsersTab() {
 
       {filteredAndSortedUsers.length === 0 && (
         <div className="text-gray-400 text-center py-8">
-          {searchQuery
-            ? 'No users found matching your search.'
+          {hasFiltersSet
+            ? 'No users match the current filters.'
             : showAll
             ? 'No users found.'
             : 'No students are assigned to you yet.'}

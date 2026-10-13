@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
+import { computeActiveStatus, parseActiveStatusParam } from "@/app/lib/active-status";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 
 /** Escape a CSV cell: wrap in quotes and escape internal quotes */
@@ -71,6 +72,9 @@ export async function GET(request: NextRequest) {
     const minIssuesParam = searchParams.get("minIssues") ?? "";
     const minIssues = minIssuesParam === "" ? null : Math.max(0, parseInt(minIssuesParam, 10));
     const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
+    const activeFilter = parseActiveStatusParam(searchParams.get("active"));
+    const removedParam = searchParams.get("removed");
+    const removedFilter = removedParam === "removed" || removedParam === "not-removed" ? removedParam : null;
 
     const mineOnly = searchParams.get("mine") === "1";
 
@@ -82,6 +86,7 @@ export async function GET(request: NextRequest) {
           email: true,
           createdAt: true,
           expectedGraduationDate: true,
+          removedFromResumeBook: true,
           assignedInstructorId: true,
           monthlyMeeting: { select: { instructorId: true } },
         },
@@ -127,6 +132,9 @@ export async function GET(request: NextRequest) {
         (e) => e.criteriaType === "issue" && e.status === "done"
       ).length;
       if (minIssuesValid && minIssues !== null && issuesCompleted < minIssues) return false;
+      if (removedFilter === "removed" && !user.removedFromResumeBook) return false;
+      if (removedFilter === "not-removed" && user.removedFromResumeBook) return false;
+      if (activeFilter !== null && computeActiveStatus(userEntries) !== activeFilter) return false;
       return true;
     });
 

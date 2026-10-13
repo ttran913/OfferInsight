@@ -4,6 +4,7 @@ import { prisma } from "@/db";
 import { getCurrentMonthDateRange } from "@/app/lib/date-utils";
 import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteria-progress";
 import { buildCriteria } from "@/app/lib/partnership-criteria";
+import { computeActiveStatus } from "@/app/lib/active-status";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
 import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
@@ -163,33 +164,13 @@ export async function GET() {
           }),
         ]);
 
-        const referralCount = await prisma.linkedin_Outreach.count({
-          where: {
-            userId: user.id,
-            recievedReferral: true,
-          },
-        });
-
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const ninetyDaysAgo = new Date(now);
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
         // Active: any open source card (any partnership) last modified. Green = last 7 days, Yellow = last 30 days.
-        let activeStatus = 0;
-        const anyCardModifiedInLastWeek = openSourceEntries.some(
-          (e) => e.dateModified && new Date(e.dateModified) >= sevenDaysAgo
-        );
-        const anyCardModifiedInLastMonth = openSourceEntries.some(
-          (e) => e.dateModified && new Date(e.dateModified) >= thirtyDaysAgo
-        );
-        if (anyCardModifiedInLastWeek) {
-          activeStatus = 2; // Green
-        } else if (anyCardModifiedInLastMonth) {
-          activeStatus = 1; // Yellow
-        }
+        const activeStatus = computeActiveStatus(openSourceEntries, now);
 
         // Progress: open source completion. Green = 2+ criteria types done in 30 days, Yellow = 1 issue in 90 days (active partnership only).
         let progressStatus = 0;
@@ -234,7 +215,6 @@ export async function GET() {
           email: user.email,
           activeStatus,
           progressStatus,
-          referralCount,
           removedFromResumeBook: user.removedFromResumeBook,
           inactivityWarningCount: user.inactivityWarningCount,
           assignedInstructorId: user.assignedInstructorId,
