@@ -14,7 +14,6 @@ function event(partial: Partial<CalendarEventItem>): CalendarEventItem {
     location: null,
     htmlLink: null,
     meetLink: null,
-    isOfferInsight: false,
     ...partial,
   };
 }

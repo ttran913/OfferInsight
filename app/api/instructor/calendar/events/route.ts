@@ -63,7 +63,13 @@ export async function GET() {
     const offerInsightIds = new Set(meetings.map((m) => m.googleEventId as string));
 
     const events: CalendarEventItem[] = googleEvents
-      .filter((e) => e.id && (e.start?.dateTime || e.start?.date))
+      .filter(
+        (e) =>
+          e.id &&
+          (e.start?.dateTime || e.start?.date) &&
+          (offerInsightIds.has(e.id) ||
+            (e.recurringEventId ? offerInsightIds.has(e.recurringEventId) : false))
+      )
       .map((e) => {
         const allDay = !e.start?.dateTime;
         return {
@@ -75,9 +81,6 @@ export async function GET() {
           location: e.location ?? null,
           htmlLink: e.htmlLink ?? null,
           meetLink: e.hangoutLink ?? null,
-          isOfferInsight:
-            offerInsightIds.has(e.id as string) ||
-            (e.recurringEventId ? offerInsightIds.has(e.recurringEventId) : false),
         };
       });
 

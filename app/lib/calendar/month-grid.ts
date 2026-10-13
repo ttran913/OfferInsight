@@ -11,7 +11,6 @@ export type CalendarEventItem = {
   location: string | null;
   htmlLink: string | null;
   meetLink: string | null;
-  isOfferInsight: boolean;
 };
 
 export type MonthGridDay = {

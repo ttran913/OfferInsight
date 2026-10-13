@@ -69,7 +69,7 @@ function MonthGrid({
               type="button"
               onClick={() => onSelect(cell.dateKey)}
               aria-pressed={selected}
-              aria-label={`${formatDateKey(cell.dateKey, { weekday: 'long', month: 'long', day: 'numeric' })}, ${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}`}
+              aria-label={`${formatDateKey(cell.dateKey, { weekday: 'long', month: 'long', day: 'numeric' })}, ${dayEvents.length} ${dayEvents.length === 1 ? '1:1' : '1:1s'}`}
               className={`h-12 flex flex-col items-center pt-1.5 gap-1 rounded-lg text-xs font-medium transition-colors ${
                 selected
                   ? 'bg-electric-blue text-white'
@@ -82,13 +82,7 @@ function MonthGrid({
                   {dayEvents.slice(0, MAX_DOTS).map((e, i) => (
                     <span
                       key={`${e.id}-${i}`}
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        selected
-                          ? 'bg-white'
-                          : e.isOfferInsight
-                            ? 'bg-electric-blue'
-                            : 'bg-gray-400'
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full ${selected ? 'bg-white' : 'bg-electric-blue'}`}
                     />
                   ))}
                   {dayEvents.length > MAX_DOTS && (
@@ -156,13 +150,7 @@ export default function MonthCalendar({ timezone }: Props) {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Your calendar</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Everything on your primary Google Calendar this month and next.{' '}
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-electric-blue" /> OfferInsight 1:1
-              </span>
-              <span className="inline-flex items-center gap-1 ml-3">
-                <span className="h-2 w-2 rounded-full bg-gray-400" /> Other
-              </span>
+              Your OfferInsight 1:1s this month and next, from your Google Calendar.
             </p>
           </div>
         </div>
@@ -184,7 +172,7 @@ export default function MonthCalendar({ timezone }: Props) {
       )}
       {error === 'failed' && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-red-800 bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-4">
-          Could not load your Google Calendar events.
+          Could not load your 1:1s from Google Calendar.
           <button
             type="button"
             onClick={() => load(false)}
@@ -234,24 +222,17 @@ export default function MonthCalendar({ timezone }: Props) {
             </h3>
             <p className="text-xs text-gray-500 mb-3">
               {selectedEvents.length === 0
-                ? 'No events'
-                : `${selectedEvents.length} ${selectedEvents.length === 1 ? 'event' : 'events'}`}
+                ? 'No 1:1s'
+                : `${selectedEvents.length} ${selectedEvents.length === 1 ? '1:1' : '1:1s'}`}
             </p>
             <ul className="space-y-2">
               {selectedEvents.map((e, i) => (
                 <li
                   key={`${e.id}-${i}`}
-                  className={`rounded-lg border bg-white px-3 py-2 ${
-                    e.isOfferInsight ? 'border-electric-blue/40 border-l-4 border-l-electric-blue' : 'border-gray-200'
-                  }`}
+                  className="rounded-lg border border-electric-blue/40 border-l-4 border-l-electric-blue bg-white px-3 py-2"
                 >
                   <div className="text-xs text-gray-500">{formatEventTimeRange(e, timezone)}</div>
                   <div className="text-sm font-semibold text-gray-900 break-words">{e.title}</div>
-                  {e.isOfferInsight && (
-                    <span className="inline-block mt-1 rounded-full bg-electric-blue/10 px-2 py-0.5 text-[11px] font-medium text-electric-blue">
-                      OfferInsight 1:1
-                    </span>
-                  )}
                   {e.location && (
                     <div className="flex items-start gap-1 text-xs text-gray-600 mt-1 break-words">
                       <MapPin className="w-3.5 h-3.5 shrink-0 mt-px" />
