@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { canInstructorMutateUserData } from "@/app/lib/instructor-permissions";
+import { CLEARED_BOOKING_CLOCK } from "@/app/lib/must-book";
 import { prisma } from "@/db";
 
 export async function POST(request: NextRequest) {
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
         removedFromResumeBook: false,
         inactivityWarningCount: 0,
         lastInactivityWarningSent: null,
+        ...CLEARED_BOOKING_CLOCK,
       },
       select: {
         id: true,

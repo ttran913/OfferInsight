@@ -130,6 +130,20 @@ export function meetingStartsBetween(
   return starts.sort((a, b) => a - b);
 }
 
+/** Start of the latest meeting that has already ended (moves counted at their new time), or null. */
+export function previousMeeting(
+  meeting: SeriesFields,
+  moves: MoveFields[],
+  now = new Date()
+): Date | null {
+  const durationMs = MEETING_DURATION_MINUTES * 60 * 1000;
+  const from = new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000);
+  const ended = meetingStartsBetween(meeting, moves, from, now).filter(
+    (start) => start + durationMs <= now.getTime()
+  );
+  return ended.length > 0 ? new Date(ended[ended.length - 1]) : null;
+}
+
 export type OneTimeDay = {
   localDate: string;
   dayOfWeek: number;

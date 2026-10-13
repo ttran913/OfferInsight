@@ -10,6 +10,12 @@ import {
 import { sendEmail } from '@/app/lib/email';
 import { syncMonthlyMeetingOnInstructorCalendar } from '@/app/lib/calendar/google-calendar';
 import { loadBookableDaysForUser } from '@/app/lib/calendar/student-booking';
+import {
+  CLEARED_BOOKING_CLOCK,
+  currentDeadline,
+  deadlineLabel,
+  isMustBookReason,
+} from '@/app/lib/must-book';
 import { prisma } from '@/db';
 
 export async function GET(request: NextRequest) {
@@ -23,6 +29,14 @@ export async function GET(request: NextRequest) {
       where: { id: userId },
       select: {
         id: true,
+        mustBookSince: true,
+        mustBookReason: true,
+        bookFinalWarningSentAt: true,
+        missedMeetings: {
+          orderBy: { occurrenceStart: 'desc' },
+          take: 1,
+          select: { occurrenceStart: true },
+        },
         monthlyMeeting: {
           include: {
             instructor: { select: { displayName: true } },
@@ -39,11 +53,29 @@ export async function GET(request: NextRequest) {
       user.monthlyMeeting?.instructor ?? (await resolveSchedulingInstructorForUser(user.id))
     );
 
+    const missed = user.missedMeetings[0]?.occurrenceStart;
     return NextResponse.json({
       meeting: user.monthlyMeeting
         ? meetingPayload(user.monthlyMeeting, user.monthlyMeeting.moves)
         : null,
       instructorName,
+      mustBook:
+        user.mustBookSince && isMustBookReason(user.mustBookReason) && !user.monthlyMeeting
+          ? {
+              reason: user.mustBookReason,
+              missedLabel:
+                user.mustBookReason === 'missedMeeting' && missed
+                  ? deadlineLabel(missed)
+                  : null,
+              deadlineLabel: deadlineLabel(
+                currentDeadline({
+                  mustBookSince: user.mustBookSince,
+                  bookFinalWarningSentAt: user.bookFinalWarningSentAt,
+                })
+              ),
+              finalWarningSent: Boolean(user.bookFinalWarningSentAt),
+            }
+          : null,
     });
   } catch (error) {
     console.error('Error fetching monthly meeting:', error);
@@ -132,7 +164,7 @@ export async function PUT(request: NextRequest) {
 
       await tx.user.update({
         where: { id: user.id },
-        data: { onboardingProgress: 4 },
+        data: { onboardingProgress: 4, ...CLEARED_BOOKING_CLOCK },
       });
 
       return saved;

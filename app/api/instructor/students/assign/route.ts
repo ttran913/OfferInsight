@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
-import { deleteMonthlyMeetingEvent } from "@/app/lib/calendar/google-calendar";
-import {
-  buildInstructorChangedEmail,
-  buildMonthlyMeetingCancelIcs,
-} from "@/app/lib/calendar/ics";
-import { seriesAnchorSlot } from "@/app/lib/calendar/next-occurrence";
+import { buildInstructorChangedEmail } from "@/app/lib/calendar/ics";
 import {
   getInstructorDisplayName,
   resolveDefaultInstructor,
 } from "@/app/lib/calendar/scheduling-instructor";
-import { sendEmail } from "@/app/lib/email";
+import { unscheduleMonthlyMeeting } from "@/app/lib/calendar/unschedule";
 import { prisma } from "@/db";
 
 /**
@@ -73,45 +68,18 @@ export async function POST(request: NextRequest) {
     let emailSent = false;
 
     if (meeting && effective && meeting.instructorId !== effective.id) {
-      if (meeting.googleEventId) {
-        await deleteMonthlyMeetingEvent(meeting.instructorId, meeting.googleEventId);
-      }
-      await prisma.studentMonthlyMeeting.delete({ where: { id: meeting.id } });
+      const oldInstructorName = getInstructorDisplayName(meeting.instructor);
+      ({ emailSent } = await unscheduleMonthlyMeeting({
+        meeting,
+        user,
+        instructorName: oldInstructorName,
+        mail: buildInstructorChangedEmail({
+          studentName: user.name,
+          oldInstructorName,
+          newInstructorName: getInstructorDisplayName(effective),
+        }),
+      }));
       meetingCancelled = true;
-
-      if (user.email) {
-        const oldInstructorName = getInstructorDisplayName(meeting.instructor);
-        const newInstructorName = getInstructorDisplayName(effective);
-        try {
-          const ics = buildMonthlyMeetingCancelIcs({
-            slot: seriesAnchorSlot(meeting),
-            studentName: user.name,
-            studentEmail: user.email,
-            instructorName: oldInstructorName,
-          });
-          const mail = buildInstructorChangedEmail({
-            studentName: user.name,
-            oldInstructorName,
-            newInstructorName,
-          });
-          await sendEmail({
-            to: user.email,
-            subject: mail.subject,
-            text: mail.text,
-            html: mail.html,
-            attachments: [
-              {
-                filename: ics.filename,
-                content: ics.content,
-                contentType: "text/calendar; charset=utf-8; method=CANCEL",
-              },
-            ],
-          });
-          emailSent = true;
-        } catch (err) {
-          console.error("Failed to send instructor-changed email:", err);
-        }
-      }
     }
 
     return NextResponse.json({

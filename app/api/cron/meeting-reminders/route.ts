@@ -3,6 +3,7 @@ import { buildMeetingReminderEmail } from '@/app/lib/calendar/ics';
 import { formatNextMeetingLabel } from '@/app/lib/calendar/next-occurrence';
 import { occurrenceNeedingReminder } from '@/app/lib/calendar/reminders';
 import { getInstructorDisplayName } from '@/app/lib/calendar/scheduling-instructor';
+import { authorizeCronRequest } from '@/app/lib/cron-auth';
 import { sendEmail } from '@/app/lib/email';
 import { prisma } from '@/db';
 
@@ -17,14 +18,8 @@ type ReminderResult = {
 /** Daily: email each student whose monthly 1:1 is tomorrow. `?dryRun=true` only lists them. */
 export async function GET(request: NextRequest) {
   try {
-    const expectedToken = process.env.CRON_SECRET;
-    if (!expectedToken) {
-      console.error('CRON_SECRET environment variable is not set');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-    if (request.headers.get('authorization') !== `Bearer ${expectedToken}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const denied = authorizeCronRequest(request);
+    if (denied) return denied;
 
     const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true';
     const now = new Date();

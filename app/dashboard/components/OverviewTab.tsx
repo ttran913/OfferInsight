@@ -4,6 +4,7 @@ import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
 import { INSTRUCTOR_DISPLAY_NAME_FALLBACK } from '@/app/lib/calendar/constants';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
 import type { MeetingSummary } from '@/components/monthly-meeting-scheduler';
+import MustBookAlert, { type MustBookNotice } from '@/components/must-book-alert';
 import { ModalOverlay, ModalPanel } from './shared';
 
 type OpenSourceActivityItem = {
@@ -153,6 +154,7 @@ export default function OverviewTab({
   const [meetingLoading, setMeetingLoading] = useState(true);
   const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
   const [meetingSummary, setMeetingSummary] = useState<MeetingSummary | null>(null);
+  const [mustBook, setMustBook] = useState<MustBookNotice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,11 +173,13 @@ export default function OverviewTab({
         if (cancelled) return;
         setInstructorName(data.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK);
         setMeetingSummary(data.meeting ?? null);
+        setMustBook(data.mustBook ?? null);
       })
       .catch((err) => {
         console.error(err);
         if (!cancelled) {
           setMeetingSummary(null);
+          setMustBook(null);
         }
       })
       .finally(() => {
@@ -400,16 +404,22 @@ export default function OverviewTab({
                   </p>
                 )}
               </>
+            ) : mustBook ? (
+              <MustBookAlert notice={mustBook} instructorView={Boolean(instructorViewUserId)} />
             ) : (
-              <p className="text-sm text-gray-700">
-                No meeting scheduled yet with {instructorName}
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {instructorViewUserId
+                  ? `This student doesn't have a monthly 1:1 scheduled with ${instructorName}.`
+                  : `You don't have a monthly 1:1 scheduled with ${instructorName}.`}{' '}
+                Monthly 1:1s are <span className="font-semibold">mandatory</span> for everyone in
+                the Resume Book.{instructorViewUserId ? '' : ' Please schedule yours.'}
               </p>
             )}
           </div>
         </div>
-        {!instructorViewUserId && (
+        {!instructorViewUserId && !meetingLoading && (
           <Link
-            href="/account"
+            href={meetingSummary || mustBook ? '/account' : '/onboarding/page4?from=dashboard'}
             className="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 transition-opacity"
           >
             {meetingSummary ? 'Reschedule' : 'Schedule meeting'}

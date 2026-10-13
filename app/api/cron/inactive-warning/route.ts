@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
+import { authorizeCronRequest } from "@/app/lib/cron-auth";
 import {
   sendEmail,
   buildInactivityWarningEmail,
@@ -21,17 +22,8 @@ const DEBUG_TEST_EMAILS = ["utsab.k.saha@gmail.com", "ttran913@gmail.com"];
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const expectedToken = process.env.CRON_SECRET;
-
-    if (!expectedToken) {
-      console.error("CRON_SECRET environment variable is not set");
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
-    if (authHeader !== `Bearer ${expectedToken}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = authorizeCronRequest(request);
+    if (denied) return denied;
 
     const { searchParams } = new URL(request.url);
     const debugMode = searchParams.get("debug") === "true";

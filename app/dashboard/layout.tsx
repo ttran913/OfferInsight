@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { prisma } from '@/db'
 import { getInstructorSession } from '@/app/lib/instructor-auth'
+import { mustFinishBookingStep } from '@/app/lib/must-book'
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   // Check if this is an instructor (instructors can view any user's dashboard)
@@ -15,10 +16,22 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const session = await auth()
   if (!session?.user?.email) redirect('/')
   
-  const progress = (await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { onboardingProgress: true }
-  }))?.onboardingProgress ?? 0
+    select: { onboardingProgress: true, createdAt: true, monthlyMeeting: { select: { id: true } } }
+  })
+  const progress = user?.onboardingProgress ?? 0
+
+  if (
+    user &&
+    mustFinishBookingStep({
+      createdAt: user.createdAt,
+      onboardingProgress: progress,
+      hasMeeting: Boolean(user.monthlyMeeting),
+    })
+  ) {
+    redirect('/onboarding/page4')
+  }
 
   switch (progress) {
     case 0:
@@ -30,7 +43,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
     case 3:
     case 4:
     default:
-      // Dashboard allowed at 3 (soft) and 4 (meeting saved)
+      // Dashboard allowed at 3 for accounts from before the booking step was required, and at 4 (booked or skipped)
       break
   }
 

@@ -310,7 +310,7 @@ When: ${when}
 
 ${board}${boardUrl ? `\n${boardUrl}` : ''}
 
-Can't make it? Skip or reschedule from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+Can't make it? Reschedule from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
 
 Best,
 OfferInsight`;
@@ -324,7 +324,7 @@ OfferInsight`;
     <p style="margin:0;">${escapeHtml(board)}</p>
     <p style="margin:8px 0 0;">${link(boardUrl, 'Update my Open Source board')}</p>
   </div>
-  <p>Can't make it? Skip or reschedule from your ${link(accountUrl, 'OfferInsight Account page')}.</p>
+  <p>Can't make it? Reschedule from your ${link(accountUrl, 'OfferInsight Account page')}.</p>
   <p>Best,<br/>OfferInsight</p>
 </body></html>`;
 

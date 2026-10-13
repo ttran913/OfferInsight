@@ -13,6 +13,8 @@ import { formatTime12, nthOrdinalLabel } from '@/app/lib/calendar/labels';
 import { buildMonthGrid, localDateKey } from '@/app/lib/calendar/month-grid';
 import { followingMonthlyLocalDate } from '@/app/lib/calendar/next-occurrence';
 import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
+import { MUST_BOOK_WARNING_HOURS } from '@/app/lib/must-book';
+import MustBookAlert, { type MustBookNotice } from '@/components/must-book-alert';
 
 export type MeetingSummary = {
   dayOfWeek: number;
@@ -49,6 +51,7 @@ type MonthlyMeetingSchedulerProps = {
   /** Show skip link (onboarding only). */
   showSkip?: boolean;
   onSkip?: () => void;
+  skipping?: boolean;
   /** Start collapsed; the calendar only opens after the student chooses to change. */
   collapsible?: boolean;
 };
@@ -208,6 +211,7 @@ export default function MonthlyMeetingScheduler({
   onSaved,
   showSkip,
   onSkip,
+  skipping = false,
   collapsible = false,
 }: MonthlyMeetingSchedulerProps) {
   const [loading, setLoading] = useState(true);
@@ -217,6 +221,7 @@ export default function MonthlyMeetingScheduler({
   const [timezone, setTimezone] = useState(DEFAULT_AVAILABILITY_TIMEZONE);
   const [days, setDays] = useState<BookableDayOption[]>([]);
   const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
+  const [mustBook, setMustBook] = useState<MustBookNotice | null>(null);
   const [oneTime, setOneTime] = useState<OneTimeOptions | null>(null);
   const [oneTimeLoading, setOneTimeLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -255,6 +260,7 @@ export default function MonthlyMeetingScheduler({
         meetingData.instructorName || slotsData.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK
       );
       setMeeting(meetingData.meeting ?? null);
+      setMustBook(meetingData.mustBook ?? null);
       setTimezone(slotsData.timezone || DEFAULT_AVAILABILITY_TIMEZONE);
       setDays((slotsData.days as BookableDayOption[]) || []);
       setEmptyMessage(slotsData.message || null);
@@ -474,6 +480,12 @@ export default function MonthlyMeetingScheduler({
         </div>
       )}
 
+      {mustBook && !meeting && (
+        <div className="mb-4">
+          <MustBookAlert notice={mustBook} />
+        </div>
+      )}
+
       {meeting ? (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
           <div>
@@ -516,9 +528,11 @@ export default function MonthlyMeetingScheduler({
           )}
         </div>
       ) : (
-        collapsible && (
-          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-            No meeting scheduled yet with {instructorName}
+        collapsible &&
+        !mustBook && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            You don&apos;t have a monthly 1:1 scheduled with {instructorName}. Monthly 1:1s are{' '}
+            <span className="font-semibold">mandatory</span> for everyone in the Resume Book.
           </div>
         )
       )}
@@ -757,12 +771,21 @@ export default function MonthlyMeetingScheduler({
             <button
               type="button"
               onClick={onSkip}
-              className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
+              disabled={skipping || saving}
+              className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline disabled:opacity-50"
             >
-              Skip for now
+              {skipping ? 'Skipping…' : 'Skip for now'}
             </button>
           )}
         </div>
+      )}
+
+      {pickerOpen && showSkip && onSkip && (
+        <p className="mt-3 text-xs text-gray-500">
+          Monthly 1:1s are required. If you skip, you have{' '}
+          {MUST_BOOK_WARNING_HOURS} hours to book one from your dashboard, or you&apos;ll be
+          removed from the Resume Book.
+        </p>
       )}
 
       {confirmOpen && mode === 'regular' && selectedDate && selectedTime && selectedDay && (

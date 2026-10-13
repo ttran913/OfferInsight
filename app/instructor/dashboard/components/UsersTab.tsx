@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
+import { DEFAULT_AVAILABILITY_TIMEZONE } from '@/app/lib/calendar/constants';
 
 interface UserData {
   id: string;
@@ -21,6 +23,19 @@ interface UserData {
     nextStart: string | null;
     /** ISO start of the regular date the next meeting was moved from, one time */
     movedFrom: string | null;
+    /** ISO start of the most recent meeting that already ended */
+    lastStart?: string | null;
+    lastMissed?: boolean;
+  } | null;
+  missedCount?: number;
+  lastMissedStart?: string | null;
+  /** On the 72h/96h "book a monthly 1:1" clock */
+  mustBook?: {
+    reason: 'missedMeeting' | 'skippedOnboarding';
+    since: string;
+    /** Book-by before the final warning, removal time after it */
+    deadline: string;
+    finalWarningSent: boolean;
   } | null;
   openSource: {
     issuesCompleted: number;
@@ -116,6 +131,9 @@ function generateDebugUsers(): UserData[] {
       progressStatus,
       removedFromResumeBook,
       inactivityWarningCount,
+      missedCount: index % 7 === 3 ? 1 : 0,
+      lastMissedStart: null,
+      mustBook: null,
       openSource: {
         issuesCompleted,
         partnershipsCompleted,
@@ -155,6 +173,28 @@ export default function UsersTab() {
   const [showAll, setShowAll] = useState(true);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [assignResult, setAssignResult] = useState<AssignResult | null>(null);
+  const [missedConfirmUser, setMissedConfirmUser] = useState<UserData | null>(null);
+  const [missedBusyUserId, setMissedBusyUserId] = useState<string | null>(null);
+  const [missedResult, setMissedResult] = useState<AssignResult | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/instructor/students');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data.students || []);
+      setInstructors(data.instructors || []);
+      setDefaultInstructorId(data.defaultInstructorId ?? null);
+      setCurrentInstructorId(data.currentInstructorId ?? null);
+      setCanAssign(Boolean(data.canAssign));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (DEBUG_MODE) {
@@ -162,27 +202,8 @@ export default function UsersTab() {
       setLoading(false);
       return;
     }
-
-    async function fetchUsers() {
-      try {
-        const response = await fetch('/api/instructor/students');
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
-        }
-        const data = await response.json();
-        setUsers(data.students || []);
-        setInstructors(data.instructors || []);
-        setDefaultInstructorId(data.defaultInstructorId ?? null);
-        setCurrentInstructorId(data.currentInstructorId ?? null);
-        setCanAssign(Boolean(data.canAssign));
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   useEffect(() => {
     async function fetchInstructorPermissions() {
@@ -223,6 +244,7 @@ export default function UsersTab() {
                 ...user,
                 removedFromResumeBook: false,
                 inactivityWarningCount: 0,
+                mustBook: null,
               }
             : user
         )
@@ -294,6 +316,42 @@ export default function UsersTab() {
       });
     } finally {
       setAssigningUserId(null);
+    }
+  }
+
+  async function handleMissedMeeting(user: UserData, method: 'POST' | 'DELETE') {
+    setMissedBusyUserId(user.id);
+    setMissedResult(null);
+    try {
+      const response = await fetch('/api/instructor/students/missed-meeting', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Something went wrong');
+      }
+      setMissedResult({
+        userId: user.id,
+        tone: method === 'DELETE' || data.emailSent ? 'success' : 'warning',
+        message:
+          method === 'DELETE'
+            ? 'Missed mark removed. They still need to book a new schedule.'
+            : data.emailSent
+              ? 'Marked missed; schedule cleared and student emailed.'
+              : 'Marked missed and schedule cleared, but the email could not be sent.',
+      });
+      await fetchUsers();
+    } catch (error) {
+      setMissedResult({
+        userId: user.id,
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Something went wrong',
+      });
+    } finally {
+      setMissedBusyUserId(null);
+      setMissedConfirmUser(null);
     }
   }
 
@@ -671,6 +729,71 @@ export default function UsersTab() {
                     {user.meeting && user.meeting.instructorId !== currentInstructorId && (
                       <span className="text-xs">with {user.meeting.instructorLabel}</span>
                     )}
+                    {user.meeting?.lastStart && !user.mustBook && (
+                      <span className="text-xs">
+                        Last: {formatMeetingDate(user.meeting.lastStart, user.meeting.timezone)}
+                        {user.meeting.lastMissed ? (
+                          <span className="text-red-700"> (missed)</span>
+                        ) : (
+                          (user.meeting.instructorId === currentInstructorId || canMutateUserData) && (
+                            <>
+                              {' · '}
+                              <button
+                                type="button"
+                                onClick={() => setMissedConfirmUser(user)}
+                                disabled={missedBusyUserId === user.id}
+                                className="font-semibold text-red-700 hover:underline disabled:opacity-50"
+                              >
+                                Mark missed
+                              </button>
+                            </>
+                          )
+                        )}
+                      </span>
+                    )}
+                    {user.mustBook && (
+                      <span className="text-xs text-red-700">
+                        {user.mustBook.reason === 'missedMeeting' && user.lastMissedStart
+                          ? `Missed ${formatMeetingDate(user.lastMissedStart, DEFAULT_AVAILABILITY_TIMEZONE)}`
+                          : 'Skipped booking'}
+                        {' · '}
+                        {user.mustBook.finalWarningSent ? 'removed after ' : 'must book by '}
+                        {formatMeetingDate(user.mustBook.deadline, DEFAULT_AVAILABILITY_TIMEZONE)},{' '}
+                        {formatMeetingTime(user.mustBook.deadline, DEFAULT_AVAILABILITY_TIMEZONE)}
+                        {user.mustBook.finalWarningSent && (
+                          <span className="block font-semibold">Final warning sent</span>
+                        )}
+                        {user.mustBook.reason === 'missedMeeting' &&
+                          (user.effectiveInstructorId === currentInstructorId || canMutateUserData) && (
+                            <button
+                              type="button"
+                              onClick={() => handleMissedMeeting(user, 'DELETE')}
+                              disabled={missedBusyUserId === user.id}
+                              className="block font-semibold text-electric-blue hover:underline disabled:opacity-50"
+                            >
+                              {missedBusyUserId === user.id ? 'Undoing…' : 'Undo'}
+                            </button>
+                          )}
+                      </span>
+                    )}
+                    {(user.missedCount ?? 0) > 0 && (
+                      <span className="text-xs">
+                        Missed 1:1s: <span className="text-gray-900 font-medium">{user.missedCount}</span>
+                      </span>
+                    )}
+                    {missedResult?.userId === user.id && (
+                      <span
+                        className={`text-xs ${
+                          missedResult.tone === 'success'
+                            ? 'text-green-700'
+                            : missedResult.tone === 'warning'
+                              ? 'text-amber-700'
+                              : 'text-red-700'
+                        }`}
+                      >
+                        {missedResult.message}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -687,6 +810,51 @@ export default function UsersTab() {
             ? 'No users found.'
             : 'No students are assigned to you yet.'}
         </div>
+      )}
+
+      {missedConfirmUser?.meeting?.lastStart && (
+        <ModalOverlay onClose={() => !missedBusyUserId && setMissedConfirmUser(null)}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900">Mark this 1:1 as missed?</h3>
+            <p className="text-sm text-gray-700 mt-2">
+              {missedConfirmUser.name} missed their 1:1 on{' '}
+              <span className="font-semibold text-gray-900">
+                {formatMeetingDate(missedConfirmUser.meeting.lastStart, missedConfirmUser.meeting.timezone)},{' '}
+                {formatMeetingTime(missedConfirmUser.meeting.lastStart, missedConfirmUser.meeting.timezone)}
+              </span>
+              .
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm text-gray-700 list-disc pl-5">
+              <li>Their whole monthly schedule is cancelled, including on your Google Calendar.</li>
+              <li>They get an email asking them to book a new monthly 1:1 within 72 hours.</li>
+              <li>
+                If they don&apos;t, they get a final warning, and are removed from the Resume Book 24
+                hours after that.
+              </li>
+            </ul>
+            <p className="text-xs text-gray-500 mt-3">
+              Undo removes the missed mark and stops the clock, but doesn&apos;t restore their schedule.
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setMissedConfirmUser(null)}
+                disabled={Boolean(missedBusyUserId)}
+                className="px-4 py-2 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMissedMeeting(missedConfirmUser, 'POST')}
+                disabled={Boolean(missedBusyUserId)}
+                className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {missedBusyUserId ? 'Marking…' : 'Mark missed'}
+              </button>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
       )}
     </>
   );
