@@ -1607,9 +1607,6 @@ const hasSeededMockDataRef = useRef(false);
     window.history.replaceState(null, '', url);
   };
 
-  const handleTabClick = selectTab;
-  const handleHabitCardClick = selectTab;
-
 
   return (
     <div className="bg-white text-gray-900 min-h-[calc(100dvh-var(--navbar-height))] w-full">
@@ -1645,7 +1642,7 @@ const hasSeededMockDataRef = useRef(false);
           <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-x-auto">
             <div className="flex min-w-full">
               <button 
-                onClick={() => handleTabClick('overview')}
+                onClick={() => selectTab('overview')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'overview' 
                     ? 'bg-electric-blue text-white' 
@@ -1655,7 +1652,7 @@ const hasSeededMockDataRef = useRef(false);
                 <Gauge className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Overview
               </button>
               <button 
-                onClick={() => handleTabClick('opensource')}
+                onClick={() => selectTab('opensource')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'opensource' 
                     ? 'bg-electric-blue text-white' 
@@ -1665,7 +1662,7 @@ const hasSeededMockDataRef = useRef(false);
                 <GitBranch className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Open Source
               </button>
               <button 
-                onClick={() => handleTabClick('applications')}
+                onClick={() => selectTab('applications')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'applications' 
                     ? 'bg-electric-blue text-white' 
@@ -1675,7 +1672,7 @@ const hasSeededMockDataRef = useRef(false);
                 <FileText className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Applications
               </button>
               <button 
-                onClick={() => handleTabClick('interviews')}
+                onClick={() => selectTab('interviews')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'interviews' 
                     ? 'bg-electric-blue text-white' 
@@ -1685,7 +1682,7 @@ const hasSeededMockDataRef = useRef(false);
                 <MessageCircle className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Coffee Chats
               </button>
               <button 
-                onClick={() => handleTabClick('events')}
+                onClick={() => selectTab('events')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
                   activeTab === 'events' 
                     ? 'bg-electric-blue text-white' 
@@ -1707,8 +1704,8 @@ const hasSeededMockDataRef = useRef(false);
             applicationsAllTimeCount={applicationsAllTimeCount}
             eventsMetrics={eventsMetrics}
             eventsAllTimeCount={eventsAllTimeCount}
-            handleHabitCardClick={handleHabitCardClick}
-            instructorViewUserId={isInstructor && userIdParam ? userIdParam : null}
+            handleHabitCardClick={selectTab}
+            instructorViewUserId={userIdParam}
           />
         )}
 

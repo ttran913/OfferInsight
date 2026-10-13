@@ -11,7 +11,7 @@ import type { BusyInterval } from '@/app/lib/calendar/conflicts';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
 import DisplayNameCard from './calendar/DisplayNameCard';
 import MonthCalendar from './calendar/MonthCalendar';
-import StandingWeekView from './calendar/StandingWeekView';
+import WeeklyScheduleView from './calendar/WeeklyScheduleView';
 import {
   daysToWindows,
   rangeErrors,
@@ -365,7 +365,7 @@ export default function CalendarTab() {
             events.
           </p>
         )}
-        <StandingWeekView
+        <WeeklyScheduleView
           windows={draftWindows}
           bookings={bookings}
           busy={busyIntervals}

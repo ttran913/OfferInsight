@@ -58,7 +58,7 @@ function weekTitle(offset: number): string {
   return `In ${offset} weeks`;
 }
 
-export default function StandingWeekView({
+export default function WeeklyScheduleView({
   windows,
   bookings,
   busy,
@@ -306,8 +306,6 @@ function SlotCell({ cell }: { cell: Cell }) {
     : allSkipped
       ? 'bg-electric-blue/10 border border-electric-blue/40 text-electric-blue'
       : 'bg-electric-blue text-white';
-  const subtle = cell.outsideHours || allSkipped ? 'opacity-80' : 'text-white/80';
-
   return (
     <div
       title={
@@ -339,7 +337,9 @@ function SlotCell({ cell }: { cell: Cell }) {
           className={`truncate ${skipped ? 'line-through' : ''}`}
         >
           {b.studentName}
-          {skipped && !allSkipped && <span className={`no-underline ${subtle}`}> (skipped)</span>}
+          {skipped && !allSkipped && (
+            <span className={cell.outsideHours ? 'opacity-80' : 'text-white/80'}> (skipped)</span>
+          )}
         </div>
       ))}
     </div>
