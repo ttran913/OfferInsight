@@ -16,7 +16,7 @@ import {
   anchorLocalDateFromOccurrence,
   formatNextMeetingLabel,
 } from '@/app/lib/calendar/next-occurrence';
-import { findPendingSkip, nextAttendedOccurrence } from '@/app/lib/calendar/skips';
+import { nextAttendedOccurrence } from '@/app/lib/calendar/skips';
 import { prisma } from '@/db';
 
 function normalizeHhMm(value: string): string {
@@ -74,7 +74,7 @@ export async function GET() {
           firstOccurrence: true,
           user: { select: { name: true, email: true } },
           skips: {
-            where: { occurrenceStart: { gt: new Date() } },
+            where: { occurrenceStart: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
             select: { occurrenceStart: true, reason: true },
           },
         },
@@ -89,7 +89,6 @@ export async function GET() {
     const bookings = meetings.map((m) => {
       const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
       const next = nextAttendedOccurrence(m, m.skips);
-      const skip = findPendingSkip(m.skips);
       return {
         id: m.id,
         studentName: m.user.name || m.user.email || 'Student',
@@ -98,14 +97,9 @@ export async function GET() {
         dayOfWeek: m.dayOfWeek,
         localTime: m.localTime,
         nthWeekday: nthWeekdayForLocalDate(anchorLocalDate),
+        firstOccurrenceDate: anchorLocalDate,
         nextOccurrenceLabel: next ? formatNextMeetingLabel(next.startIso, m.timezone) : null,
-        skippedOccurrence: skip
-          ? {
-              start: skip.occurrenceStart.toISOString(),
-              label: formatNextMeetingLabel(skip.occurrenceStart.toISOString(), m.timezone),
-              reason: skip.reason,
-            }
-          : null,
+        skips: m.skips.map((s) => ({ start: s.occurrenceStart.toISOString(), reason: s.reason })),
       };
     });
 

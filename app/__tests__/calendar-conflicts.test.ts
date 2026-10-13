@@ -1,8 +1,4 @@
-import {
-  findBlockedWeeklyTimes,
-  monthlySeriesStarts,
-  seriesConflict,
-} from '../lib/calendar/conflicts';
+import { monthlySeriesStarts, seriesConflict } from '../lib/calendar/conflicts';
 import { generateAvailableSlots } from '../lib/calendar/slots';
 
 const tz = 'America/Los_Angeles';
@@ -32,26 +28,6 @@ describe('seriesConflict', () => {
   it('treats back-to-back events as non-overlapping', () => {
     const busy = [{ start: '2026-06-10T16:00:00.000Z', end: '2026-06-10T17:00:00.000Z', title: 'Standup' }];
     expect(seriesConflict(jun10, busy, 20)).toBeNull();
-  });
-});
-
-describe('findBlockedWeeklyTimes', () => {
-  it('does not block a time when some date is still free', () => {
-    const busy = [{ start: '2026-06-10T17:00:00.000Z', end: '2026-06-10T17:30:00.000Z', title: 'Dentist' }];
-    expect(findBlockedWeeklyTimes({ slots, busy, durationMinutes: 20 }).size).toBe(0);
-  });
-
-  it('blocks a time when every candidate date conflicts (weekly recurring meeting)', () => {
-    const busy = Array.from({ length: 16 }, (_, i) => {
-      const start = new Date(Date.parse('2026-06-10T17:00:00.000Z') + i * 7 * 86400000);
-      return {
-        start: start.toISOString(),
-        end: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
-        title: 'Team sync',
-      };
-    });
-    const blocked = findBlockedWeeklyTimes({ slots, busy, durationMinutes: 20 });
-    expect(blocked.get('3|10:00')).toEqual({ start: '2026-06-10T17:00:00.000Z', title: 'Team sync' });
   });
 });
 

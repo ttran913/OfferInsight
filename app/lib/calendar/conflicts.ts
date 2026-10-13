@@ -53,27 +53,3 @@ export function seriesConflict(
   }
   return null;
 }
-
-/**
- * Weekly times (weeklyKey) where Google conflicts rule out every candidate date,
- * mapped to the earliest conflict. Times with at least one free date are omitted.
- */
-export function findBlockedWeeklyTimes(opts: {
-  slots: GeneratedSlot[];
-  busy: BusyInterval[];
-  durationMinutes: number;
-}): Map<string, WeeklyConflict> {
-  const firstConflict = new Map<string, WeeklyConflict>();
-  const free = new Set<string>();
-  for (const slot of opts.slots) {
-    if (free.has(slot.weeklyKey)) continue;
-    const conflict = seriesConflict(slot, opts.busy, opts.durationMinutes);
-    if (!conflict) {
-      free.add(slot.weeklyKey);
-      firstConflict.delete(slot.weeklyKey);
-    } else if (!firstConflict.has(slot.weeklyKey)) {
-      firstConflict.set(slot.weeklyKey, conflict);
-    }
-  }
-  return firstConflict;
-}

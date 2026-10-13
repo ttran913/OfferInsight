@@ -28,9 +28,11 @@ export type Booking = {
   localTime: string;
   /** 1–4, or -1 for "last" weekday of the month */
   nthWeekday: number;
+  /** YYYY-MM-DD (instructor timezone) of the series' first meeting. */
+  firstOccurrenceDate: string;
   nextOccurrenceLabel: string | null;
-  /** Upcoming date the student said they'll miss (series unchanged). */
-  skippedOccurrence: { start: string; label: string; reason: string | null } | null;
+  /** Recent and upcoming dates the student said they'll miss (series unchanged). */
+  skips: { start: string; reason: string | null }[];
 };
 
 export const DEFAULT_RANGE = { startTime: '09:00', endTime: '17:00' };

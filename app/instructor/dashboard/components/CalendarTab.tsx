@@ -7,8 +7,7 @@ import {
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
 } from '@/app/lib/calendar/constants';
-import { bookingWindowSlots } from '@/app/lib/calendar/bookable-days';
-import { findBlockedWeeklyTimes, type BusyInterval } from '@/app/lib/calendar/conflicts';
+import type { BusyInterval } from '@/app/lib/calendar/conflicts';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
 import DisplayNameCard from './calendar/DisplayNameCard';
 import MonthCalendar from './calendar/MonthCalendar';
@@ -109,14 +108,7 @@ export default function CalendarTab() {
   const draftWindows = useMemo(() => daysToWindows(days), [days]);
   const isDirty = windowsSignature(draftWindows) !== windowsSignature(daysToWindows(savedDays));
   const hasErrors = days.some((d) => Object.keys(rangeErrors(d)).length > 0);
-  const blocked = useMemo(() => {
-    if (status?.busy.status !== 'ok') return null;
-    return findBlockedWeeklyTimes({
-      slots: bookingWindowSlots({ windows: draftWindows, timezone, durationMinutes: duration }),
-      busy: status.busy.intervals,
-      durationMinutes: duration,
-    });
-  }, [status, draftWindows, timezone, duration]);
+  const busyIntervals = status?.busy.status === 'ok' ? status.busy.intervals : null;
   const bookingsOutsideDraft = useMemo(() => {
     const keys = weeklyKeysForWindows(draftWindows, duration);
     return bookings.filter((b) => !keys.has(b.weeklyKey));
@@ -344,7 +336,7 @@ export default function CalendarTab() {
           <CalendarCheck className="w-6 h-6 text-electric-blue shrink-0 mt-0.5" />
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold text-gray-900">Standing week</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Weekly schedule</h2>
               {isDirty && (
                 <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                   Previewing unsaved changes
@@ -352,10 +344,11 @@ export default function CalendarTab() {
               )}
             </div>
             <p className="text-sm text-gray-500 mt-1">
-              Students pick a date, which sets their week of the month (e.g. 2nd Wednesday), so
-              one weekday and time can hold a student for each week. A date is only offered when
-              its next three monthly meetings are free on your Google Calendar; times with no such
-              date this month or next show as busy. Hover a slot for details.
+              Your 1:1s on actual dates, this week and the next four. Each student meets on the
+              same week of every month (e.g. 2nd Wednesday), so a time held by one student this
+              week can be open for someone else next week. Students can only book a date whose
+              next three monthly meetings are free on your Google Calendar. Hover a meeting for
+              details.
             </p>
           </div>
         </div>
@@ -375,7 +368,7 @@ export default function CalendarTab() {
         <StandingWeekView
           windows={draftWindows}
           bookings={bookings}
-          blocked={blocked}
+          busy={busyIntervals}
           durationMinutes={duration}
           timezone={timezone}
         />
