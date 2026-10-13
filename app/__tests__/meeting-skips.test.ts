@@ -27,6 +27,14 @@ describe('one-time meeting skips', () => {
     ).toBe('2026-08-12');
   });
 
+  it('ignores matching weekdays before the series starts', () => {
+    // Booked on Jun 1 for the 2nd Wednesday of July; Jun 10 is not part of the series.
+    const julySeries = { ...meeting, firstOccurrence: JULY_8 };
+    const june1 = new Date('2026-06-01T12:00:00.000Z');
+    expect(nextAttendedOccurrence(julySeries, [], june1)?.localDate).toBe('2026-07-08');
+    expect(planSkip(julySeries, [], june1)).toEqual({ ok: true, occurrenceStart: JULY_8 });
+  });
+
   it('plans a skip of the next upcoming meeting', () => {
     const plan = planSkip(meeting, [], now);
     expect(plan).toEqual({ ok: true, occurrenceStart: JULY_8 });

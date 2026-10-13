@@ -30,7 +30,8 @@ export function nextAttendedOccurrence(
     localTime: meeting.localTime,
     timezone: meeting.timezone,
     anchorLocalDate: anchorLocalDateFromOccurrence(meeting.firstOccurrence, meeting.timezone),
-    now,
+    // A series booked for next month has no meeting on this month's matching weekday.
+    now: now < meeting.firstOccurrence ? meeting.firstOccurrence : now,
     skippedStarts: skips.map((s) => s.occurrenceStart),
   });
 }

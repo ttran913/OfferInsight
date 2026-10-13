@@ -280,6 +280,53 @@ OfferInsight`;
   return { subject, text, html };
 }
 
+/** To the student the day before a monthly 1:1. */
+export function buildMeetingReminderEmail(input: {
+  studentName: string | null;
+  instructorName: string;
+  /** e.g. "Wednesday, June 10, 2026 at 10:00 AM PDT" */
+  occurrenceLabel: string;
+}): { subject: string; text: string; html: string } {
+  const name = input.studentName || 'there';
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
+  const boardUrl = baseUrl ? `${baseUrl}/dashboard?tab=opensource` : null;
+  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+
+  const subject = `Reminder: your 1:1 with ${input.instructorName} is tomorrow`;
+  const when = `${input.occurrenceLabel} (${MEETING_DURATION_MINUTES} minutes)`;
+  const board = `Before your 1:1, please update your Open Source Contributions board so ${input.instructorName} can see your latest progress.`;
+  const link = (url: string | null, label: string) =>
+    url ? `<a href="${escapeHtml(url)}" style="color:#007ACC;">${label}</a>` : label;
+
+  const text = `Hi ${name},
+
+This is a reminder that your monthly 1:1 with ${input.instructorName} is tomorrow.
+
+When: ${when}
+
+${board}${boardUrl ? `\n${boardUrl}` : ''}
+
+Can't make it? Skip or reschedule from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+
+Best,
+OfferInsight`;
+
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">Your 1:1 with ${escapeHtml(input.instructorName)} is tomorrow</h2>
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>This is a reminder that your monthly 1:1 is tomorrow.</p>
+  <p><strong>When:</strong> ${escapeHtml(when)}</p>
+  <div style="background:#EFF6FF;border-left:4px solid #007ACC;padding:12px 16px;margin:16px 0;">
+    <p style="margin:0;">${escapeHtml(board)}</p>
+    <p style="margin:8px 0 0;">${link(boardUrl, 'Update my Open Source board')}</p>
+  </div>
+  <p>Can't make it? Skip or reschedule from your ${link(accountUrl, 'OfferInsight Account page')}.</p>
+  <p>Best,<br/>OfferInsight</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
 export function buildInstructorChangedEmail(input: {
   studentName: string | null;
   oldInstructorName: string;

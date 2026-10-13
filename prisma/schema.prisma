@@ -228,6 +228,8 @@ model StudentMonthlyMeeting {
   /// Next / first occurrence start (UTC)
   firstOccurrence DateTime
   googleEventId   String?
+  /// Start (UTC) of the occurrence the day-before reminder was last sent for
+  lastReminderFor DateTime?
   skips           SkippedMeeting[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
