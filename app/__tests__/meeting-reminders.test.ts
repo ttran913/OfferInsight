@@ -28,8 +28,16 @@ describe('occurrenceNeedingReminder', () => {
     expect(occurrenceNeedingReminder(meeting, [], new Date('2026-07-06T16:00:00.000Z'))).toBeNull();
   });
 
-  it('does not remind for a skipped date', () => {
-    expect(occurrenceNeedingReminder(meeting, [{ occurrenceStart: JULY_8 }], JULY_7_RUN)).toBeNull();
+  it('does not remind for a regular date that was moved away', () => {
+    const moves = [{ originalStart: JULY_8, newStart: new Date('2026-07-10T21:00:00.000Z') }];
+    expect(occurrenceNeedingReminder(meeting, moves, JULY_7_RUN)).toBeNull();
+  });
+
+  it('reminds the day before a moved meeting', () => {
+    const july6 = new Date('2026-07-06T21:00:00.000Z');
+    const moves = [{ originalStart: JULY_8, newStart: july6 }];
+    const run = new Date('2026-07-05T16:00:00.000Z');
+    expect(occurrenceNeedingReminder(meeting, moves, run)?.startIso).toBe(july6.toISOString());
   });
 
   it('does not remind twice for the same meeting', () => {

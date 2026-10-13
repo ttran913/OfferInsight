@@ -137,24 +137,26 @@ export function buildMonthlyMeetingCancelIcs(input: MonthlyInviteInput) {
 }
 
 /**
- * Cancels one date of the series (or restores it after an undo), matched to the
- * original invite by UID + RECURRENCE-ID. `slot` must be the series' first slot.
+ * Moves one date of the series to `newStart` (or back to its original time after an
+ * undo), matched to the original invite by UID + RECURRENCE-ID. `slot` must be the
+ * series' first slot.
  */
-export function buildMonthlyOccurrenceIcs(
-  input: MonthlyInviteInput & { occurrenceStart: string; cancelled: boolean }
+export function buildMovedOccurrenceIcs(
+  input: MonthlyInviteInput & { originalStart: string; newStart: string }
 ): { filename: string; content: string } {
-  const { cancelled } = input;
-  const start = new Date(input.occurrenceStart);
+  const original = new Date(input.originalStart);
+  const start = new Date(input.newStart);
   const end = new Date(start.getTime() + MEETING_DURATION_MINUTES * 60 * 1000);
-  const content = buildIcsContent(cancelled ? 'CANCEL' : 'REQUEST', input, [
-    `RECURRENCE-ID:${formatIcsUtc(start)}`,
+  const content = buildIcsContent('REQUEST', input, [
+    `RECURRENCE-ID:${formatIcsUtc(original)}`,
     `DTSTART:${formatIcsUtc(start)}`,
     `DTEND:${formatIcsUtc(end)}`,
-    `STATUS:${cancelled ? 'CANCELLED' : 'CONFIRMED'}`,
-    `SEQUENCE:${cancelled ? 1 : 2}`,
+    'STATUS:CONFIRMED',
+    // Calendars keep the highest sequence, so each later change must count higher.
+    `SEQUENCE:${Math.floor(Date.now() / 1000)}`,
   ]);
   return {
-    filename: `${cancelled ? 'skip' : 'restore'}-1on1-${start.toISOString().slice(0, 10)}.ics`,
+    filename: `1on1-${start.toISOString().slice(0, 10)}.ics`,
     content,
   };
 }
@@ -162,31 +164,34 @@ export function buildMonthlyOccurrenceIcs(
 const EMAIL_WRAPPER_START = `<!DOCTYPE html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">`;
 
-/** To the student after they skip one meeting, or undo that skip. */
-export function buildMeetingSkipStudentEmail(input: {
+/** To the student after they move one meeting (one time only), or undo that move. */
+export function buildMeetingMoveStudentEmail(input: {
   studentName: string | null;
   instructorName: string;
-  /** e.g. "Wednesday, June 10, 2026 at 10:00 AM PDT" */
-  occurrenceLabel: string;
-  nextLabel: string | null;
+  /** Regular date being moved, e.g. "Wednesday, June 10, 2026 at 10:00 AM PDT" */
+  originalLabel: string;
+  /** Where that one meeting now happens (unused when undone) */
+  newLabel: string;
+  /** e.g. "2nd Wednesday of every month at 10:00 AM PDT" */
+  scheduleLabel: string;
   undone: boolean;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
   const subject = input.undone
-    ? `Back on: your 1:1 with ${input.instructorName}`
-    : `Skipped: your 1:1 with ${input.instructorName}`;
+    ? `Back to your regular time: 1:1 with ${input.instructorName}`
+    : `Moved (one time): your 1:1 with ${input.instructorName}`;
   const lead = input.undone
-    ? `Your 1:1 with ${input.instructorName} on ${input.occurrenceLabel} is back on.`
-    : `You've skipped your 1:1 with ${input.instructorName} on ${input.occurrenceLabel}. Your monthly schedule stays the same.`;
-  const next = !input.undone && input.nextLabel ? `Next meeting: ${input.nextLabel}` : '';
-  const ics = input.undone
-    ? 'The attached calendar file (.ics) puts it back on your calendar.'
-    : 'The attached calendar file (.ics) removes just that date from your calendar.';
+    ? `Your 1:1 with ${input.instructorName} is back at its regular time: ${input.originalLabel}.`
+    : `Your 1:1 with ${input.instructorName} on ${input.originalLabel} has been moved to ${input.newLabel}. This change is for that one meeting only.`;
+  const schedule = `Your regular schedule hasn't changed: ${input.scheduleLabel}.`;
+  const ics = 'The attached calendar file (.ics) updates that date on your calendar.';
 
   const text = `Hi ${name},
 
 ${lead}
-${next ? `\n${next}\n` : ''}
+
+${schedule}
+
 ${ics}
 
 Best,
@@ -195,33 +200,32 @@ OfferInsight`;
   <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>${escapeHtml(lead)}</p>
-  ${next ? `<p><strong>${escapeHtml(next)}</strong></p>` : ''}
+  <p><strong>${escapeHtml(schedule)}</strong></p>
   <p>${escapeHtml(ics)}</p>
   <p>Best,<br/>OfferInsight</p>
 </body></html>`;
   return { subject, text, html };
 }
 
-/** To the instructor when a student skips one meeting, or undoes that skip. */
-export function buildMeetingSkipInstructorEmail(input: {
+/** To the instructor when a student moves one meeting (one time only), or undoes that move. */
+export function buildMeetingMoveInstructorEmail(input: {
   studentName: string;
-  occurrenceLabel: string;
-  reason: string | null;
+  originalLabel: string;
+  newLabel: string;
   undone: boolean;
 }): { subject: string; text: string; html: string } {
   const subject = input.undone
-    ? `${input.studentName} will make their 1:1 after all`
-    : `${input.studentName} can't make their 1:1`;
+    ? `${input.studentName}'s 1:1 is back at its regular time`
+    : `${input.studentName} moved one 1:1`;
   const lead = input.undone
-    ? `${input.studentName} undid their skip. Their 1:1 on ${input.occurrenceLabel} is back on your calendar.`
-    : `${input.studentName} can't make their 1:1 on ${input.occurrenceLabel}. It has been removed from your calendar; the rest of their monthly series is unchanged.`;
-  const reason = !input.undone && input.reason ? `Reason: ${input.reason}` : '';
+    ? `${input.studentName} undid their one-time move. Their 1:1 is back on ${input.originalLabel}.`
+    : `${input.studentName} moved their 1:1 on ${input.originalLabel} to ${input.newLabel}, one time only. Their monthly series is otherwise unchanged.`;
 
-  const text = [lead, reason, '', 'OfferInsight'].filter(Boolean).join('\n\n');
+  const text = [lead, 'Your Google Calendar has been updated.', 'OfferInsight'].join('\n\n');
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
   <p>${escapeHtml(lead)}</p>
-  ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(input.reason!)}</p>` : ''}
+  <p>Your Google Calendar has been updated.</p>
   <p>OfferInsight</p>
 </body></html>`;
   return { subject, text, html };

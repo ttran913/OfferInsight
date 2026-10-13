@@ -8,7 +8,7 @@ import { computeActiveStatus } from "@/app/lib/active-status";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
 import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
-import { findPendingSkip, nextAttendedOccurrence } from "@/app/lib/calendar/skips";
+import { nextMeeting } from "@/app/lib/calendar/moves";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
@@ -43,9 +43,9 @@ export async function GET() {
               localTime: true,
               timezone: true,
               firstOccurrence: true,
-              skips: {
-                where: { occurrenceStart: { gt: now } },
-                select: { occurrenceStart: true },
+              moves: {
+                where: { OR: [{ originalStart: { gt: now } }, { newStart: { gt: now } }] },
+                select: { originalStart: true, newStart: true },
               },
             },
           },
@@ -232,17 +232,16 @@ export async function GET() {
             user.monthlyMeeting?.instructorId ?? null
           ),
           meeting: user.monthlyMeeting
-            ? {
-                instructorId: user.monthlyMeeting.instructorId,
-                instructorLabel: instructorLabel(user.monthlyMeeting.instructor),
-                timezone: user.monthlyMeeting.timezone,
-                nextStart:
-                  nextAttendedOccurrence(user.monthlyMeeting, user.monthlyMeeting.skips, now)
-                    ?.startIso ?? null,
-                skippedStart:
-                  findPendingSkip(user.monthlyMeeting.skips, now)?.occurrenceStart.toISOString() ??
-                  null,
-              }
+            ? (() => {
+                const next = nextMeeting(user.monthlyMeeting, user.monthlyMeeting.moves, now);
+                return {
+                  instructorId: user.monthlyMeeting.instructorId,
+                  instructorLabel: instructorLabel(user.monthlyMeeting.instructor),
+                  timezone: user.monthlyMeeting.timezone,
+                  nextStart: next?.startIso ?? null,
+                  movedFrom: next?.movedFrom ?? null,
+                };
+              })()
             : null,
           openSource: {
             issuesCompleted: issuesCompletedCount,

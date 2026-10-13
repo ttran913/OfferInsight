@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
         lastReminderFor: true,
         user: { select: { name: true, email: true } },
         instructor: { select: { displayName: true } },
-        skips: {
-          where: { occurrenceStart: { gt: now } },
-          select: { occurrenceStart: true },
+        moves: {
+          where: { OR: [{ originalStart: { gt: now } }, { newStart: { gt: now } }] },
+          select: { originalStart: true, newStart: true },
         },
       },
     });
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     for (const meeting of meetings) {
       const email = meeting.user.email;
       if (!email) continue;
-      const next = occurrenceNeedingReminder(meeting, meeting.skips, now);
+      const next = occurrenceNeedingReminder(meeting, meeting.moves, now);
       if (!next) continue;
 
       const result: ReminderResult = {

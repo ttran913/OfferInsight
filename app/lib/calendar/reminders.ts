@@ -1,5 +1,5 @@
 import { addDaysToDateKey, localDateKey } from './month-grid';
-import { nextAttendedOccurrence } from './skips';
+import { nextMeeting, type MoveFields } from './moves';
 
 type ReminderMeeting = {
   dayOfWeek: number;
@@ -10,15 +10,16 @@ type ReminderMeeting = {
 };
 
 /**
- * The meeting to send a day-before reminder for: the student's next attended
- * meeting when it falls on tomorrow (meeting timezone) and hasn't been reminded yet.
+ * The meeting to send a day-before reminder for: the student's next actual meeting
+ * (a one-time move counts at its new time) when it falls on tomorrow (meeting
+ * timezone) and hasn't been reminded yet.
  */
 export function occurrenceNeedingReminder(
   meeting: ReminderMeeting,
-  skips: { occurrenceStart: Date }[],
+  moves: MoveFields[],
   now = new Date()
 ) {
-  const next = nextAttendedOccurrence(meeting, skips, now);
+  const next = nextMeeting(meeting, moves, now);
   if (!next) return null;
   const tomorrow = addDaysToDateKey(localDateKey(now, meeting.timezone), 1);
   if (next.localDate !== tomorrow) return null;

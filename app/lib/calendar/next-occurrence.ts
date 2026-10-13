@@ -57,11 +57,11 @@ export function getNextMonthlyOccurrence(opts: {
   /** Local YYYY-MM-DD that defines which nth weekday (usually firstOccurrence). */
   anchorLocalDate: string;
   now?: Date;
-  /** Occurrence starts the student skipped; these are stepped over. */
-  skippedStarts?: Date[];
+  /** Occurrence starts to step over (e.g. dates moved elsewhere one time). */
+  excludedStarts?: Date[];
 }): NextMonthlyOccurrence | null {
   const now = opts.now ?? new Date();
-  const skipped = new Set((opts.skippedStarts ?? []).map((d) => d.getTime()));
+  const excluded = new Set((opts.excludedStarts ?? []).map((d) => d.getTime()));
   const nth = nthWeekdayForLocalDate(opts.anchorLocalDate);
   const [hours, minutes] = opts.localTime.split(':').map(Number);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
@@ -81,7 +81,7 @@ export function getNextMonthlyOccurrence(opts: {
         minutes,
         opts.timezone
       );
-      if (start.getTime() >= now.getTime() && !skipped.has(start.getTime())) {
+      if (start.getTime() >= now.getTime() && !excluded.has(start.getTime())) {
         return {
           startIso: start.toISOString(),
           localDate: `${year}-${pad2(month)}-${pad2(day)}`,

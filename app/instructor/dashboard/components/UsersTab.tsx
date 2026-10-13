@@ -19,8 +19,8 @@ interface UserData {
     timezone: string;
     /** ISO start of the next meeting the student will attend */
     nextStart: string | null;
-    /** ISO start of an upcoming date the student skipped */
-    skippedStart: string | null;
+    /** ISO start of the regular date the next meeting was moved from, one time */
+    movedFrom: string | null;
   } | null;
   openSource: {
     issuesCompleted: number;
@@ -663,9 +663,9 @@ export default function UsersTab() {
                     ) : (
                       <span>Not booked</span>
                     )}
-                    {user.meeting?.skippedStart && (
+                    {user.meeting?.movedFrom && (
                       <span className="text-xs text-amber-700">
-                        Skipping {formatMeetingDate(user.meeting.skippedStart, user.meeting.timezone)}
+                        Moved from {formatMeetingDate(user.meeting.movedFrom, user.meeting.timezone)}
                       </span>
                     )}
                     {user.meeting && user.meeting.instructorId !== currentInstructorId && (

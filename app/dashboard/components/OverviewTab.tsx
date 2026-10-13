@@ -4,7 +4,6 @@ import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
 import { INSTRUCTOR_DISPLAY_NAME_FALLBACK } from '@/app/lib/calendar/constants';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
 import type { MeetingSummary } from '@/components/monthly-meeting-scheduler';
-import SkipMeetingControl from '@/components/skip-meeting-control';
 import { ModalOverlay, ModalPanel } from './shared';
 
 type OpenSourceActivityItem = {
@@ -387,14 +386,19 @@ export default function OverviewTab({
                     <span className="font-medium text-gray-900">
                       {meetingSummary.nextOccurrenceLabel}
                     </span>
+                    {meetingSummary.movedFrom && (
+                      <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                        One-time change
+                      </span>
+                    )}
                   </p>
                 )}
-                <SkipMeetingControl
-                  meeting={meetingSummary}
-                  instructorName={instructorName}
-                  onChange={setMeetingSummary}
-                  readOnly={Boolean(instructorViewUserId)}
-                />
+                {meetingSummary.movedFrom && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Moved from{' '}
+                    <span className="line-through">{meetingSummary.movedFrom.label}</span>
+                  </p>
+                )}
               </>
             ) : (
               <p className="text-sm text-gray-700">
@@ -408,7 +412,7 @@ export default function OverviewTab({
             href="/account"
             className="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 transition-opacity"
           >
-            {meetingSummary ? 'Manage meeting' : 'Schedule meeting'}
+            {meetingSummary ? 'Reschedule' : 'Schedule meeting'}
           </Link>
         )}
       </div>

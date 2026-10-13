@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         monthlyMeeting: {
           include: {
             instructor: { select: { displayName: true } },
-            skips: { orderBy: { occurrenceStart: 'asc' } },
+            moves: { select: { originalStart: true, newStart: true } },
           },
         },
       },
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       meeting: user.monthlyMeeting
-        ? meetingPayload(user.monthlyMeeting, user.monthlyMeeting.skips)
+        ? meetingPayload(user.monthlyMeeting, user.monthlyMeeting.moves)
         : null,
       instructorName,
     });
@@ -127,7 +127,8 @@ export async function PUT(request: NextRequest) {
         },
       });
 
-      await tx.skippedMeeting.deleteMany({ where: { meetingId: saved.id } });
+      // A new regular schedule replaces the old series, along with any one-time moves of it.
+      await tx.movedMeeting.deleteMany({ where: { meetingId: saved.id } });
 
       await tx.user.update({
         where: { id: user.id },

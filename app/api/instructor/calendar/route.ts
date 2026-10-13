@@ -16,7 +16,7 @@ import {
   anchorLocalDateFromOccurrence,
   formatNextMeetingLabel,
 } from '@/app/lib/calendar/next-occurrence';
-import { nextAttendedOccurrence } from '@/app/lib/calendar/skips';
+import { nextMeeting } from '@/app/lib/calendar/moves';
 import { prisma } from '@/db';
 
 function normalizeHhMm(value: string): string {
@@ -42,6 +42,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [profile, connection, windows, meetings, defaultInfo] = await Promise.all([
       prisma.instructor.findUnique({
         where: { id: instructor.id },
@@ -73,9 +74,11 @@ export async function GET() {
           timezone: true,
           firstOccurrence: true,
           user: { select: { name: true, email: true } },
-          skips: {
-            where: { occurrenceStart: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
-            select: { occurrenceStart: true, reason: true },
+          moves: {
+            where: {
+              OR: [{ originalStart: { gt: weekAgo } }, { newStart: { gt: weekAgo } }],
+            },
+            select: { originalStart: true, newStart: true },
           },
         },
       }),
@@ -88,7 +91,7 @@ export async function GET() {
 
     const bookings = meetings.map((m) => {
       const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
-      const next = nextAttendedOccurrence(m, m.skips);
+      const next = nextMeeting(m, m.moves);
       return {
         id: m.id,
         studentName: m.user.name || m.user.email || 'Student',
@@ -99,7 +102,10 @@ export async function GET() {
         nthWeekday: nthWeekdayForLocalDate(anchorLocalDate),
         firstOccurrenceDate: anchorLocalDate,
         nextOccurrenceLabel: next ? formatNextMeetingLabel(next.startIso, m.timezone) : null,
-        skips: m.skips.map((s) => ({ start: s.occurrenceStart.toISOString(), reason: s.reason })),
+        moves: m.moves.map((mv) => ({
+          originalStart: mv.originalStart.toISOString(),
+          newStart: mv.newStart.toISOString(),
+        })),
       };
     });
 

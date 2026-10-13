@@ -10,7 +10,7 @@ import {
 import type { BusyInterval } from '@/app/lib/calendar/conflicts';
 import { formatTime12, nthOrdinalLabel } from '@/app/lib/calendar/labels';
 import { localDateKey } from '@/app/lib/calendar/month-grid';
-import { zonedWallTimeToUtc } from '@/app/lib/calendar/slots';
+import { getZonedParts, zonedWallTimeToUtc } from '@/app/lib/calendar/slots';
 import {
   WEEKS_AHEAD,
   seriesMeetsOn,
@@ -28,7 +28,8 @@ type Props = {
   timezone: string;
 };
 
-type Meeting = { booking: Booking; skipReason: string | null; skipped: boolean };
+/** movedTo: this regular date was moved elsewhere (ISO). oneTime: a moved meeting landing here. */
+type Meeting = { booking: Booking; movedTo: string | null; oneTime: boolean };
 
 type Cell =
   | { kind: 'open'; localTime: string; past: boolean }
@@ -50,6 +51,17 @@ function formatDateKey(dateKey: string, options: Intl.DateTimeFormatOptions): st
   return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...options }).format(
     new Date(Date.UTC(y, m - 1, d))
   );
+}
+
+function movedToLabel(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso));
 }
 
 function weekTitle(offset: number): string {
@@ -83,29 +95,39 @@ export default function WeeklyScheduleView({
           times.add(t);
         }
       }
-      const bookingsByTime = new Map<string, Booking[]>();
+      const meetingsByTime = new Map<string, Meeting[]>();
+      const addMeeting = (localTime: string, meeting: Meeting) =>
+        meetingsByTime.set(localTime, [...(meetingsByTime.get(localTime) ?? []), meeting]);
       for (const b of bookings) {
-        if (b.dayOfWeek !== dayOfWeek || !seriesMeetsOn(b, dateKey)) continue;
-        bookingsByTime.set(b.localTime, [...(bookingsByTime.get(b.localTime) ?? []), b]);
+        if (b.dayOfWeek === dayOfWeek && seriesMeetsOn(b, dateKey)) {
+          const [hh, mm] = b.localTime.split(':').map(Number);
+          const start = zonedWallTimeToUtc(y, m, d, hh, mm, timezone).getTime();
+          const move = b.moves.find((mv) => Date.parse(mv.originalStart) === start);
+          addMeeting(b.localTime, { booking: b, movedTo: move?.newStart ?? null, oneTime: false });
+        }
+        for (const mv of b.moves) {
+          const newStart = new Date(mv.newStart);
+          if (localDateKey(newStart, timezone) !== dateKey) continue;
+          const p = getZonedParts(newStart, timezone);
+          const localTime = `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+          addMeeting(localTime, { booking: b, movedTo: null, oneTime: true });
+        }
       }
 
-      const cells: Cell[] = [...new Set([...times, ...bookingsByTime.keys()])]
+      const cells: Cell[] = [...new Set([...times, ...meetingsByTime.keys()])]
         .sort()
         .map((localTime) => {
           const [hh, mm] = localTime.split(':').map(Number);
           const start = zonedWallTimeToUtc(y, m, d, hh, mm, timezone).getTime();
           const past = start < now;
-          const atTime = bookingsByTime.get(localTime);
+          const atTime = meetingsByTime.get(localTime);
           if (atTime) {
             return {
               kind: 'booked',
               localTime,
               past,
               outsideHours: !times.has(localTime),
-              meetings: atTime.map((booking) => {
-                const skip = booking.skips.find((s) => Date.parse(s.start) === start);
-                return { booking, skipped: !!skip, skipReason: skip?.reason ?? null };
-              }),
+              meetings: atTime,
             };
           }
           const hit = busy?.find(
@@ -125,8 +147,8 @@ export default function WeeklyScheduleView({
         cells,
         openCount: cells.filter((c) => c.kind === 'open' && !c.past).length,
         busyCount: cells.filter((c) => c.kind === 'busy').length,
-        meetingCount: meetings.filter((mt) => !mt.skipped).length,
-        skippedCount: meetings.filter((mt) => mt.skipped).length,
+        meetingCount: meetings.filter((mt) => !mt.movedTo).length,
+        movedAwayCount: meetings.filter((mt) => mt.movedTo).length,
       };
     });
   }, [windows, bookings, busy, durationMinutes, timezone, todayKey, weekOffset, now]);
@@ -134,7 +156,7 @@ export default function WeeklyScheduleView({
   const totalOpen = columns.reduce((sum, c) => sum + c.openCount, 0);
   const totalBusy = columns.reduce((sum, c) => sum + c.busyCount, 0);
   const totalMeetings = columns.reduce((sum, c) => sum + c.meetingCount, 0);
-  const totalSkipped = columns.reduce((sum, c) => sum + c.skippedCount, 0);
+  const totalMovedAway = columns.reduce((sum, c) => sum + c.movedAwayCount, 0);
   const hasOutsideHours = columns.some((col) =>
     col.cells.some((c) => c.kind === 'booked' && c.outsideHours)
   );
@@ -204,10 +226,10 @@ export default function WeeklyScheduleView({
           <span className="h-3 w-3 rounded-sm bg-electric-blue" />
           {totalMeetings} {totalMeetings === 1 ? 'meeting' : 'meetings'}
         </span>
-        {totalSkipped > 0 && (
+        {totalMovedAway > 0 && (
           <span className="inline-flex items-center gap-1.5 text-gray-700">
             <span className="h-3 w-3 rounded-sm border border-electric-blue/40 bg-electric-blue/10" />
-            {totalSkipped} skipped
+            {totalMovedAway} moved to another day
           </span>
         )}
         {totalBusy > 0 && (
@@ -261,7 +283,7 @@ export default function WeeklyScheduleView({
                   ) : (
                     visible.map((cell) => (
                       <div key={cell.localTime} className={cell.past ? 'opacity-50' : undefined}>
-                        <SlotCell cell={cell} />
+                        <SlotCell cell={cell} timezone={timezone} />
                       </div>
                     ))
                   )}
@@ -275,7 +297,7 @@ export default function WeeklyScheduleView({
   );
 }
 
-function SlotCell({ cell }: { cell: Cell }) {
+function SlotCell({ cell, timezone }: { cell: Cell; timezone: string }) {
   if (cell.kind === 'open') {
     return (
       <div className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500">
@@ -300,16 +322,19 @@ function SlotCell({ cell }: { cell: Cell }) {
     );
   }
 
-  const allSkipped = cell.meetings.every((mt) => mt.skipped);
-  const tone = cell.outsideHours
+  const allMovedAway = cell.meetings.every((mt) => mt.movedTo);
+  const anyOneTime = cell.meetings.some((mt) => mt.oneTime);
+  const { outsideHours } = cell;
+  const tone = outsideHours
     ? 'bg-amber-50 border border-amber-300 text-amber-900'
-    : allSkipped
+    : allMovedAway
       ? 'bg-electric-blue/10 border border-electric-blue/40 text-electric-blue'
       : 'bg-electric-blue text-white';
+  const subtle = outsideHours || allMovedAway ? 'opacity-80' : 'text-white/80';
   return (
     <div
       title={
-        cell.outsideHours
+        outsideHours
           ? 'Outside your current hours. These students keep their time until they reschedule.'
           : undefined
       }
@@ -317,28 +342,38 @@ function SlotCell({ cell }: { cell: Cell }) {
     >
       <div className="flex items-center justify-between gap-1 font-semibold">
         <span className="inline-flex items-center gap-1">
-          {cell.outsideHours && <AlertTriangle className="w-3 h-3 shrink-0" />}
+          {outsideHours && <AlertTriangle className="w-3 h-3 shrink-0" />}
           {formatTime12(cell.localTime)}
         </span>
-        {allSkipped && <span className="text-[10px] uppercase">Skipped</span>}
+        {allMovedAway ? (
+          <span className="text-[10px] uppercase">Moved</span>
+        ) : (
+          anyOneTime && <span className="text-[10px] uppercase">One-time</span>
+        )}
       </div>
-      {cell.meetings.map(({ booking: b, skipped, skipReason }) => (
+      {cell.meetings.map(({ booking: b, movedTo, oneTime }) => (
         <div
-          key={b.id}
+          key={`${b.id}-${oneTime ? 'once' : 'regular'}`}
           title={[
             b.studentName,
             b.studentEmail,
             `Meets the ${nthOrdinalLabel(b.nthWeekday)} ${DAY_LABELS[b.dayOfWeek]} each month`,
-            skipped && `Skipping this date${skipReason ? `: ${skipReason}` : ''}`,
+            movedTo && `Moved to ${movedToLabel(movedTo, timezone)}, this date only`,
+            oneTime && 'One-time move; their regular schedule is unchanged',
             b.nextOccurrenceLabel && `Next meeting: ${b.nextOccurrenceLabel}`,
           ]
             .filter(Boolean)
             .join('\n')}
-          className={`truncate ${skipped ? 'line-through' : ''}`}
+          className="truncate"
         >
-          {b.studentName}
-          {skipped && !allSkipped && (
-            <span className={cell.outsideHours ? 'opacity-80' : 'text-white/80'}> (skipped)</span>
+          <span className={movedTo ? 'line-through' : undefined}>{b.studentName}</span>
+          {movedTo && (
+            <span className={`block truncate text-[11px] ${subtle}`}>
+              Moved to {movedToLabel(movedTo, timezone)}
+            </span>
+          )}
+          {oneTime && !allMovedAway && cell.meetings.length > 1 && (
+            <span className={subtle}> (one-time)</span>
           )}
         </div>
       ))}

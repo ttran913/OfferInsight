@@ -1,10 +1,10 @@
 import { nthWeekdayForLocalDate } from './ics';
+import { nextMeeting, type MoveFields } from './moves';
 import {
   anchorLocalDateFromOccurrence,
   formatMonthlyScheduleLabel,
   formatNextMeetingLabel,
 } from './next-occurrence';
-import { findPendingSkip, nextAttendedOccurrence } from './skips';
 
 /** A student's monthly meeting as returned to the student UI. */
 export function meetingPayload(
@@ -14,14 +14,10 @@ export function meetingPayload(
     timezone: string;
     firstOccurrence: Date;
   },
-  skips: { occurrenceStart: Date; reason: string | null }[] = []
+  moves: MoveFields[] = []
 ) {
   const anchorLocalDate = anchorLocalDateFromOccurrence(m.firstOccurrence, m.timezone);
-  const next = nextAttendedOccurrence(m, skips);
-  const following = next
-    ? nextAttendedOccurrence(m, skips, new Date(new Date(next.startIso).getTime() + 1))
-    : null;
-  const pendingSkip = findPendingSkip(skips);
+  const next = nextMeeting(m, moves);
   const nthWeekday = nthWeekdayForLocalDate(anchorLocalDate);
 
   return {
@@ -32,16 +28,9 @@ export function meetingPayload(
     timezone: m.timezone,
     nextOccurrenceDate: next?.localDate ?? null,
     nextOccurrenceLabel: next ? formatNextMeetingLabel(next.startIso, m.timezone) : null,
-    /** The meeting after the next one (what "next" becomes if the student skips). */
-    followingOccurrenceLabel: following
-      ? formatNextMeetingLabel(following.startIso, m.timezone)
-      : null,
-    skippedOccurrence: pendingSkip
-      ? {
-          start: pendingSkip.occurrenceStart.toISOString(),
-          label: formatNextMeetingLabel(pendingSkip.occurrenceStart.toISOString(), m.timezone),
-          reason: pendingSkip.reason,
-        }
+    /** Set when the next meeting was moved one time; the regular date it replaces. */
+    movedFrom: next?.movedFrom
+      ? { start: next.movedFrom, label: formatNextMeetingLabel(next.movedFrom, m.timezone) }
       : null,
   };
 }

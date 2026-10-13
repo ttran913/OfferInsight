@@ -124,39 +124,45 @@ export async function deleteMonthlyMeetingEvent(
 }
 
 /**
- * Cancel (or restore) one occurrence of a monthly 1:1 series on the instructor's
- * calendar, leaving the rest of the series alone. No-op if the instructor is not
- * connected; throws if Google can't find or update that occurrence.
+ * Move one occurrence of a monthly 1:1 series on the instructor's calendar to
+ * `newStart` (pass the original start to put it back), leaving the rest of the
+ * series alone. No-op if the instructor is not connected; throws if Google can't
+ * find or update that occurrence.
  */
-export async function setMonthlyMeetingOccurrenceCancelled(
+export async function moveMonthlyMeetingOccurrence(
   instructorId: string,
   eventId: string,
-  occurrenceStart: Date,
-  cancelled: boolean
+  originalStart: Date,
+  newStart: Date
 ): Promise<void> {
   const calendar = await getCalendarClientForInstructor(instructorId);
   if (!calendar) return;
 
+  // A moved instance's current time differs from its slot in the series, so look it up by original start.
   const res = await calendar.events.instances({
     calendarId: 'primary',
     eventId,
-    timeMin: occurrenceStart.toISOString(),
-    timeMax: new Date(occurrenceStart.getTime() + 60_000).toISOString(),
+    originalStart: originalStart.toISOString(),
     showDeleted: true,
     maxResults: 5,
   });
   const instance = res.data.items?.find(
-    (i) => Date.parse(i.originalStartTime?.dateTime ?? '') === occurrenceStart.getTime()
+    (i) => Date.parse(i.originalStartTime?.dateTime ?? '') === originalStart.getTime()
   );
   if (!instance?.id) {
     throw new Error('That meeting was not found on the instructor’s Google Calendar');
   }
 
+  const end = new Date(newStart.getTime() + MEETING_DURATION_MINUTES * 60 * 1000);
   await calendar.events.patch({
     calendarId: 'primary',
     eventId: instance.id,
     sendUpdates: 'none',
-    requestBody: { status: cancelled ? 'cancelled' : 'confirmed' },
+    requestBody: {
+      status: 'confirmed',
+      start: { dateTime: newStart.toISOString() },
+      end: { dateTime: end.toISOString() },
+    },
   });
 }
 

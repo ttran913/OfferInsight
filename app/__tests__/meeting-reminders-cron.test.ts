@@ -32,7 +32,7 @@ function storedMeeting() {
     lastReminderFor: null as Date | null,
     user: { name: 'Sam', email: 'sam@example.com' },
     instructor: { displayName: 'Coach Kim' },
-    skips: [] as { occurrenceStart: Date }[],
+    moves: [] as { originalStart: Date; newStart: Date }[],
   };
 }
 
@@ -101,6 +101,14 @@ describe('GET /api/cron/meeting-reminders', () => {
     ]);
     expect(mockSendEmail).not.toHaveBeenCalled();
     expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('skips a meeting moved off tomorrow', async () => {
+    meeting.moves = [{ originalStart: JULY_8, newStart: new Date('2026-07-10T21:00:00.000Z') }];
+    const body = await (await GET(cronRequest())).json();
+
+    expect(body.details).toEqual([]);
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
   it('does not mark the meeting when the email fails', async () => {

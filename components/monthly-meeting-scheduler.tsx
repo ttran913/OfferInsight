@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar, CalendarClock, Loader2, Repeat } from 'lucide-react';
 import {
   DAY_LABELS,
   DEFAULT_AVAILABILITY_TIMEZONE,
@@ -13,7 +13,6 @@ import { formatTime12, nthOrdinalLabel } from '@/app/lib/calendar/labels';
 import { buildMonthGrid, localDateKey } from '@/app/lib/calendar/month-grid';
 import { followingMonthlyLocalDate } from '@/app/lib/calendar/next-occurrence';
 import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
-import SkipMeetingControl from '@/components/skip-meeting-control';
 
 export type MeetingSummary = {
   dayOfWeek: number;
@@ -23,9 +22,8 @@ export type MeetingSummary = {
   timezone: string;
   nextOccurrenceDate: string | null;
   nextOccurrenceLabel: string | null;
-  /** What "next" becomes if the student skips the next meeting. */
-  followingOccurrenceLabel: string | null;
-  skippedOccurrence: { start: string; label: string; reason: string | null } | null;
+  /** Set when the next meeting was moved one time; the regular date it replaces. */
+  movedFrom: { start: string; label: string } | null;
 };
 
 type BookableDayOption = {
@@ -34,6 +32,16 @@ type BookableDayOption = {
   nthWeekday: number;
   times: string[];
 };
+
+type OneTimeOptions = {
+  timezone: string;
+  original: { start: string; label: string };
+  current: { start: string; label: string } | null;
+  followingLabel: string | null;
+  days: { localDate: string; dayOfWeek: number; times: string[] }[];
+};
+
+type Mode = 'closed' | 'choose' | 'regular' | 'once';
 
 type MonthlyMeetingSchedulerProps = {
   /** After successful save (e.g. navigate to dashboard on onboarding). */
@@ -58,6 +66,23 @@ function longDate(dateKey: string): string {
   return formatDateKey(dateKey, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
+/** Calendar months from `startKey`'s month through `endKey`'s month (at least two). */
+function monthsCovering(startKey: string, endKey: string): { year: number; month: number }[] {
+  let [y, m] = startKey.split('-').map(Number);
+  const [ey, em] = endKey.split('-').map(Number);
+  const months: { year: number; month: number }[] = [];
+  while (months.length < 2 || y < ey || (y === ey && m <= em)) {
+    months.push({ year: y, month: m });
+    if (m === 12) {
+      y += 1;
+      m = 1;
+    } else {
+      m += 1;
+    }
+  }
+  return months;
+}
+
 function timeRange(localTime: string): string {
   return `${formatTime12(localTime)} – ${formatTime12(formatEndHhMm(localTime, MEETING_DURATION_MINUTES))}`;
 }
@@ -76,7 +101,7 @@ function BookingMonthGrid({
   todayKey: string;
   selectedDate: string | null;
   meetingDate: string | null;
-  dayByDate: Map<string, BookableDayOption>;
+  dayByDate: ReadonlyMap<string, unknown>;
   onSelect: (dateKey: string) => void;
 }) {
   const weeks = useMemo(() => buildMonthGrid(year, month), [year, month]);
@@ -146,6 +171,39 @@ function BookingMonthGrid({
   );
 }
 
+function TimeButtons({
+  times,
+  selectedTime,
+  onSelect,
+}: {
+  times: string[];
+  selectedTime: string | null;
+  onSelect: (time: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+      {times.map((t) => {
+        const selected = selectedTime === t;
+        return (
+          <button
+            key={t}
+            type="button"
+            onClick={() => onSelect(t)}
+            aria-pressed={selected}
+            className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+              selected
+                ? 'border-electric-blue bg-electric-blue text-white'
+                : 'border-gray-200 bg-white text-gray-900 hover:border-electric-blue'
+            }`}
+          >
+            {formatTime12(t)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MonthlyMeetingScheduler({
   onSaved,
   showSkip,
@@ -154,14 +212,17 @@ export default function MonthlyMeetingScheduler({
 }: MonthlyMeetingSchedulerProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expanded, setExpanded] = useState(!collapsible);
+  const [mode, setMode] = useState<Mode>(collapsible ? 'closed' : 'regular');
   const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
   const [timezone, setTimezone] = useState(DEFAULT_AVAILABILITY_TIMEZONE);
   const [days, setDays] = useState<BookableDayOption[]>([]);
   const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
+  const [oneTime, setOneTime] = useState<OneTimeOptions | null>(null);
+  const [oneTimeLoading, setOneTimeLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
@@ -212,16 +273,19 @@ export default function MonthlyMeetingScheduler({
   }, [load]);
 
   const dayByDate = useMemo(() => new Map(days.map((d) => [d.localDate, d])), [days]);
+  const oneTimeDayByDate = useMemo(
+    () => new Map((oneTime?.days ?? []).map((d) => [d.localDate, d])),
+    [oneTime]
+  );
   const todayKey = localDateKey(new Date(), timezone);
-  const months = useMemo(() => {
-    const [y, m] = todayKey.split('-').map(Number);
-    return [
-      { year: y, month: m },
-      { year: m === 12 ? y + 1 : y, month: m === 12 ? 1 : m + 1 },
-    ];
-  }, [todayKey]);
+  const regularMonths = useMemo(() => monthsCovering(todayKey, todayKey), [todayKey]);
+  const oneTimeMonths = useMemo(
+    () => monthsCovering(todayKey, oneTime?.days.at(-1)?.localDate ?? todayKey),
+    [todayKey, oneTime]
+  );
 
   const selectedDay = selectedDate ? dayByDate.get(selectedDate) ?? null : null;
+  const selectedOneTimeDay = selectedDate ? oneTimeDayByDate.get(selectedDate) ?? null : null;
   const followingDate = selectedDate ? followingMonthlyLocalDate(selectedDate) : null;
   const selectionUnchanged =
     Boolean(meeting && selectedDay && selectedTime) &&
@@ -229,7 +293,41 @@ export default function MonthlyMeetingScheduler({
     meeting!.nthWeekday === selectedDay!.nthWeekday &&
     meeting!.localTime === selectedTime;
 
-  async function handleSave() {
+  function resetSelection() {
+    setSelectedDate(null);
+    setSelectedTime(null);
+  }
+
+  function openMode(next: Mode) {
+    setMessage(null);
+    setError(null);
+    resetSelection();
+    setMode(next);
+    if (next === 'once') loadOneTime();
+  }
+
+  async function loadOneTime() {
+    setOneTimeLoading(true);
+    setOneTime(null);
+    try {
+      const res = await fetch('/api/calendar/meeting/move');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load open times');
+      setOneTime(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load open times');
+    } finally {
+      setOneTimeLoading(false);
+    }
+  }
+
+  function closePicker() {
+    resetSelection();
+    setError(null);
+    setMode(collapsible ? 'closed' : 'regular');
+  }
+
+  async function handleSaveRegular() {
     if (!selectedDate || !selectedTime) return;
     setSaving(true);
     setMessage(null);
@@ -257,11 +355,11 @@ export default function MonthlyMeetingScheduler({
           ? ` (Google Calendar: ${friendlyGoogleError(data.googleError)})`
           : '';
       setMessage(
-        `${wasReschedule ? 'Meeting updated.' : 'Meeting scheduled.'}${emailNote}${googleNote}`
+        `${wasReschedule ? 'Regular schedule updated.' : 'Meeting scheduled.'}${emailNote}${googleNote}`
       );
       setConfirmOpen(false);
       onSaved?.();
-      if (collapsible) setExpanded(false);
+      if (collapsible) setMode('closed');
       await load();
     } catch (err) {
       setConfirmOpen(false);
@@ -271,17 +369,50 @@ export default function MonthlyMeetingScheduler({
     }
   }
 
-  function handleExpand() {
+  async function handleSaveOneTime() {
+    if (!selectedDate || !selectedTime) return;
+    setSaving(true);
     setMessage(null);
     setError(null);
-    setExpanded(true);
+    try {
+      const res = await fetch('/api/calendar/meeting/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ localDate: selectedDate, localTime: selectedTime }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to move meeting');
+      setMeeting(data.meeting);
+      setMessage(
+        'Meeting moved, just this once. Your regular schedule is unchanged. We emailed you an updated calendar invite.'
+      );
+      setConfirmOpen(false);
+      resetSelection();
+      setMode(collapsible ? 'closed' : 'regular');
+    } catch (err) {
+      setConfirmOpen(false);
+      setError(err instanceof Error ? err.message : 'Failed to move meeting');
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleCancel() {
-    setSelectedDate(null);
-    setSelectedTime(null);
+  async function handleUndoMove() {
+    setUndoing(true);
+    setMessage(null);
     setError(null);
-    setExpanded(false);
+    try {
+      const res = await fetch('/api/calendar/meeting/move', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to undo');
+      setMeeting(data.meeting);
+      setMessage('Your meeting is back at its regular time. We emailed you an updated calendar invite.');
+      if (mode === 'once') closePicker();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to undo');
+    } finally {
+      setUndoing(false);
+    }
   }
 
   if (loading) {
@@ -296,6 +427,24 @@ export default function MonthlyMeetingScheduler({
   const timezoneLabel = timezone.replace(/_/g, ' ');
   const selectedNth = selectedDay ? nthOrdinalLabel(selectedDay.nthWeekday) : null;
   const selectedWeekday = selectedDay ? DAY_LABELS[selectedDay.dayOfWeek] : null;
+  const pickerOpen = mode === 'regular' || mode === 'once';
+  const regularLabel = meeting ? meeting.scheduleLabel : null;
+
+  const legend = (
+    <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-3 w-3 rounded-sm bg-green-50 border border-green-200" />
+        Open
+      </span>
+      {meeting?.nextOccurrenceDate && (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-electric-blue" />
+          Your next meeting
+        </span>
+      )}
+      <span>All times {timezoneLabel}</span>
+    </div>
+  );
 
   return (
     <div>
@@ -306,9 +455,9 @@ export default function MonthlyMeetingScheduler({
             Monthly meeting with {instructorName}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Pick a day for your first {MEETING_DURATION_MINUTES}-minute meeting. It repeats on the
-            same week and weekday every month (e.g. the 2nd Wednesday). We&apos;ll email you a
-            calendar invite (.ics).
+            {meeting
+              ? `Your ${MEETING_DURATION_MINUTES}-minute 1:1 is required every month. If you can't make a meeting, reschedule it — just that one, or your regular schedule going forward.`
+              : `Pick a day for your first ${MEETING_DURATION_MINUTES}-minute meeting. It repeats on the same week and weekday every month (e.g. the 2nd Wednesday). We'll email you a calendar invite (.ics).`}
           </p>
         </div>
       </div>
@@ -328,23 +477,43 @@ export default function MonthlyMeetingScheduler({
       {meeting ? (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
           <div>
-            Current schedule:{' '}
+            Regular schedule:{' '}
             <span className="font-semibold text-gray-900">{meeting.scheduleLabel}</span>{' '}
             <span className="text-gray-400">({meeting.timezone.replace(/_/g, ' ')})</span>
           </div>
           {meeting.nextOccurrenceLabel && (
             <div className="mt-1.5 text-gray-900">
               Next meeting: <span className="font-semibold">{meeting.nextOccurrenceLabel}</span>
+              {meeting.movedFrom && (
+                <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                  One-time change
+                </span>
+              )}
             </div>
           )}
-          <SkipMeetingControl
-            meeting={meeting}
-            instructorName={instructorName}
-            onChange={(m) => {
-              setMessage(null);
-              setMeeting(m);
-            }}
-          />
+          {meeting.movedFrom && (
+            <div className="mt-1 text-gray-600">
+              Moved from <span className="line-through">{meeting.movedFrom.label}</span>
+              {' · '}
+              <button
+                type="button"
+                onClick={() => openMode('once')}
+                disabled={undoing}
+                className="font-semibold text-electric-blue hover:underline disabled:opacity-50"
+              >
+                Change it again
+              </button>
+              {' · '}
+              <button
+                type="button"
+                onClick={handleUndoMove}
+                disabled={undoing}
+                className="font-semibold text-electric-blue hover:underline disabled:opacity-50"
+              >
+                {undoing ? 'Undoing…' : 'Undo'}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         collapsible && (
@@ -354,25 +523,174 @@ export default function MonthlyMeetingScheduler({
         )
       )}
 
-      {!expanded ? (
+      {mode === 'closed' && (
         <button
           type="button"
-          onClick={handleExpand}
+          onClick={() => openMode(meeting ? 'choose' : 'regular')}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold border border-electric-blue text-electric-blue hover:bg-blue-50"
         >
-          {meeting ? 'Change schedule' : 'Schedule meeting'}
+          {meeting ? 'Reschedule' : 'Schedule meeting'}
         </button>
-      ) : (
+      )}
+
+      {mode === 'choose' && meeting && (
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">What would you like to change?</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <button
+              type="button"
+              onClick={() => openMode('once')}
+              disabled={!meeting.nextOccurrenceLabel}
+              className="text-left rounded-lg border-2 border-gray-200 bg-white p-4 hover:border-electric-blue disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-2 font-semibold text-gray-900">
+                <CalendarClock className="w-5 h-5 text-electric-blue" />
+                Just this once
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Move only your next meeting
+                {meeting.nextOccurrenceLabel && (
+                  <>
+                    {' '}
+                    (<span className="font-semibold text-gray-900">{meeting.nextOccurrenceLabel}</span>)
+                  </>
+                )}
+                .
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Your regular schedule, <span className="font-semibold text-gray-900">{regularLabel}</span>,
+                stays the same for every meeting after that.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => openMode('regular')}
+              className="text-left rounded-lg border-2 border-gray-200 bg-white p-4 hover:border-electric-blue"
+            >
+              <div className="flex items-center gap-2 font-semibold text-gray-900">
+                <Repeat className="w-5 h-5 text-electric-blue" />
+                Change my regular schedule
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Pick a new day and time for <span className="font-semibold text-gray-900">every</span>{' '}
+                meeting from now on, including your next one.
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                This replaces <span className="font-semibold text-gray-900">{regularLabel}</span>.
+              </p>
+            </button>
+          </div>
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={closePicker}
+              className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'regular' && meeting && (
+        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <Repeat className="w-4 h-4 text-electric-blue" />
+          Changing your regular schedule (every meeting from now on)
+        </div>
+      )}
+
+      {mode === 'regular' &&
+        (days.length === 0 ? (
+          <p className="text-sm text-gray-500 py-2">
+            {emptyMessage ||
+              `No open times right now. Check back after ${instructorName} updates availability.`}
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {regularMonths.map(({ year, month }) => (
+                <BookingMonthGrid
+                  key={`${year}-${month}`}
+                  year={year}
+                  month={month}
+                  todayKey={todayKey}
+                  selectedDate={selectedDate}
+                  meetingDate={meeting?.nextOccurrenceDate ?? null}
+                  dayByDate={dayByDate}
+                  onSelect={(dateKey) => {
+                    setSelectedDate(dateKey);
+                    setSelectedTime(null);
+                  }}
+                />
+              ))}
+            </div>
+            {legend}
+
+            <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+              {selectedDay && selectedDate ? (
+                <>
+                  <div className="font-semibold text-gray-900">{longDate(selectedDate)}</div>
+                  <p className="text-sm text-gray-600 mt-0.5">
+                    Repeats on the{' '}
+                    <span className="font-semibold text-gray-900">
+                      {selectedNth} {selectedWeekday}
+                    </span>{' '}
+                    of every month.
+                  </p>
+                  <TimeButtons
+                    times={selectedDay.times}
+                    selectedTime={selectedTime}
+                    onSelect={setSelectedTime}
+                  />
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Pick a green day to see open times.</p>
+              )}
+            </div>
+          </>
+        ))}
+
+      {mode === 'once' && (
         <>
-          {days.length === 0 ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="flex items-center gap-2 font-semibold">
+              <CalendarClock className="w-4 h-4" />
+              Moving one meeting, just this once
+            </div>
+            {oneTime && (
+              <p className="mt-1">
+                Pick a new time for your{' '}
+                <span className="font-semibold">{oneTime.original.label}</span> meeting
+                {oneTime.current && (
+                  <> (currently moved to <span className="font-semibold">{oneTime.current.label}</span>)</>
+                )}
+                . Your regular schedule ({regularLabel}) doesn&apos;t change
+                {oneTime.followingLabel && (
+                  <>
+                    {' '}
+                    — you&apos;re back on it{' '}
+                    <span className="font-semibold">{oneTime.followingLabel}</span>
+                  </>
+                )}
+                .
+              </p>
+            )}
+          </div>
+
+          {oneTimeLoading ? (
+            <div className="flex items-center gap-2 text-gray-400 py-6">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Loading open times…
+            </div>
+          ) : !oneTime ? null : oneTime.days.length === 0 ? (
             <p className="text-sm text-gray-500 py-2">
-              {emptyMessage ||
-                `No open times right now. Check back after ${instructorName} updates availability.`}
+              No open times before your following regular meeting. Try changing your regular
+              schedule instead, or contact {instructorName}.
             </p>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {months.map(({ year, month }) => (
+                {oneTimeMonths.map(({ year, month }) => (
                   <BookingMonthGrid
                     key={`${year}-${month}`}
                     year={year}
@@ -380,7 +698,7 @@ export default function MonthlyMeetingScheduler({
                     todayKey={todayKey}
                     selectedDate={selectedDate}
                     meetingDate={meeting?.nextOccurrenceDate ?? null}
-                    dayByDate={dayByDate}
+                    dayByDate={oneTimeDayByDate}
                     onSelect={(dateKey) => {
                       setSelectedDate(dateKey);
                       setSelectedTime(null);
@@ -388,52 +706,18 @@ export default function MonthlyMeetingScheduler({
                   />
                 ))}
               </div>
-
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-sm bg-green-50 border border-green-200" />
-                  Open
-                </span>
-                {meeting?.nextOccurrenceDate && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-electric-blue" />
-                    Your next meeting
-                  </span>
-                )}
-                <span>All times {timezoneLabel}</span>
-              </div>
+              {legend}
 
               <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
-                {selectedDay && selectedDate ? (
+                {selectedOneTimeDay && selectedDate ? (
                   <>
                     <div className="font-semibold text-gray-900">{longDate(selectedDate)}</div>
-                    <p className="text-sm text-gray-600 mt-0.5">
-                      Repeats on the{' '}
-                      <span className="font-semibold text-gray-900">
-                        {selectedNth} {selectedWeekday}
-                      </span>{' '}
-                      of every month.
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                      {selectedDay.times.map((t) => {
-                        const selected = selectedTime === t;
-                        return (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => setSelectedTime(t)}
-                            aria-pressed={selected}
-                            className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-                              selected
-                                ? 'border-electric-blue bg-electric-blue text-white'
-                                : 'border-gray-200 bg-white text-gray-900 hover:border-electric-blue'
-                            }`}
-                          >
-                            {formatTime12(t)}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <p className="text-sm text-gray-600 mt-0.5">One time only.</p>
+                    <TimeButtons
+                      times={selectedOneTimeDay.times}
+                      selectedTime={selectedTime}
+                      onSelect={setSelectedTime}
+                    />
                   </>
                 ) : (
                   <p className="text-sm text-gray-500">Pick a green day to see open times.</p>
@@ -441,44 +725,52 @@ export default function MonthlyMeetingScheduler({
               </div>
             </>
           )}
-
-          <div className="flex flex-wrap items-center gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(true)}
-              disabled={saving || !selectedTime || selectionUnchanged}
-              title={selectionUnchanged ? 'That is already your schedule.' : undefined}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Save schedule
-            </button>
-            {collapsible && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={saving}
-                className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            )}
-            {showSkip && onSkip && (
-              <button
-                type="button"
-                onClick={onSkip}
-                className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
-              >
-                Skip for now
-              </button>
-            )}
-          </div>
         </>
       )}
 
-      {confirmOpen && selectedDate && selectedTime && selectedDay && (
+      {pickerOpen && (
+        <div className="flex flex-wrap items-center gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            disabled={
+              saving || !selectedTime || (mode === 'regular' && selectionUnchanged)
+            }
+            title={
+              mode === 'regular' && selectionUnchanged ? 'That is already your schedule.' : undefined
+            }
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {mode === 'once' ? 'Move this meeting' : meeting ? 'Save new schedule' : 'Save schedule'}
+          </button>
+          {collapsible && (
+            <button
+              type="button"
+              onClick={meeting ? () => openMode('choose') : closePicker}
+              disabled={saving}
+              className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {meeting ? 'Back' : 'Cancel'}
+            </button>
+          )}
+          {showSkip && onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-sm text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
+            >
+              Skip for now
+            </button>
+          )}
+        </div>
+      )}
+
+      {confirmOpen && mode === 'regular' && selectedDate && selectedTime && selectedDay && (
         <ModalOverlay onClose={() => !saving && setConfirmOpen(false)}>
           <ModalPanel size="md">
-            <h3 className="text-lg font-semibold text-gray-900">Confirm your monthly 1:1</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {meeting ? 'Change your regular schedule?' : 'Confirm your monthly 1:1'}
+            </h3>
             <p className="text-sm text-gray-500 mt-1">With {instructorName}</p>
 
             <dl className="mt-4 space-y-3 text-sm">
@@ -503,7 +795,9 @@ export default function MonthlyMeetingScheduler({
 
             {meeting && (
               <p className="mt-4 text-xs text-gray-500">
-                This replaces your current schedule ({meeting.scheduleLabel}).
+                This permanently replaces your current schedule ({meeting.scheduleLabel}) for every
+                future meeting
+                {meeting.movedFrom ? ', and cancels your one-time change' : ''}.
               </p>
             )}
 
@@ -518,12 +812,73 @@ export default function MonthlyMeetingScheduler({
               </button>
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={handleSaveRegular}
                 disabled={saving}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Confirm
+                {meeting ? 'Change regular schedule' : 'Confirm'}
+              </button>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
+      )}
+
+      {confirmOpen && mode === 'once' && oneTime && selectedDate && selectedTime && (
+        <ModalOverlay onClose={() => !saving && setConfirmOpen(false)}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900">Move this one meeting?</h3>
+            <p className="text-sm text-gray-500 mt-1">One-time change · with {instructorName}</p>
+
+            <dl className="mt-4 space-y-3 text-sm">
+              <div>
+                <dt className="text-gray-500">Instead of</dt>
+                <dd className="font-semibold text-gray-500 line-through">
+                  {oneTime.original.label}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">New time (this meeting only)</dt>
+                <dd className="font-semibold text-gray-900">
+                  {longDate(selectedDate)} · {timeRange(selectedTime)}{' '}
+                  <span className="font-normal text-gray-400">({timezoneLabel})</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Your regular schedule</dt>
+                <dd className="font-semibold text-gray-900">
+                  {regularLabel} <span className="font-normal text-gray-500">— unchanged</span>
+                </dd>
+              </div>
+              {oneTime.followingLabel && (
+                <div>
+                  <dt className="text-gray-500">Following meeting</dt>
+                  <dd className="font-semibold text-gray-900">{oneTime.followingLabel}</dd>
+                </div>
+              )}
+            </dl>
+
+            <p className="mt-4 text-xs text-gray-500">
+              {instructorName} will be notified, and we&apos;ll email you an updated calendar invite.
+            </p>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveOneTime}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-electric-blue text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Move this meeting
               </button>
             </div>
           </ModalPanel>

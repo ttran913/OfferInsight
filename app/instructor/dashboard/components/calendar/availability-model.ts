@@ -31,8 +31,8 @@ export type Booking = {
   /** YYYY-MM-DD (instructor timezone) of the series' first meeting. */
   firstOccurrenceDate: string;
   nextOccurrenceLabel: string | null;
-  /** Recent and upcoming dates the student said they'll miss (series unchanged). */
-  skips: { start: string; reason: string | null }[];
+  /** Recent and upcoming one-time moves (ISO); the series itself is unchanged. */
+  moves: { originalStart: string; newStart: string }[];
 };
 
 export const DEFAULT_RANGE = { startTime: '09:00', endTime: '17:00' };
