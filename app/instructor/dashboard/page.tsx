@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Users, Calendar } from 'lucide-react';
 import UsersTab from './components/UsersTab';
@@ -10,16 +10,15 @@ type InstructorTab = 'users' | 'calendar';
 
 function InstructorDashboardInner() {
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState<InstructorTab>(
-    tabParam === 'calendar' ? 'calendar' : 'users'
-  );
+  const activeTab: InstructorTab = searchParams.get('tab') === 'calendar' ? 'calendar' : 'users';
 
-  useEffect(() => {
-    if (tabParam === 'calendar' || tabParam === 'users') {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam]);
+  function setActiveTab(tab: InstructorTab) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    url.searchParams.delete('calendarConnected');
+    url.searchParams.delete('calendarError');
+    window.history.replaceState(null, '', url);
+  }
 
   return (
     <div className="min-h-[calc(100dvh-var(--navbar-height))] bg-white text-gray-900">

@@ -58,13 +58,18 @@ import {
 const ENABLE_DASHBOARD_MOCKS = false;
 // ===== MOCK DATA FEATURE TOGGLE END =====
 
+const DASHBOARD_TABS = ['overview', 'opensource', 'applications', 'interviews', 'events'];
+
 export default function Page() {
   const searchParams = useSearchParams();
   const userIdParam = searchParams.get('userId');
   const [viewedUserName, setViewedUserName] = useState<string | null>(null);
   const [isInstructor, setIsInstructor] = useState(false);
   const [canEditViewedUser, setCanEditViewedUser] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab && DASHBOARD_TABS.includes(tab) ? tab : 'overview';
+  });
   const [leetCodeStats, setLeetCodeStats] = useState<{
     solved: number;
     easy: number;
@@ -1595,13 +1600,15 @@ const hasSeededMockDataRef = useRef(false);
     isWithinCurrentMonth,
   ]);
 
-  const handleTabClick = (tabId: string) => {
+  const selectTab = (tabId: string) => {
     setActiveTab(tabId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    window.history.replaceState(null, '', url);
   };
 
-  const handleHabitCardClick = (cardId: string) => {
-    setActiveTab(cardId);
-  };
+  const handleTabClick = selectTab;
+  const handleHabitCardClick = selectTab;
 
 
   return (
