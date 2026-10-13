@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText, Users, GitBranch, Code } from 'lucide-react';
+import { FileText, Users, GitBranch, Code, Calendar } from 'lucide-react';
+import { INSTRUCTOR_DISPLAY_NAME_FALLBACK } from '@/app/lib/calendar/constants';
 import { looksLikeLeetCodeUrl } from '@/app/lib/leetcode-username';
+import type { MeetingSummary } from '@/components/monthly-meeting-scheduler';
+import MustBookAlert, { type MustBookNotice } from '@/components/must-book-alert';
 import { ModalOverlay, ModalPanel } from './shared';
 
 type OpenSourceActivityItem = {
@@ -148,6 +151,45 @@ export default function OverviewTab({
   const [activityItems, setActivityItems] = useState<OpenSourceActivityItem[]>([]);
   const [logLoading, setLogLoading] = useState(false);
   const [logError, setLogError] = useState('');
+  const [meetingLoading, setMeetingLoading] = useState(true);
+  const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
+  const [meetingSummary, setMeetingSummary] = useState<MeetingSummary | null>(null);
+  const [mustBook, setMustBook] = useState<MustBookNotice | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMeetingLoading(true);
+
+    const url = instructorViewUserId
+      ? `/api/calendar/meeting?userId=${encodeURIComponent(instructorViewUserId)}`
+      : '/api/calendar/meeting';
+
+    fetch(url)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load meeting');
+        }
+        if (cancelled) return;
+        setInstructorName(data.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK);
+        setMeetingSummary(data.meeting ?? null);
+        setMustBook(data.mustBook ?? null);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) {
+          setMeetingSummary(null);
+          setMustBook(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMeetingLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [instructorViewUserId]);
 
   useEffect(() => {
     if (!instructorViewUserId) {
@@ -323,6 +365,66 @@ export default function OverviewTab({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-4 md:mt-6 bg-white border border-gray-200 rounded-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <Calendar className="w-5 h-5 text-electric-blue shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            {meetingLoading ? (
+              <p className="text-sm text-gray-400">Loading meeting…</p>
+            ) : meetingSummary ? (
+              <>
+                <p className="text-sm text-gray-900">
+                  Monthly meeting with {instructorName}:{' '}
+                  <span className="font-semibold">
+                    {meetingSummary.scheduleLabel}
+                  </span>{' '}
+                  <span className="text-gray-400">
+                    ({meetingSummary.timezone.replace(/_/g, ' ')})
+                  </span>
+                </p>
+                {meetingSummary.nextOccurrenceLabel && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Next meeting:{' '}
+                    <span className="font-medium text-gray-900">
+                      {meetingSummary.nextOccurrenceLabel}
+                    </span>
+                    {meetingSummary.movedFrom && (
+                      <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                        One-time change
+                      </span>
+                    )}
+                  </p>
+                )}
+                {meetingSummary.movedFrom && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Moved from{' '}
+                    <span className="line-through">{meetingSummary.movedFrom.label}</span>
+                  </p>
+                )}
+              </>
+            ) : mustBook ? (
+              <MustBookAlert notice={mustBook} instructorView={Boolean(instructorViewUserId)} />
+            ) : (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {instructorViewUserId
+                  ? `This student doesn't have a monthly 1:1 scheduled with ${instructorName}.`
+                  : `You don't have a monthly 1:1 scheduled with ${instructorName}.`}{' '}
+                Monthly 1:1s are <span className="font-semibold">mandatory</span> for everyone in
+                the Resume Book.{instructorViewUserId ? '' : ' Please schedule yours.'}
+              </p>
+            )}
+          </div>
+        </div>
+        {!instructorViewUserId && !meetingLoading && (
+          <Link
+            href={meetingSummary || mustBook ? '/account' : '/onboarding/page4?from=dashboard'}
+            className="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-electric-blue text-white hover:opacity-90 transition-opacity"
+          >
+            {meetingSummary ? 'Reschedule' : 'Schedule meeting'}
+          </Link>
+        )}
       </div>
 
       {leetCodeUrlModalOpen && (

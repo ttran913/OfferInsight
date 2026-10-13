@@ -23,7 +23,7 @@ export default function Page1() {
 
   useEffect(() => {
     async function authenticate() {
-      const session = await checkAuth();
+      await checkAuth();
       setLoading(false);
     }
     authenticate();
@@ -68,12 +68,6 @@ export default function Page1() {
 
   const handleLeetCodeUrlModalClose = () => {
     setLeetCodeUrlModalOpen(false);
-  };
-
-  const handleSkip = () => {
-    if (confirm('Are you sure you want to skip? This information helps us personalize your experience.')) {
-      router.push('/onboarding/page2');
-    }
   };
 
   // Generate years from current year - 30 to current year + 10

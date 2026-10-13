@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
 import { computeActiveStatus, parseActiveStatusParam } from "@/app/lib/active-status";
+import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 
 /** Escape a CSV cell: wrap in quotes and escape internal quotes */
 function csvEscape(value: string): string {
@@ -75,17 +76,31 @@ export async function GET(request: NextRequest) {
     const removedParam = searchParams.get("removed");
     const removedFilter = removedParam === "removed" || removedParam === "not-removed" ? removedParam : null;
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        expectedGraduationDate: true,
-        removedFromResumeBook: true,
-      },
-      orderBy: { name: "asc" },
-    });
+    const mineOnly = searchParams.get("mine") === "1";
+
+    const [allUsers, roster] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          expectedGraduationDate: true,
+          removedFromResumeBook: true,
+          assignedInstructorId: true,
+          monthlyMeeting: { select: { instructorId: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+      mineOnly ? loadSchedulingRoster() : null,
+    ]);
+    const users = roster
+      ? allUsers.filter(
+          (u) =>
+            roster.effectiveInstructorId(u.assignedInstructorId, u.monthlyMeeting?.instructorId ?? null) ===
+            instructor.id
+        )
+      : allUsers;
 
     const userIds = users.map((u) => u.id);
     if (userIds.length === 0) {

@@ -856,7 +856,7 @@ export default function EventsTab({
               if (!card) return null;
               const formattedDate = (() => {
                 try {
-                  const { year, month, day } = getLocalDateParts(card.date);
+                  const { month, day } = getLocalDateParts(card.date);
                   const { hours, minutes } = getLocalTimeParts(card.date);
                   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                   const period = hours >= 12 ? 'PM' : 'AM';

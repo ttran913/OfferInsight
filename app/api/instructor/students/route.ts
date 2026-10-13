@@ -5,6 +5,11 @@ import { getCurrentMonthDateRange } from "@/app/lib/date-utils";
 import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteria-progress";
 import { buildCriteria } from "@/app/lib/partnership-criteria";
 import { computeActiveStatus } from "@/app/lib/active-status";
+import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
+import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
+import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
+import { nextMeeting, previousMeeting } from "@/app/lib/calendar/moves";
+import { currentDeadline, isMustBookReason } from "@/app/lib/must-book";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
@@ -20,20 +25,49 @@ export async function GET() {
 
     const { firstDayOfMonth, lastDayOfMonth } = getCurrentMonthDateRange();
     const now = new Date();
+    // Recent past moves too, so the last meeting is found at its moved time
+    const movesFrom = new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000);
 
     // Fetch all users
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        removedFromResumeBook: true,
-        inactivityWarningCount: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const [users, roster] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          removedFromResumeBook: true,
+          inactivityWarningCount: true,
+          assignedInstructorId: true,
+          mustBookSince: true,
+          mustBookReason: true,
+          bookFinalWarningSentAt: true,
+          missedMeetings: {
+            orderBy: { occurrenceStart: 'desc' },
+            select: { occurrenceStart: true },
+          },
+          monthlyMeeting: {
+            select: {
+              instructorId: true,
+              instructor: { select: { displayName: true, username: true } },
+              dayOfWeek: true,
+              localTime: true,
+              timezone: true,
+              firstOccurrence: true,
+              moves: {
+                where: {
+                  OR: [{ originalStart: { gt: movesFrom } }, { newStart: { gt: movesFrom } }],
+                },
+                select: { originalStart: true, newStart: true },
+              },
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      }),
+      loadSchedulingRoster(),
+    ]);
 
     const studentsData = await Promise.all(
       users.map(async (user) => {
@@ -204,6 +238,45 @@ export async function GET() {
           progressStatus,
           removedFromResumeBook: user.removedFromResumeBook,
           inactivityWarningCount: user.inactivityWarningCount,
+          assignedInstructorId: user.assignedInstructorId,
+          effectiveInstructorId: roster.effectiveInstructorId(
+            user.assignedInstructorId,
+            user.monthlyMeeting?.instructorId ?? null
+          ),
+          meeting: user.monthlyMeeting
+            ? (() => {
+                const next = nextMeeting(user.monthlyMeeting, user.monthlyMeeting.moves, now);
+                const last = previousMeeting(user.monthlyMeeting, user.monthlyMeeting.moves, now);
+                return {
+                  instructorId: user.monthlyMeeting.instructorId,
+                  instructorLabel: instructorLabel(user.monthlyMeeting.instructor),
+                  timezone: user.monthlyMeeting.timezone,
+                  nextStart: next?.startIso ?? null,
+                  movedFrom: next?.movedFrom ?? null,
+                  lastStart: last?.toISOString() ?? null,
+                  lastMissed: Boolean(
+                    last &&
+                      user.missedMeetings.some(
+                        (m) => m.occurrenceStart.getTime() === last.getTime()
+                      )
+                  ),
+                };
+              })()
+            : null,
+          missedCount: user.missedMeetings.length,
+          lastMissedStart: user.missedMeetings[0]?.occurrenceStart.toISOString() ?? null,
+          mustBook:
+            user.mustBookSince && isMustBookReason(user.mustBookReason) && !user.monthlyMeeting
+              ? {
+                  reason: user.mustBookReason,
+                  since: user.mustBookSince.toISOString(),
+                  deadline: currentDeadline({
+                    mustBookSince: user.mustBookSince,
+                    bookFinalWarningSentAt: user.bookFinalWarningSentAt,
+                  }).toISOString(),
+                  finalWarningSent: Boolean(user.bookFinalWarningSentAt),
+                }
+              : null,
           openSource: {
             issuesCompleted: issuesCompletedCount,
             partnershipsCompleted: completedPartnershipsCount,
@@ -226,7 +299,13 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ students: studentsData });
+    return NextResponse.json({
+      students: studentsData,
+      instructors: roster.instructors,
+      defaultInstructorId: roster.defaultInstructorId,
+      currentInstructorId: instructor.id,
+      canAssign: canInstructorAssignStudents(instructor),
+    });
   } catch (error) {
     console.error("Error fetching students data:", error);
     return NextResponse.json(
