@@ -8,6 +8,7 @@ import { computeActiveStatus } from "@/app/lib/active-status";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
 import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
+import { findPendingSkip, nextAttendedOccurrence } from "@/app/lib/calendar/skips";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
@@ -38,6 +39,14 @@ export async function GET() {
             select: {
               instructorId: true,
               instructor: { select: { displayName: true, username: true } },
+              dayOfWeek: true,
+              localTime: true,
+              timezone: true,
+              firstOccurrence: true,
+              skips: {
+                where: { occurrenceStart: { gt: now } },
+                select: { occurrenceStart: true },
+              },
             },
           },
         },
@@ -226,6 +235,13 @@ export async function GET() {
             ? {
                 instructorId: user.monthlyMeeting.instructorId,
                 instructorLabel: instructorLabel(user.monthlyMeeting.instructor),
+                timezone: user.monthlyMeeting.timezone,
+                nextStart:
+                  nextAttendedOccurrence(user.monthlyMeeting, user.monthlyMeeting.skips, now)
+                    ?.startIso ?? null,
+                skippedStart:
+                  findPendingSkip(user.monthlyMeeting.skips, now)?.occurrenceStart.toISOString() ??
+                  null,
               }
             : null,
           openSource: {

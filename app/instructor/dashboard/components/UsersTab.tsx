@@ -13,7 +13,15 @@ interface UserData {
   inactivityWarningCount: number;
   assignedInstructorId?: string | null;
   effectiveInstructorId?: string | null;
-  meeting?: { instructorId: string; instructorLabel: string } | null;
+  meeting?: {
+    instructorId: string;
+    instructorLabel: string;
+    timezone: string;
+    /** ISO start of the next meeting the student will attend */
+    nextStart: string | null;
+    /** ISO start of an upcoming date the student skipped */
+    skippedStart: string | null;
+  } | null;
   openSource: {
     issuesCompleted: number;
     partnershipsCompleted?: number;
@@ -43,6 +51,21 @@ interface AssignResult {
   userId: string;
   tone: 'success' | 'warning' | 'error';
   message: string;
+}
+
+function formatMeetingDate(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', month: 'short', day: 'numeric' }).format(
+    new Date(iso)
+  );
+}
+
+function formatMeetingTime(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(iso));
 }
 
 type ActiveFilter = 'all' | 2 | 1 | 0;
@@ -624,6 +647,30 @@ export default function UsersTab() {
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
                     <span>Last Month: <span className="text-gray-900 font-medium">{user.coffeeChats.lastMonth}</span></span>
                     <span>All Time: <span className="text-gray-900 font-medium">{user.coffeeChats.allTime}</span></span>
+                  </div>
+                </div>
+
+                <div className="w-[165px] min-w-[165px] shrink-0">
+                  <div className="text-gray-600 text-sm font-medium mb-1">Next 1:1</div>
+                  <div className="text-gray-400 text-sm flex flex-col gap-2">
+                    {user.meeting?.nextStart ? (
+                      <>
+                        <span className="text-gray-900 font-medium">
+                          {formatMeetingDate(user.meeting.nextStart, user.meeting.timezone)}
+                        </span>
+                        <span>{formatMeetingTime(user.meeting.nextStart, user.meeting.timezone)}</span>
+                      </>
+                    ) : (
+                      <span>Not booked</span>
+                    )}
+                    {user.meeting?.skippedStart && (
+                      <span className="text-xs text-amber-700">
+                        Skipping {formatMeetingDate(user.meeting.skippedStart, user.meeting.timezone)}
+                      </span>
+                    )}
+                    {user.meeting && user.meeting.instructorId !== currentInstructorId && (
+                      <span className="text-xs">with {user.meeting.instructorLabel}</span>
+                    )}
                   </div>
                 </div>
               </div>
