@@ -1,3 +1,4 @@
+import { appUrl, escapeHtml } from '@/app/lib/email-layout';
 import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
 import { formatTime12, nthOrdinalLabel } from './labels';
 import type { GeneratedSlot } from './slots';
@@ -82,14 +83,14 @@ function buildIcsContent(
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//OfferInsight//Monthly 1:1//EN',
+    'PRODID:-//OpenSourceResume//Monthly 1:1//EN',
     'CALSCALE:GREGORIAN',
     `METHOD:${method}`,
     'BEGIN:VEVENT',
     `UID:${monthlyMeetingUid(slot, studentEmail)}`,
     `DTSTAMP:${formatIcsUtc(new Date())}`,
     foldLine(`SUMMARY:${escapeText(`Monthly 1:1 with ${instructorName}`)}`),
-    foldLine(`ORGANIZER;CN=${escapeText(instructorName)}:mailto:${process.env.EMAIL_FROM || 'noreply@offerinsight.local'}`),
+    foldLine(`ORGANIZER;CN=${escapeText(instructorName)}:mailto:${process.env.EMAIL_FROM || 'noreply@opensourceresume.local'}`),
     foldLine(
       `ATTENDEE;CN=${escapeText(studentName || studentEmail)};RSVP=TRUE:mailto:${studentEmail}`
     ),
@@ -107,8 +108,8 @@ function buildMonthlyIcs(
   const { slot } = input;
   const cancel = method === 'CANCEL';
   const description = cancel
-    ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
-    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+    ? 'This standing monthly meeting has been cancelled. Pick a new time from your OpenSourceResume Account page.'
+    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OpenSourceResume Account page.`;
 
   const content = buildIcsContent(method, input, [
     `DTSTART:${formatIcsUtc(new Date(slot.start))}`,
@@ -195,16 +196,40 @@ ${schedule}
 ${ics}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>${escapeHtml(lead)}</p>
   <p><strong>${escapeHtml(schedule)}</strong></p>
   <p>${escapeHtml(ics)}</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
   return { subject, text, html };
+}
+
+function instructorNoticeEmail(subject: string, paragraphs: string[]) {
+  const text = [...paragraphs, 'OpenSourceResume'].join('\n\n');
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('\n  ')}
+  <p>OpenSourceResume</p>
+</body></html>`;
+  return { subject, text, html };
+}
+
+/** e.g. "Wednesday, June 10, 2026 at 10:00 AM", with " PDT" when `withZone` */
+function firstMeetingLabel(slot: GeneratedSlot, withZone = false): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: slot.timezone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    ...(withZone ? { timeZoneName: 'short' as const } : {}),
+  }).format(new Date(slot.start));
 }
 
 /** To the instructor when a student moves one meeting (one time only), or undoes that move. */
@@ -220,15 +245,50 @@ export function buildMeetingMoveInstructorEmail(input: {
   const lead = input.undone
     ? `${input.studentName} undid their one-time move. Their 1:1 is back on ${input.originalLabel}.`
     : `${input.studentName} moved their 1:1 on ${input.originalLabel} to ${input.newLabel}, one time only. Their monthly series is otherwise unchanged.`;
+  return instructorNoticeEmail(subject, [lead, 'Your Google Calendar has been updated.']);
+}
 
-  const text = [lead, 'Your Google Calendar has been updated.', 'OfferInsight'].join('\n\n');
-  const html = `${EMAIL_WRAPPER_START}
-  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
-  <p>${escapeHtml(lead)}</p>
-  <p>Your Google Calendar has been updated.</p>
-  <p>OfferInsight</p>
-</body></html>`;
-  return { subject, text, html };
+/** To the instructor when a student books a monthly 1:1, or changes its regular time. */
+export function buildMeetingBookedInstructorEmail(input: {
+  studentName: string;
+  slot: GeneratedSlot;
+  isReschedule: boolean;
+  /** Whether the series was added to the instructor's Google Calendar */
+  calendarSynced: boolean;
+}): { subject: string; text: string; html: string } {
+  const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
+  const first = firstMeetingLabel(input.slot, true);
+
+  const subject = input.isReschedule
+    ? `${input.studentName} changed their monthly 1:1`
+    : `New monthly 1:1: ${input.studentName}`;
+  const lead = input.isReschedule
+    ? `${input.studentName} moved their monthly 1:1 with you to ${when}.`
+    : `${input.studentName} booked a monthly 1:1 with you: ${when}.`;
+  return instructorNoticeEmail(subject, [
+    lead,
+    `First meeting: ${first} (${MEETING_DURATION_MINUTES} minutes).`,
+    input.calendarSynced
+      ? 'It has been added to your Google Calendar.'
+      : "It couldn't be added to your Google Calendar. Connect or reconnect Google Calendar in the instructor dashboard so future bookings are added automatically.",
+  ]);
+}
+
+/** To the instructor when a student's monthly 1:1 series is cancelled. */
+export function buildMeetingCancelledInstructorEmail(input: {
+  studentName: string;
+  slot: GeneratedSlot;
+  /** Completes "...was cancelled because ..." */
+  because: string;
+  /** Whether the series was removed from the instructor's Google Calendar */
+  calendarUpdated: boolean;
+}): { subject: string; text: string; html: string } {
+  return instructorNoticeEmail(`Cancelled: ${input.studentName}'s monthly 1:1`, [
+    `${input.studentName}'s monthly 1:1 (${monthlyWhenLabel(input.slot)}) was cancelled because ${input.because}.`,
+    input.calendarUpdated
+      ? 'It has been removed from your Google Calendar.'
+      : 'If it is on your calendar, you can delete it.',
+  ]);
 }
 
 export function buildMonthlyMeetingEmail(input: {
@@ -239,15 +299,7 @@ export function buildMonthlyMeetingEmail(input: {
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
   const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
-  const first = new Intl.DateTimeFormat('en-US', {
-    timeZone: input.slot.timezone,
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(input.slot.start));
+  const first = firstMeetingLabel(input.slot);
   const action = input.isReschedule ? 'updated' : 'scheduled';
 
   const subject = input.isReschedule
@@ -264,10 +316,10 @@ Duration: ${MEETING_DURATION_MINUTES} minutes
 
 A calendar invite (.ics) is attached — open it to add this series to your calendar.
 
-You can reschedule anytime from your OfferInsight Account page.
+You can reschedule anytime from your OpenSourceResume Account page.
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Monthly 1:1 with ${escapeHtml(input.instructorName)}</h2>
@@ -277,8 +329,8 @@ OfferInsight`;
   <strong>First upcoming meeting:</strong> ${escapeHtml(first)}<br/>
   <strong>Duration:</strong> ${MEETING_DURATION_MINUTES} minutes</p>
   <p>A calendar invite (<code>.ics</code>) is attached — open it to add this series to your calendar.</p>
-  <p>You can reschedule anytime from your OfferInsight Account page.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>You can reschedule anytime from your OpenSourceResume Account page.</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
@@ -292,15 +344,12 @@ export function buildMeetingReminderEmail(input: {
   occurrenceLabel: string;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
-  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
-  const boardUrl = baseUrl ? `${baseUrl}/dashboard?tab=opensource` : null;
-  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+  const boardUrl = appUrl('/dashboard?tab=opensource');
+  const accountUrl = appUrl('/account');
 
   const subject = `Reminder: your 1:1 with ${input.instructorName} is tomorrow`;
   const when = `${input.occurrenceLabel} (${MEETING_DURATION_MINUTES} minutes)`;
   const board = `Before your 1:1, please update your Open Source Contributions board so ${input.instructorName} can see your latest progress.`;
-  const link = (url: string | null, label: string) =>
-    url ? `<a href="${escapeHtml(url)}" style="color:#007ACC;">${label}</a>` : label;
 
   const text = `Hi ${name},
 
@@ -310,10 +359,10 @@ When: ${when}
 
 ${board}${boardUrl ? `\n${boardUrl}` : ''}
 
-Can't make it? Reschedule from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+Can't make it? Reschedule from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Your 1:1 with ${escapeHtml(input.instructorName)} is tomorrow</h2>
@@ -322,10 +371,10 @@ OfferInsight`;
   <p><strong>When:</strong> ${escapeHtml(when)}</p>
   <div style="background:#EFF6FF;border-left:4px solid #007ACC;padding:12px 16px;margin:16px 0;">
     <p style="margin:0;">${escapeHtml(board)}</p>
-    <p style="margin:8px 0 0;">${link(boardUrl, 'Update my Open Source board')}</p>
+    <p style="margin:8px 0 0;">${linkHtml(boardUrl, 'Update my Open Source board')}</p>
   </div>
-  <p>Can't make it? Reschedule from your ${link(accountUrl, 'OfferInsight Account page')}.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Can't make it? Reschedule from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
@@ -337,8 +386,7 @@ export function buildInstructorChangedEmail(input: {
   newInstructorName: string;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
-  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
-  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+  const accountUrl = appUrl('/account');
 
   const subject = `Your monthly 1:1 is now with ${input.newInstructorName}`;
 
@@ -348,33 +396,58 @@ You've been assigned a new mentor: ${input.newInstructorName}.
 
 Your monthly 1:1 with ${input.oldInstructorName} has been cancelled. The attached calendar file (.ics) removes it from your calendar.
 
-Please pick a new monthly time with ${input.newInstructorName} from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+Please pick a new monthly time with ${input.newInstructorName} from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Your monthly 1:1 is now with ${escapeHtml(input.newInstructorName)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>You've been assigned a new mentor: <strong>${escapeHtml(input.newInstructorName)}</strong>.</p>
   <p>Your monthly 1:1 with ${escapeHtml(input.oldInstructorName)} has been cancelled. The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
-  <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${
-    accountUrl
-      ? `<a href="${escapeHtml(accountUrl)}" style="color:#007ACC;">OfferInsight Account page</a>`
-      : 'OfferInsight Account page'
-  }.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+/** To the student when an instructor cancels their monthly 1:1 series. */
+export function buildMeetingCancelledEmail(input: {
+  studentName: string | null;
+  instructorName: string;
+  slot: GeneratedSlot;
+}): { subject: string; text: string; html: string } {
+  const name = input.studentName || 'there';
+  const accountUrl = appUrl('/account');
+  const schedule = monthlyWhenLabel(input.slot);
+
+  const subject = `Your monthly 1:1 with ${input.instructorName} has been cancelled`;
+
+  const text = `Hi ${name},
+
+${input.instructorName} cancelled your monthly 1:1 (${schedule}). The attached calendar file (.ics) removes it from your calendar.
+
+Monthly 1:1s are mandatory, so please pick a new monthly time from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
+
+Best,
+OpenSourceResume`;
+
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>${escapeHtml(input.instructorName)} cancelled your monthly 1:1 (${escapeHtml(schedule)}). The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
+  <p>Monthly 1:1s are <strong>mandatory</strong>, so please pick a new monthly time from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Best,<br/>OpenSourceResume</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
+/** `label` is inserted as-is; without a URL it's plain text. */
+function linkHtml(url: string | null, label: string): string {
+  return url ? `<a href="${escapeHtml(url)}" style="color:#007ACC;">${label}</a>` : label;
 }
 
 export function formatEndHhMm(startHhMm: string, durationMinutes: number): string {

@@ -4,8 +4,9 @@ import { prisma } from "@/db";
 import { getCurrentMonthDateRange } from "@/app/lib/date-utils";
 import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteria-progress";
 import { buildCriteria } from "@/app/lib/partnership-criteria";
-import { computeActiveStatus } from "@/app/lib/active-status";
+import { computeActiveStatus, computeProgressStatus } from "@/app/lib/student-status";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
+import { weeklyKeysForWindows } from "@/app/lib/calendar/constants";
 import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 import { nextMeeting, previousMeeting } from "@/app/lib/calendar/moves";
@@ -48,7 +49,16 @@ export async function GET() {
           monthlyMeeting: {
             select: {
               instructorId: true,
-              instructor: { select: { displayName: true, username: true } },
+              instructor: {
+                select: {
+                  displayName: true,
+                  username: true,
+                  availabilityWindows: {
+                    select: { dayOfWeek: true, startTime: true, endTime: true },
+                  },
+                },
+              },
+              weeklyKey: true,
               dayOfWeek: true,
               localTime: true,
               timezone: true,
@@ -185,50 +195,12 @@ export async function GET() {
           }),
         ]);
 
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const ninetyDaysAgo = new Date(now);
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-        // Active: any open source card (any partnership) last modified. Green = last 7 days, Yellow = last 30 days.
         const activeStatus = computeActiveStatus(openSourceEntries, now);
-
-        // Progress: open source completion. Green = 2+ criteria types done in 30 days, Yellow = 1 issue in 90 days (active partnership only).
-        let progressStatus = 0;
-
-        if (activePartnership) {
-          const partnershipName = activePartnership.partnership.name;
-          const doneEntriesForPartnership = openSourceEntries.filter(
-            (e) => e.status === 'done' && e.partnershipName === partnershipName
-          );
-
-          // Green: at least 2 distinct criteria types completed in last 30 days
-          const doneInLast30Days = doneEntriesForPartnership.filter(
-            (e) => e.dateModified && new Date(e.dateModified) >= thirtyDaysAgo
-          );
-          const criteriaTypesInLast30Days = new Set<string>();
-          for (const e of doneInLast30Days) {
-            if (e.criteriaType) criteriaTypesInLast30Days.add(e.criteriaType);
-            const extras = e.selectedExtras as string[] | null;
-            if (extras && Array.isArray(extras)) {
-              extras.forEach((t) => criteriaTypesInLast30Days.add(t));
-            }
-          }
-          if (criteriaTypesInLast30Days.size >= 2) {
-            progressStatus = 2; // Green
-          } else {
-            // Yellow: at least 1 issue completed in last 90 days
-            const issueDoneInLast90Days = doneEntriesForPartnership.some(
-              (e) =>
-                e.criteriaType === 'issue' &&
-                e.dateModified &&
-                new Date(e.dateModified) >= ninetyDaysAgo
-            );
-            if (issueDoneInLast90Days) {
-              progressStatus = 1; // Yellow
-            }
-          }
-        }
+        const progressStatus = computeProgressStatus(
+          openSourceEntries,
+          activePartnership?.partnership.name ?? null,
+          now
+        );
 
         return {
           id: user.id,
@@ -253,6 +225,9 @@ export async function GET() {
                   timezone: user.monthlyMeeting.timezone,
                   nextStart: next?.startIso ?? null,
                   movedFrom: next?.movedFrom ?? null,
+                  outsideHours: !weeklyKeysForWindows(
+                    user.monthlyMeeting.instructor.availabilityWindows
+                  ).has(user.monthlyMeeting.weeklyKey),
                   lastStart: last?.toISOString() ?? null,
                   lastMissed: Boolean(
                     last &&

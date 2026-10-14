@@ -200,11 +200,11 @@ export async function syncMonthlyMeetingOnInstructorCalendar(
 
   const created = await calendar.events.insert({
     calendarId: 'primary',
-    sendUpdates: 'none', // student already gets .ics from OfferInsight
+    sendUpdates: 'none', // student already gets .ics from OpenSourceResume
     requestBody: {
       summary: `1:1 — ${studentLabel}`,
       description: [
-        `OfferInsight monthly 1:1 with ${studentLabel}.`,
+        `OpenSourceResume monthly 1:1 with ${studentLabel}.`,
         `Standing time: ${DAY_LABELS[params.slot.dayOfWeek]}s at ${params.slot.localTime} (${params.slot.timezone}).`,
         `Duration: ${MEETING_DURATION_MINUTES} minutes.`,
         'Student can reschedule from their Account page.',

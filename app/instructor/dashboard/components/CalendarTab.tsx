@@ -6,6 +6,7 @@ import { AlertTriangle, Calendar, CalendarCheck, Clock, Loader2 } from 'lucide-r
 import {
   DEFAULT_AVAILABILITY_TIMEZONE,
   MEETING_DURATION_MINUTES,
+  weeklyKeysForWindows,
 } from '@/app/lib/calendar/constants';
 import type { BusyInterval } from '@/app/lib/calendar/conflicts';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
@@ -15,7 +16,6 @@ import WeeklyScheduleView from './calendar/WeeklyScheduleView';
 import {
   daysToWindows,
   rangeErrors,
-  weeklyKeysForWindows,
   windowsSignature,
   windowsToDays,
   type Booking,

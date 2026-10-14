@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (meeting && effective && meeting.instructorId !== effective.id) {
       const oldInstructorName = getInstructorDisplayName(meeting.instructor);
+      const newInstructorName = getInstructorDisplayName(effective);
       ({ emailSent } = await unscheduleMonthlyMeeting({
         meeting,
         user,
@@ -76,8 +77,9 @@ export async function POST(request: NextRequest) {
         mail: buildInstructorChangedEmail({
           studentName: user.name,
           oldInstructorName,
-          newInstructorName: getInstructorDisplayName(effective),
+          newInstructorName,
         }),
+        cancelledBecause: `they were reassigned to ${newInstructorName}`,
       }));
       meetingCancelled = true;
     }

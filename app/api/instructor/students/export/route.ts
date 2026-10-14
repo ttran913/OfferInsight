@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
 import { prisma } from "@/db";
-import { computeActiveStatus, parseActiveStatusParam } from "@/app/lib/active-status";
-import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
+import { computeActiveStatus, computeProgressStatus, parseStatusColorsParam } from "@/app/lib/student-status";
 
 /** Escape a CSV cell: wrap in quotes and escape internal quotes */
 function csvEscape(value: string): string {
@@ -72,35 +71,24 @@ export async function GET(request: NextRequest) {
     const minIssuesParam = searchParams.get("minIssues") ?? "";
     const minIssues = minIssuesParam === "" ? null : Math.max(0, parseInt(minIssuesParam, 10));
     const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
-    const activeFilter = parseActiveStatusParam(searchParams.get("active"));
-    const removedParam = searchParams.get("removed");
-    const removedFilter = removedParam === "removed" || removedParam === "not-removed" ? removedParam : null;
+    const activeFilter = parseStatusColorsParam(searchParams.get("active"));
+    const progressFilter = parseStatusColorsParam(searchParams.get("progress"));
+    const removedFilter = (searchParams.get("removed") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s === "removed" || s === "not-removed");
 
-    const mineOnly = searchParams.get("mine") === "1";
-
-    const [allUsers, roster] = await Promise.all([
-      prisma.user.findMany({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
-          expectedGraduationDate: true,
-          removedFromResumeBook: true,
-          assignedInstructorId: true,
-          monthlyMeeting: { select: { instructorId: true } },
-        },
-        orderBy: { name: "asc" },
-      }),
-      mineOnly ? loadSchedulingRoster() : null,
-    ]);
-    const users = roster
-      ? allUsers.filter(
-          (u) =>
-            roster.effectiveInstructorId(u.assignedInstructorId, u.monthlyMeeting?.instructorId ?? null) ===
-            instructor.id
-        )
-      : allUsers;
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        expectedGraduationDate: true,
+        removedFromResumeBook: true,
+      },
+      orderBy: { name: "asc" },
+    });
 
     const userIds = users.map((u) => u.id);
     if (userIds.length === 0) {
@@ -125,6 +113,20 @@ export async function GET(request: NextRequest) {
       entriesByUser.set(e.userId, list);
     }
 
+    const activePartnershipNameByUser = new Map<string, string>();
+    if (progressFilter.length > 0) {
+      const activePartnerships = await prisma.userPartnership.findMany({
+        where: { userId: { in: userIds }, status: "active" },
+        select: { userId: true, partnership: { select: { name: true } } },
+      });
+      for (const p of activePartnerships) {
+        if (!activePartnershipNameByUser.has(p.userId)) {
+          activePartnershipNameByUser.set(p.userId, p.partnership.name);
+        }
+      }
+    }
+
+    const now = new Date();
     const filteredUsers = users.filter((user) => {
       if (search && !(user.name ?? "").toLowerCase().includes(search)) return false;
       const userEntries = entriesByUser.get(user.id) ?? [];
@@ -132,9 +134,21 @@ export async function GET(request: NextRequest) {
         (e) => e.criteriaType === "issue" && e.status === "done"
       ).length;
       if (minIssuesValid && minIssues !== null && issuesCompleted < minIssues) return false;
-      if (removedFilter === "removed" && !user.removedFromResumeBook) return false;
-      if (removedFilter === "not-removed" && user.removedFromResumeBook) return false;
-      if (activeFilter !== null && computeActiveStatus(userEntries) !== activeFilter) return false;
+      if (
+        removedFilter.length > 0 &&
+        !removedFilter.includes(user.removedFromResumeBook ? "removed" : "not-removed")
+      ) {
+        return false;
+      }
+      if (activeFilter.length > 0 && !activeFilter.includes(computeActiveStatus(userEntries, now))) return false;
+      if (
+        progressFilter.length > 0 &&
+        !progressFilter.includes(
+          computeProgressStatus(userEntries, activePartnershipNameByUser.get(user.id) ?? null, now)
+        )
+      ) {
+        return false;
+      }
       return true;
     });
 

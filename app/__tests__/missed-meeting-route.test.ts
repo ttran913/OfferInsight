@@ -3,6 +3,7 @@ jest.mock('@/db', () => ({
     user: { findUnique: jest.fn(), update: jest.fn() },
     missedMeeting: { upsert: jest.fn(), count: jest.fn(), delete: jest.fn() },
     studentMonthlyMeeting: { delete: jest.fn() },
+    instructorGoogleCalendar: { findUnique: jest.fn() },
     $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   },
 }));
@@ -76,6 +77,9 @@ describe('/api/instructor/students/missed-meeting', () => {
     jest.setSystemTime(NOW);
     mockSession.mockResolvedValue({ id: 'coach-1', role: 'INSTRUCTOR' });
     (prisma.missedMeeting.count as jest.Mock).mockResolvedValue(1);
+    (prisma.instructorGoogleCalendar.findUnique as jest.Mock).mockResolvedValue({
+      googleEmail: 'coach@example.com',
+    });
     mockSendEmail.mockResolvedValue(undefined);
   });
 
@@ -110,7 +114,7 @@ describe('/api/instructor/students/missed-meeting', () => {
       expect(mockMeetingDelete).not.toHaveBeenCalled();
     });
 
-    it('records the miss, cancels the schedule, starts the clock, and emails once', async () => {
+    it('records the miss, cancels the schedule, starts the clock, and emails the student and instructor', async () => {
       mockFindUnique.mockResolvedValue(studentWithMeeting());
       const body = await (await POST(request('POST'))).json();
 
@@ -132,12 +136,28 @@ describe('/api/instructor/students/missed-meeting', () => {
       expect(mockDeleteEvent).toHaveBeenCalledWith('coach-1', 'event-1');
       expect(mockMeetingDelete).toHaveBeenCalledWith({ where: { id: 'meeting-1' } });
 
-      expect(mockSendEmail).toHaveBeenCalledTimes(1);
-      const mail = mockSendEmail.mock.calls[0][0];
+      expect(mockSendEmail).toHaveBeenCalledTimes(2);
+      const [instructorMail] = mockSendEmail.mock.calls[0];
+      expect(instructorMail.to).toBe('coach@example.com');
+      expect(instructorMail.subject).toBe("Cancelled: Sam's monthly 1:1");
+      expect(instructorMail.text).toContain('2nd Wednesday of every month at 10:00 AM');
+      expect(instructorMail.text).toContain('was marked as missed. They have 72 hours to book a new time.');
+      expect(instructorMail.text).toContain('removed from your Google Calendar');
+
+      const [mail] = mockSendEmail.mock.calls[1];
       expect(mail.to).toBe('sam@example.com');
       expect(mail.subject).toBe('You missed your 1:1 with Coach Kim. Please book a new time');
       expect(mail.text).toContain('Sunday, July 12, 2026');
       expect(mail.attachments[0].contentType).toContain('method=CANCEL');
+    });
+
+    it('still emails the student when the instructor has no Google account connected', async () => {
+      (prisma.instructorGoogleCalendar.findUnique as jest.Mock).mockResolvedValue(null);
+      mockFindUnique.mockResolvedValue(studentWithMeeting());
+      await POST(request('POST'));
+
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+      expect(mockSendEmail.mock.calls[0][0].to).toBe('sam@example.com');
     });
 
     it('does not start a clock for a student already removed', async () => {
