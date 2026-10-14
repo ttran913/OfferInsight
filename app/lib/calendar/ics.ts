@@ -1,3 +1,4 @@
+import { appUrl, escapeHtml } from '@/app/lib/email-layout';
 import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
 import { formatTime12, nthOrdinalLabel } from './labels';
 import type { GeneratedSlot } from './slots';
@@ -343,15 +344,12 @@ export function buildMeetingReminderEmail(input: {
   occurrenceLabel: string;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
-  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
-  const boardUrl = baseUrl ? `${baseUrl}/dashboard?tab=opensource` : null;
-  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+  const boardUrl = appUrl('/dashboard?tab=opensource');
+  const accountUrl = appUrl('/account');
 
   const subject = `Reminder: your 1:1 with ${input.instructorName} is tomorrow`;
   const when = `${input.occurrenceLabel} (${MEETING_DURATION_MINUTES} minutes)`;
   const board = `Before your 1:1, please update your Open Source Contributions board so ${input.instructorName} can see your latest progress.`;
-  const link = (url: string | null, label: string) =>
-    url ? `<a href="${escapeHtml(url)}" style="color:#007ACC;">${label}</a>` : label;
 
   const text = `Hi ${name},
 
@@ -373,9 +371,9 @@ OpenSourceResume`;
   <p><strong>When:</strong> ${escapeHtml(when)}</p>
   <div style="background:#EFF6FF;border-left:4px solid #007ACC;padding:12px 16px;margin:16px 0;">
     <p style="margin:0;">${escapeHtml(board)}</p>
-    <p style="margin:8px 0 0;">${link(boardUrl, 'Update my Open Source board')}</p>
+    <p style="margin:8px 0 0;">${linkHtml(boardUrl, 'Update my Open Source board')}</p>
   </div>
-  <p>Can't make it? Reschedule from your ${link(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Can't make it? Reschedule from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
   <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
@@ -388,8 +386,7 @@ export function buildInstructorChangedEmail(input: {
   newInstructorName: string;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
-  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
-  const accountUrl = baseUrl ? `${baseUrl}/account` : null;
+  const accountUrl = appUrl('/account');
 
   const subject = `Your monthly 1:1 is now with ${input.newInstructorName}`;
 
@@ -409,23 +406,48 @@ OpenSourceResume`;
   <p>Hi ${escapeHtml(name)},</p>
   <p>You've been assigned a new mentor: <strong>${escapeHtml(input.newInstructorName)}</strong>.</p>
   <p>Your monthly 1:1 with ${escapeHtml(input.oldInstructorName)} has been cancelled. The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
-  <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${
-    accountUrl
-      ? `<a href="${escapeHtml(accountUrl)}" style="color:#007ACC;">OpenSourceResume Account page</a>`
-      : 'OpenSourceResume Account page'
-  }.</p>
+  <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
   <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+/** To the student when an instructor cancels their monthly 1:1 series. */
+export function buildMeetingCancelledEmail(input: {
+  studentName: string | null;
+  instructorName: string;
+  slot: GeneratedSlot;
+}): { subject: string; text: string; html: string } {
+  const name = input.studentName || 'there';
+  const accountUrl = appUrl('/account');
+  const schedule = monthlyWhenLabel(input.slot);
+
+  const subject = `Your monthly 1:1 with ${input.instructorName} has been cancelled`;
+
+  const text = `Hi ${name},
+
+${input.instructorName} cancelled your monthly 1:1 (${schedule}). The attached calendar file (.ics) removes it from your calendar.
+
+Monthly 1:1s are mandatory, so please pick a new monthly time from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
+
+Best,
+OpenSourceResume`;
+
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>${escapeHtml(input.instructorName)} cancelled your monthly 1:1 (${escapeHtml(schedule)}). The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
+  <p>Monthly 1:1s are <strong>mandatory</strong>, so please pick a new monthly time from your ${linkHtml(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Best,<br/>OpenSourceResume</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
+/** `label` is inserted as-is; without a URL it's plain text. */
+function linkHtml(url: string | null, label: string): string {
+  return url ? `<a href="${escapeHtml(url)}" style="color:#007ACC;">${label}</a>` : label;
 }
 
 export function formatEndHhMm(startHhMm: string, durationMinutes: number): string {

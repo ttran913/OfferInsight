@@ -29,6 +29,8 @@ interface UserData {
     /** ISO start of the most recent meeting that already ended */
     lastStart?: string | null;
     lastMissed?: boolean;
+    /** The standing time is no longer inside the instructor's weekly hours */
+    outsideHours?: boolean;
   } | null;
   missedCount?: number;
   lastMissedStart?: string | null;
@@ -222,8 +224,10 @@ export default function UsersTab() {
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [assignResult, setAssignResult] = useState<AssignResult | null>(null);
   const [missedConfirmUser, setMissedConfirmUser] = useState<UserData | null>(null);
-  const [missedBusyUserId, setMissedBusyUserId] = useState<string | null>(null);
-  const [missedResult, setMissedResult] = useState<AssignResult | null>(null);
+  const [meetingBusyUserId, setMeetingBusyUserId] = useState<string | null>(null);
+  const [meetingResult, setMeetingResult] = useState<AssignResult | null>(null);
+  const [cancelConfirmUser, setCancelConfirmUser] = useState<UserData | null>(null);
+  const [cancelEmailStudent, setCancelEmailStudent] = useState(true);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -367,40 +371,63 @@ export default function UsersTab() {
     }
   }
 
-  async function handleMissedMeeting(user: UserData, method: 'POST' | 'DELETE') {
-    setMissedBusyUserId(user.id);
-    setMissedResult(null);
+  async function runMeetingAction(
+    user: UserData,
+    url: string,
+    method: 'POST' | 'DELETE',
+    body: Record<string, unknown>,
+    describe: (data: { emailSent?: boolean }) => Omit<AssignResult, 'userId'>
+  ) {
+    setMeetingBusyUserId(user.id);
+    setMeetingResult(null);
     try {
-      const response = await fetch('/api/instructor/students/missed-meeting', {
+      const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, ...body }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(data?.error || 'Something went wrong');
       }
-      setMissedResult({
-        userId: user.id,
-        tone: method === 'DELETE' || data.emailSent ? 'success' : 'warning',
-        message:
-          method === 'DELETE'
-            ? 'Missed mark removed. They still need to book a new schedule.'
-            : data.emailSent
-              ? 'Marked missed; schedule cleared and student emailed.'
-              : 'Marked missed and schedule cleared, but the email could not be sent.',
-      });
+      setMeetingResult({ userId: user.id, ...describe(data) });
       await fetchUsers();
     } catch (error) {
-      setMissedResult({
+      setMeetingResult({
         userId: user.id,
         tone: 'error',
         message: error instanceof Error ? error.message : 'Something went wrong',
       });
     } finally {
-      setMissedBusyUserId(null);
+      setMeetingBusyUserId(null);
       setMissedConfirmUser(null);
+      setCancelConfirmUser(null);
     }
+  }
+
+  function handleMissedMeeting(user: UserData, method: 'POST' | 'DELETE') {
+    return runMeetingAction(user, '/api/instructor/students/missed-meeting', method, {}, (data) =>
+      method === 'DELETE'
+        ? { tone: 'success', message: 'Missed mark removed. They still need to book a new schedule.' }
+        : data.emailSent
+          ? { tone: 'success', message: 'Marked missed; schedule cleared and student emailed.' }
+          : { tone: 'warning', message: 'Marked missed and schedule cleared, but the email could not be sent.' }
+    );
+  }
+
+  function handleCancelMeeting(user: UserData, emailStudent: boolean) {
+    return runMeetingAction(
+      user,
+      '/api/instructor/students/cancel-meeting',
+      'POST',
+      { emailStudent },
+      (data) =>
+        !emailStudent
+          ? { tone: 'success', message: 'Meeting cancelled. The student was not emailed.' }
+          : data.emailSent
+            ? { tone: 'success', message: 'Meeting cancelled; student emailed to book a new time.' }
+            : { tone: 'warning', message: 'Meeting cancelled, but the email could not be sent.' }
+    );
   }
 
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
@@ -770,6 +797,15 @@ export default function UsersTab() {
                     {user.meeting && user.meeting.instructorId !== currentInstructorId && (
                       <span className="text-xs">with {user.meeting.instructorLabel}</span>
                     )}
+                    {user.meeting?.outsideHours && (
+                      <span className="text-xs text-amber-700">
+                        Outside{' '}
+                        {user.meeting.instructorId === currentInstructorId
+                          ? 'your'
+                          : `${user.meeting.instructorLabel}'s`}{' '}
+                        hours
+                      </span>
+                    )}
                     {user.meeting?.lastStart && !user.mustBook && (
                       <span className="text-xs">
                         Last: {formatMeetingDate(user.meeting.lastStart, user.meeting.timezone)}
@@ -782,7 +818,7 @@ export default function UsersTab() {
                               <button
                                 type="button"
                                 onClick={() => setMissedConfirmUser(user)}
-                                disabled={missedBusyUserId === user.id}
+                                disabled={meetingBusyUserId === user.id}
                                 className="font-semibold text-red-700 hover:underline disabled:opacity-50"
                               >
                                 Mark missed
@@ -792,6 +828,20 @@ export default function UsersTab() {
                         )}
                       </span>
                     )}
+                    {user.meeting &&
+                      (user.meeting.instructorId === currentInstructorId || canMutateUserData) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancelEmailStudent(true);
+                            setCancelConfirmUser(user);
+                          }}
+                          disabled={meetingBusyUserId === user.id}
+                          className="self-start text-xs font-semibold text-gray-500 hover:text-red-700 hover:underline disabled:opacity-50"
+                        >
+                          Cancel meeting
+                        </button>
+                      )}
                     {user.mustBook && (
                       <span className="text-xs text-red-700">
                         {user.mustBook.reason === 'missedMeeting' && user.lastMissedStart
@@ -809,10 +859,10 @@ export default function UsersTab() {
                             <button
                               type="button"
                               onClick={() => handleMissedMeeting(user, 'DELETE')}
-                              disabled={missedBusyUserId === user.id}
+                              disabled={meetingBusyUserId === user.id}
                               className="block font-semibold text-electric-blue hover:underline disabled:opacity-50"
                             >
-                              {missedBusyUserId === user.id ? 'Undoing…' : 'Undo'}
+                              {meetingBusyUserId === user.id ? 'Undoing…' : 'Undo'}
                             </button>
                           )}
                       </span>
@@ -822,17 +872,17 @@ export default function UsersTab() {
                         Missed 1:1s: <span className="text-gray-900 font-medium">{user.missedCount}</span>
                       </span>
                     )}
-                    {missedResult?.userId === user.id && (
+                    {meetingResult?.userId === user.id && (
                       <span
                         className={`text-xs ${
-                          missedResult.tone === 'success'
+                          meetingResult.tone === 'success'
                             ? 'text-green-700'
-                            : missedResult.tone === 'warning'
+                            : meetingResult.tone === 'warning'
                               ? 'text-amber-700'
                               : 'text-red-700'
                         }`}
                       >
-                        {missedResult.message}
+                        {meetingResult.message}
                       </span>
                     )}
                   </div>
@@ -850,7 +900,7 @@ export default function UsersTab() {
       )}
 
       {missedConfirmUser?.meeting?.lastStart && (
-        <ModalOverlay onClose={() => !missedBusyUserId && setMissedConfirmUser(null)}>
+        <ModalOverlay onClose={() => !meetingBusyUserId && setMissedConfirmUser(null)}>
           <ModalPanel size="md">
             <h3 className="text-lg font-semibold text-gray-900">Mark this 1:1 as missed?</h3>
             <p className="text-sm text-gray-700 mt-2">
@@ -876,7 +926,7 @@ export default function UsersTab() {
               <button
                 type="button"
                 onClick={() => setMissedConfirmUser(null)}
-                disabled={Boolean(missedBusyUserId)}
+                disabled={Boolean(meetingBusyUserId)}
                 className="px-4 py-2 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
@@ -884,10 +934,61 @@ export default function UsersTab() {
               <button
                 type="button"
                 onClick={() => handleMissedMeeting(missedConfirmUser, 'POST')}
-                disabled={Boolean(missedBusyUserId)}
+                disabled={Boolean(meetingBusyUserId)}
                 className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {missedBusyUserId ? 'Marking…' : 'Mark missed'}
+                {meetingBusyUserId ? 'Marking…' : 'Mark missed'}
+              </button>
+            </div>
+          </ModalPanel>
+        </ModalOverlay>
+      )}
+
+      {cancelConfirmUser?.meeting && (
+        <ModalOverlay onClose={() => !meetingBusyUserId && setCancelConfirmUser(null)}>
+          <ModalPanel size="md">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Cancel {cancelConfirmUser.name}&apos;s monthly 1:1?
+            </h3>
+            <ul className="mt-3 space-y-1.5 text-sm text-gray-700 list-disc pl-5">
+              <li>Their whole monthly schedule is cancelled, including on your Google Calendar.</li>
+              <li>
+                This doesn&apos;t count as a missed meeting and doesn&apos;t start the 72-hour booking
+                deadline. They&apos;re asked to book again from their dashboard.
+              </li>
+            </ul>
+            <label className="mt-4 flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={cancelEmailStudent}
+                onChange={(e) => setCancelEmailStudent(e.target.checked)}
+                disabled={Boolean(meetingBusyUserId)}
+                className="mt-0.5 w-4 h-4 accent-electric-blue"
+              />
+              <span>
+                Email {cancelConfirmUser.name} a calendar cancellation and ask them to book a new
+                time
+                <span className="block text-xs text-gray-500">
+                  Uncheck for test accounts.
+                </span>
+              </span>
+            </label>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setCancelConfirmUser(null)}
+                disabled={Boolean(meetingBusyUserId)}
+                className="px-4 py-2 rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Keep meeting
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCancelMeeting(cancelConfirmUser, cancelEmailStudent)}
+                disabled={Boolean(meetingBusyUserId)}
+                className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {meetingBusyUserId ? 'Cancelling…' : 'Cancel meeting'}
               </button>
             </div>
           </ModalPanel>

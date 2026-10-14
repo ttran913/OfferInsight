@@ -30,7 +30,8 @@ export async function unscheduleMonthlyMeeting({
   user: { name: string | null; email: string | null };
   /** Instructor of the series being cancelled (shown in the .ics) */
   instructorName: string;
-  mail: { subject: string; text: string; html: string };
+  /** Omit to cancel without emailing the student */
+  mail?: { subject: string; text: string; html: string };
   /** Why, for the instructor's email: completes "...was cancelled because ..." */
   cancelledBecause: string;
 }): Promise<{ emailSent: boolean }> {
@@ -49,7 +50,7 @@ export async function unscheduleMonthlyMeeting({
     })
   );
 
-  if (!user.email) return { emailSent: false };
+  if (!mail || !user.email) return { emailSent: false };
   try {
     const ics = buildMonthlyMeetingCancelIcs({
       slot: seriesAnchorSlot(meeting),

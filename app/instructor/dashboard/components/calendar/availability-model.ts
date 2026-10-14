@@ -95,16 +95,3 @@ export function slotCountForDay(
     0
   );
 }
-
-export function weeklyKeysForWindows(
-  windows: AvailabilityWindowInput[],
-  durationMinutes: number = MEETING_DURATION_MINUTES
-): Set<string> {
-  const keys = new Set<string>();
-  for (const w of windows) {
-    for (const t of slotStartTimesInWindow(w.startTime, w.endTime, durationMinutes)) {
-      keys.add(`${w.dayOfWeek}|${t}`);
-    }
-  }
-  return keys;
-}

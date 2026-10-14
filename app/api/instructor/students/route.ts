@@ -6,6 +6,7 @@ import { computeOpenSourceCriteriaProgress } from "@/app/lib/open-source-criteri
 import { buildCriteria } from "@/app/lib/partnership-criteria";
 import { computeActiveStatus, computeProgressStatus } from "@/app/lib/student-status";
 import { canInstructorAssignStudents } from "@/app/lib/instructor-permissions";
+import { weeklyKeysForWindows } from "@/app/lib/calendar/constants";
 import { instructorLabel } from "@/app/lib/calendar/instructor-choice";
 import { loadSchedulingRoster } from "@/app/lib/calendar/scheduling-instructor";
 import { nextMeeting, previousMeeting } from "@/app/lib/calendar/moves";
@@ -48,7 +49,16 @@ export async function GET() {
           monthlyMeeting: {
             select: {
               instructorId: true,
-              instructor: { select: { displayName: true, username: true } },
+              instructor: {
+                select: {
+                  displayName: true,
+                  username: true,
+                  availabilityWindows: {
+                    select: { dayOfWeek: true, startTime: true, endTime: true },
+                  },
+                },
+              },
+              weeklyKey: true,
               dayOfWeek: true,
               localTime: true,
               timezone: true,
@@ -215,6 +225,9 @@ export async function GET() {
                   timezone: user.monthlyMeeting.timezone,
                   nextStart: next?.startIso ?? null,
                   movedFrom: next?.movedFrom ?? null,
+                  outsideHours: !weeklyKeysForWindows(
+                    user.monthlyMeeting.instructor.availabilityWindows
+                  ).has(user.monthlyMeeting.weeklyKey),
                   lastStart: last?.toISOString() ?? null,
                   lastMissed: Boolean(
                     last &&
