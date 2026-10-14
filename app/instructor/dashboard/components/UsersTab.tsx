@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { X } from 'lucide-react';
 import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
 import { DEFAULT_AVAILABILITY_TIMEZONE } from '@/app/lib/calendar/constants';
+import type { StatusColor } from '@/app/lib/student-status';
+import FilterDropdown, { type FilterOption } from './FilterDropdown';
 
 interface UserData {
   id: string;
   name: string;
   email: string | null;
-  activeStatus: number; // 0 = red, 1 = yellow, 2 = green
-  progressStatus: number; // 0 = red, 1 = yellow, 2 = green
+  activeStatus: StatusColor;
+  progressStatus: StatusColor;
   removedFromResumeBook: boolean;
   inactivityWarningCount: number;
   assignedInstructorId?: string | null;
@@ -83,15 +86,60 @@ function formatMeetingTime(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
-type ActiveFilter = 'all' | 2 | 1 | 0;
-type RemovedFilter = 'all' | 'removed' | 'not-removed';
+type RemovedState = 'removed' | 'not-removed';
 
-const ACTIVE_FILTER_OPTIONS: { value: ActiveFilter; label: string; dotClass: string | null; title: string }[] = [
-  { value: 'all', label: 'All', dotClass: null, title: 'Show all activity levels' },
-  { value: 2, label: 'Green', dotClass: 'bg-green-500', title: 'Active in the last 7 days' },
-  { value: 1, label: 'Yellow', dotClass: 'bg-yellow-500', title: 'Active in the last 30 days' },
-  { value: 0, label: 'Red', dotClass: 'bg-red-500', title: 'No activity in the last 30 days' },
+const REMOVED_STATES: { value: RemovedState; label: string; description: string }[] = [
+  { value: 'not-removed', label: 'Not removed', description: 'Still in the Resume Book' },
+  { value: 'removed', label: 'Removed', description: 'Removed from the Resume Book' },
 ];
+
+function removedStateOf(user: UserData): RemovedState {
+  return user.removedFromResumeBook ? 'removed' : 'not-removed';
+}
+
+/** Picking every option filters nothing, so treat it the same as picking none */
+function effectiveSelection<T>(selected: T[], optionCount: number): T[] {
+  return selected.length >= optionCount ? [] : selected;
+}
+
+const STATUS_COLORS: { value: StatusColor; label: string; dotClass: string }[] = [
+  { value: 2, label: 'Green', dotClass: 'bg-green-500' },
+  { value: 1, label: 'Yellow', dotClass: 'bg-yellow-500' },
+  { value: 0, label: 'Red', dotClass: 'bg-red-500' },
+];
+
+interface FilterChip {
+  key: string;
+  label: string;
+  onRemove: () => void;
+}
+
+function selectionChips<T extends string | number>(
+  group: string,
+  options: FilterOption<T>[],
+  selection: T[],
+  onChange: (next: T[]) => void
+): FilterChip[] {
+  return options
+    .filter((option) => selection.includes(option.value))
+    .map((option) => ({
+      key: `${group}-${option.value}`,
+      label: `${group}: ${option.label}`,
+      onRemove: () => onChange(selection.filter((v) => v !== option.value)),
+    }));
+}
+
+const ACTIVE_STATUS_DESCRIPTIONS: Record<StatusColor, string> = {
+  2: 'Active in the last 7 days',
+  1: 'Active in the last 30 days',
+  0: 'No activity in the last 30 days',
+};
+
+const PROGRESS_STATUS_DESCRIPTIONS: Record<StatusColor, string> = {
+  2: '2+ criteria types completed in the last 30 days',
+  1: '1+ issue completed in the last 90 days',
+  0: 'No recent progress, or no active partnership',
+};
 
 const DEBUG_MODE = false;
 
@@ -163,14 +211,14 @@ export default function UsersTab() {
   const [canMutateUserData, setCanMutateUserData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [minIssuesFilter, setMinIssuesFilter] = useState('');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
-  const [removedFilter, setRemovedFilter] = useState<RemovedFilter>('all');
+  const [activeFilter, setActiveFilter] = useState<StatusColor[]>([]);
+  const [progressFilter, setProgressFilter] = useState<StatusColor[]>([]);
+  const [removedFilter, setRemovedFilter] = useState<RemovedState[]>([]);
   const [sortOrder, setSortOrder] = useState<'name-asc' | 'name-desc' | 'issues-high' | 'issues-low'>('name-asc');
   const [instructors, setInstructors] = useState<AssignableInstructor[]>([]);
   const [defaultInstructorId, setDefaultInstructorId] = useState<string | null>(null);
   const [currentInstructorId, setCurrentInstructorId] = useState<string | null>(null);
   const [canAssign, setCanAssign] = useState(false);
-  const [showAll, setShowAll] = useState(true);
   const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
   const [assignResult, setAssignResult] = useState<AssignResult | null>(null);
   const [missedConfirmUser, setMissedConfirmUser] = useState<UserData | null>(null);
@@ -358,41 +406,75 @@ export default function UsersTab() {
   const minIssues = minIssuesFilter.trim() === '' ? null : Math.max(0, parseInt(minIssuesFilter, 10));
   const minIssuesValid = minIssues === null || !Number.isNaN(minIssues);
 
-  const hasFiltersSet =
-    searchQuery.trim() !== '' ||
-    minIssuesFilter.trim() !== '' ||
-    activeFilter !== 'all' ||
-    removedFilter !== 'all';
+  const activeColors = effectiveSelection(activeFilter, STATUS_COLORS.length);
+  const progressColors = effectiveSelection(progressFilter, STATUS_COLORS.length);
+  const removedStates = effectiveSelection(removedFilter, REMOVED_STATES.length);
 
   function clearFilters() {
     setSearchQuery('');
     setMinIssuesFilter('');
-    setActiveFilter('all');
-    setRemovedFilter('all');
+    setActiveFilter([]);
+    setProgressFilter([]);
+    setRemovedFilter([]);
   }
 
-  const activeFilterLabel = ACTIVE_FILTER_OPTIONS.find((option) => option.value === activeFilter)?.label;
+  const matchesActive = (user: UserData) =>
+    activeColors.length === 0 || activeColors.includes(user.activeStatus);
+  const matchesProgress = (user: UserData) =>
+    progressColors.length === 0 || progressColors.includes(user.progressStatus);
+  const matchesRemoved = (user: UserData) =>
+    removedStates.length === 0 || removedStates.includes(removedStateOf(user));
 
-  const scopedUsers = showAll
-    ? users
-    : users.filter((user) => user.effectiveInstructorId === currentInstructorId);
+  const baseUsers = users
+    .filter((user) => user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((user) => !minIssuesValid || minIssues === null || user.openSource.issuesCompleted >= minIssues);
 
-  const filteredAndSortedUsers = scopedUsers
-    .filter((user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter((user) => {
-      if (minIssuesValid && minIssues !== null) {
-        return user.openSource.issuesCompleted >= minIssues;
-      }
-      return true;
-    })
-    .filter((user) => activeFilter === 'all' || user.activeStatus === activeFilter)
-    .filter((user) => {
-      if (removedFilter === 'removed') return user.removedFromResumeBook;
-      if (removedFilter === 'not-removed') return !user.removedFromResumeBook;
-      return true;
-    })
+  // Each group's counts honor every other filter but not its own picks
+  function colorOptions(
+    pool: UserData[],
+    statusOf: (user: UserData) => StatusColor,
+    descriptions: Record<StatusColor, string>
+  ): FilterOption<StatusColor>[] {
+    return STATUS_COLORS.map((color) => ({
+      ...color,
+      description: descriptions[color.value],
+      count: pool.filter((user) => statusOf(user) === color.value).length,
+    }));
+  }
+
+  const activeOptions = colorOptions(
+    baseUsers.filter(matchesProgress).filter(matchesRemoved),
+    (user) => user.activeStatus,
+    ACTIVE_STATUS_DESCRIPTIONS
+  );
+  const progressOptions = colorOptions(
+    baseUsers.filter(matchesActive).filter(matchesRemoved),
+    (user) => user.progressStatus,
+    PROGRESS_STATUS_DESCRIPTIONS
+  );
+  const removedPool = baseUsers.filter(matchesActive).filter(matchesProgress);
+  const removedOptions: FilterOption<RemovedState>[] = REMOVED_STATES.map((state) => ({
+    ...state,
+    count: removedPool.filter((user) => removedStateOf(user) === state.value).length,
+  }));
+
+  const filterChips: FilterChip[] = [
+    ...(searchQuery.trim()
+      ? [{ key: 'search', label: `Name: "${searchQuery.trim()}"`, onRemove: () => setSearchQuery('') }]
+      : []),
+    ...(minIssuesValid && minIssues !== null
+      ? [{ key: 'minIssues', label: `Min issues: ${minIssues}`, onRemove: () => setMinIssuesFilter('') }]
+      : []),
+    ...selectionChips('Active', activeOptions, activeColors, setActiveFilter),
+    ...selectionChips('Progress', progressOptions, progressColors, setProgressFilter),
+    ...selectionChips('Status', removedOptions, removedStates, setRemovedFilter),
+  ];
+  const hasFiltersSet = filterChips.length > 0;
+
+  const filteredAndSortedUsers = baseUsers
+    .filter(matchesActive)
+    .filter(matchesProgress)
+    .filter(matchesRemoved)
     .sort((a, b) => {
       if (sortOrder === 'name-asc') {
         return a.name.localeCompare(b.name);
@@ -413,29 +495,6 @@ export default function UsersTab() {
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-4 mb-6 flex-wrap">
-        {!DEBUG_MODE && (
-          <div className="inline-flex rounded-lg border border-gray-300 bg-gray-100 p-1 self-start" role="group" aria-label="Student scope">
-            {[
-              { value: true, label: 'All students' },
-              { value: false, label: 'My students' },
-            ].map((option) => (
-              <button
-                key={option.label}
-                type="button"
-                onClick={() => setShowAll(option.value)}
-                aria-pressed={showAll === option.value}
-                className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors whitespace-nowrap ${
-                  showAll === option.value
-                    ? 'bg-white text-electric-blue shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        )}
-
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
@@ -471,39 +530,9 @@ export default function UsersTab() {
           </select>
         </div>
 
-        <div className="sm:w-44">
-          <select
-            value={removedFilter}
-            onChange={(e) => setRemovedFilter(e.target.value as RemovedFilter)}
-            className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-electric-blue focus:ring-1 focus:ring-electric-blue"
-            aria-label="Filter by removed status"
-          >
-            <option value="all">Status: All</option>
-            <option value="not-removed">Not removed</option>
-            <option value="removed">Removed</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1" role="group" aria-label="Filter by active status">
-          <span className="text-gray-600 text-sm font-medium mr-1">Active:</span>
-          {ACTIVE_FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              title={option.title}
-              aria-pressed={activeFilter === option.value}
-              onClick={() => setActiveFilter(option.value)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-electric-blue ${
-                activeFilter === option.value
-                  ? 'bg-white border-electric-blue text-gray-900'
-                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {option.dotClass && <span className={`w-3 h-3 rounded-full ${option.dotClass}`} />}
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <FilterDropdown label="Active" options={activeOptions} selected={activeFilter} onChange={setActiveFilter} />
+        <FilterDropdown label="Progress" options={progressOptions} selected={progressFilter} onChange={setProgressFilter} />
+        <FilterDropdown label="Status" options={removedOptions} selected={removedFilter} onChange={setRemovedFilter} />
 
         <button
           type="button"
@@ -511,9 +540,9 @@ export default function UsersTab() {
             const params = new URLSearchParams();
             if (searchQuery.trim()) params.set('search', searchQuery.trim());
             if (minIssuesValid && minIssues !== null) params.set('minIssues', String(minIssues));
-            if (activeFilter !== 'all') params.set('active', String(activeFilter));
-            if (removedFilter !== 'all') params.set('removed', removedFilter);
-            if (!showAll) params.set('mine', '1');
+            if (activeColors.length > 0) params.set('active', activeColors.join(','));
+            if (progressColors.length > 0) params.set('progress', progressColors.join(','));
+            if (removedStates.length > 0) params.set('removed', removedStates.join(','));
             const url = `/api/instructor/students/export${params.toString() ? `?${params.toString()}` : ''}`;
             window.open(url, '_blank', 'noopener,noreferrer');
           }}
@@ -524,24 +553,36 @@ export default function UsersTab() {
       </div>
 
       {users.length > 0 && (
-        <div className="flex items-center gap-3 text-gray-400 text-sm mb-4">
-          <span>
-            Showing {filteredAndSortedUsers.length} of {scopedUsers.length} user{scopedUsers.length !== 1 ? 's' : ''}
-            {!showAll && ' assigned to you'}
-            {searchQuery && ` matching "${searchQuery}"`}
-            {minIssuesValid && minIssues !== null && ` with ≥ ${minIssues} issue${minIssues !== 1 ? 's' : ''}`}
-            {activeFilter !== 'all' && ` · Active: ${activeFilterLabel?.toLowerCase()}`}
-            {removedFilter === 'removed' && ' · Removed only'}
-            {removedFilter === 'not-removed' && ' · Not removed'}
+        <div className="flex flex-col gap-2 mb-4">
+          <span className="text-gray-400 text-sm">
+            Showing {filteredAndSortedUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
           </span>
           {hasFiltersSet && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-electric-blue hover:underline font-medium"
-            >
-              Clear filters
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {filterChips.map((chip) => (
+                <span
+                  key={chip.key}
+                  className="inline-flex items-center gap-1 rounded-full border border-electric-blue bg-white pl-3 pr-1.5 py-0.5 text-sm text-gray-900"
+                >
+                  {chip.label}
+                  <button
+                    type="button"
+                    onClick={chip.onRemove}
+                    aria-label={`Remove filter ${chip.label}`}
+                    className="rounded-full p-0.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm text-electric-blue hover:underline font-medium"
+              >
+                Clear all
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -804,11 +845,7 @@ export default function UsersTab() {
 
       {filteredAndSortedUsers.length === 0 && (
         <div className="text-gray-400 text-center py-8">
-          {hasFiltersSet
-            ? 'No users match the current filters.'
-            : showAll
-            ? 'No users found.'
-            : 'No students are assigned to you yet.'}
+          {hasFiltersSet ? 'No users match the current filters.' : 'No users found.'}
         </div>
       )}
 
