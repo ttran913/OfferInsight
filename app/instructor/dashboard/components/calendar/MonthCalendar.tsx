@@ -150,7 +150,7 @@ export default function MonthCalendar({ timezone }: Props) {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Your calendar</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Your OfferInsight 1:1s this month and next, from your Google Calendar.
+              Your OpenSourceResume 1:1s this month and next, from your Google Calendar.
             </p>
           </div>
         </div>

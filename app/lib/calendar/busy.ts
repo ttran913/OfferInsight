@@ -16,7 +16,7 @@ function allDayToUtc(date: string, timezone: string): Date {
 
 /**
  * Busy time on the instructor's primary Google Calendar for the conflict lookahead window.
- * Ignores OfferInsight 1:1s (handled by booking occupancy), events marked "Free",
+ * Ignores OpenSourceResume 1:1s (handled by booking occupancy), events marked "Free",
  * events the instructor declined, and working-location markers.
  */
 export async function getInstructorBusyIntervals(
@@ -39,14 +39,14 @@ export async function getInstructorBusyIntervals(
     where: { instructorId, googleEventId: { not: null } },
     select: { googleEventId: true },
   });
-  const offerInsightIds = new Set(meetings.map((m) => m.googleEventId as string));
+  const openSourceResumeIds = new Set(meetings.map((m) => m.googleEventId as string));
 
   const intervals: BusyInterval[] = [];
   for (const e of events) {
     if (e.transparency === 'transparent') continue;
     if (e.eventType === 'workingLocation') continue;
     if (e.attendees?.some((a) => a.self && a.responseStatus === 'declined')) continue;
-    if ((e.id && offerInsightIds.has(e.id)) || (e.recurringEventId && offerInsightIds.has(e.recurringEventId))) {
+    if ((e.id && openSourceResumeIds.has(e.id)) || (e.recurringEventId && openSourceResumeIds.has(e.recurringEventId))) {
       continue;
     }
 

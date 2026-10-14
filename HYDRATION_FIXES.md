@@ -1,6 +1,6 @@
 # Hydration Mismatch Fixes
 
-This document outlines the hydration mismatch issues that were identified and fixed in the OfferInsight application.
+This document outlines the hydration mismatch issues that were identified and fixed in the OpenSourceResume application.
 
 ## What is Hydration Mismatch?
 

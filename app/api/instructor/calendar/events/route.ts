@@ -60,15 +60,15 @@ export async function GET() {
       where: { instructorId: instructor.id, googleEventId: { not: null } },
       select: { googleEventId: true },
     });
-    const offerInsightIds = new Set(meetings.map((m) => m.googleEventId as string));
+    const openSourceResumeIds = new Set(meetings.map((m) => m.googleEventId as string));
 
     const events: CalendarEventItem[] = googleEvents
       .filter(
         (e) =>
           e.id &&
           (e.start?.dateTime || e.start?.date) &&
-          (offerInsightIds.has(e.id) ||
-            (e.recurringEventId ? offerInsightIds.has(e.recurringEventId) : false))
+          (openSourceResumeIds.has(e.id) ||
+            (e.recurringEventId ? openSourceResumeIds.has(e.recurringEventId) : false))
       )
       .map((e) => {
         const allDay = !e.start?.dateTime;

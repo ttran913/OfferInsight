@@ -82,14 +82,14 @@ function buildIcsContent(
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//OfferInsight//Monthly 1:1//EN',
+    'PRODID:-//OpenSourceResume//Monthly 1:1//EN',
     'CALSCALE:GREGORIAN',
     `METHOD:${method}`,
     'BEGIN:VEVENT',
     `UID:${monthlyMeetingUid(slot, studentEmail)}`,
     `DTSTAMP:${formatIcsUtc(new Date())}`,
     foldLine(`SUMMARY:${escapeText(`Monthly 1:1 with ${instructorName}`)}`),
-    foldLine(`ORGANIZER;CN=${escapeText(instructorName)}:mailto:${process.env.EMAIL_FROM || 'noreply@offerinsight.local'}`),
+    foldLine(`ORGANIZER;CN=${escapeText(instructorName)}:mailto:${process.env.EMAIL_FROM || 'noreply@opensourceresume.local'}`),
     foldLine(
       `ATTENDEE;CN=${escapeText(studentName || studentEmail)};RSVP=TRUE:mailto:${studentEmail}`
     ),
@@ -107,8 +107,8 @@ function buildMonthlyIcs(
   const { slot } = input;
   const cancel = method === 'CANCEL';
   const description = cancel
-    ? 'This standing monthly meeting has been cancelled. Pick a new time from your OfferInsight Account page.'
-    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OfferInsight Account page.`;
+    ? 'This standing monthly meeting has been cancelled. Pick a new time from your OpenSourceResume Account page.'
+    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OpenSourceResume Account page.`;
 
   const content = buildIcsContent(method, input, [
     `DTSTART:${formatIcsUtc(new Date(slot.start))}`,
@@ -195,14 +195,14 @@ ${schedule}
 ${ics}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>${escapeHtml(lead)}</p>
   <p><strong>${escapeHtml(schedule)}</strong></p>
   <p>${escapeHtml(ics)}</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
   return { subject, text, html };
 }
@@ -221,12 +221,12 @@ export function buildMeetingMoveInstructorEmail(input: {
     ? `${input.studentName} undid their one-time move. Their 1:1 is back on ${input.originalLabel}.`
     : `${input.studentName} moved their 1:1 on ${input.originalLabel} to ${input.newLabel}, one time only. Their monthly series is otherwise unchanged.`;
 
-  const text = [lead, 'Your Google Calendar has been updated.', 'OfferInsight'].join('\n\n');
+  const text = [lead, 'Your Google Calendar has been updated.', 'OpenSourceResume'].join('\n\n');
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
   <p>${escapeHtml(lead)}</p>
   <p>Your Google Calendar has been updated.</p>
-  <p>OfferInsight</p>
+  <p>OpenSourceResume</p>
 </body></html>`;
   return { subject, text, html };
 }
@@ -264,10 +264,10 @@ Duration: ${MEETING_DURATION_MINUTES} minutes
 
 A calendar invite (.ics) is attached — open it to add this series to your calendar.
 
-You can reschedule anytime from your OfferInsight Account page.
+You can reschedule anytime from your OpenSourceResume Account page.
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Monthly 1:1 with ${escapeHtml(input.instructorName)}</h2>
@@ -277,8 +277,8 @@ OfferInsight`;
   <strong>First upcoming meeting:</strong> ${escapeHtml(first)}<br/>
   <strong>Duration:</strong> ${MEETING_DURATION_MINUTES} minutes</p>
   <p>A calendar invite (<code>.ics</code>) is attached — open it to add this series to your calendar.</p>
-  <p>You can reschedule anytime from your OfferInsight Account page.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>You can reschedule anytime from your OpenSourceResume Account page.</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
@@ -310,10 +310,10 @@ When: ${when}
 
 ${board}${boardUrl ? `\n${boardUrl}` : ''}
 
-Can't make it? Reschedule from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+Can't make it? Reschedule from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Your 1:1 with ${escapeHtml(input.instructorName)} is tomorrow</h2>
@@ -324,8 +324,8 @@ OfferInsight`;
     <p style="margin:0;">${escapeHtml(board)}</p>
     <p style="margin:8px 0 0;">${link(boardUrl, 'Update my Open Source board')}</p>
   </div>
-  <p>Can't make it? Reschedule from your ${link(accountUrl, 'OfferInsight Account page')}.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Can't make it? Reschedule from your ${link(accountUrl, 'OpenSourceResume Account page')}.</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
@@ -348,10 +348,10 @@ You've been assigned a new mentor: ${input.newInstructorName}.
 
 Your monthly 1:1 with ${input.oldInstructorName} has been cancelled. The attached calendar file (.ics) removes it from your calendar.
 
-Please pick a new monthly time with ${input.newInstructorName} from your OfferInsight Account page${accountUrl ? `: ${accountUrl}` : '.'}
+Please pick a new monthly time with ${input.newInstructorName} from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
 
 Best,
-OfferInsight`;
+OpenSourceResume`;
 
   const html = `${EMAIL_WRAPPER_START}
   <h2 style="color:#007ACC;">Your monthly 1:1 is now with ${escapeHtml(input.newInstructorName)}</h2>
@@ -360,10 +360,10 @@ OfferInsight`;
   <p>Your monthly 1:1 with ${escapeHtml(input.oldInstructorName)} has been cancelled. The attached calendar file (<code>.ics</code>) removes it from your calendar.</p>
   <p>Please pick a new monthly time with ${escapeHtml(input.newInstructorName)} from your ${
     accountUrl
-      ? `<a href="${escapeHtml(accountUrl)}" style="color:#007ACC;">OfferInsight Account page</a>`
-      : 'OfferInsight Account page'
+      ? `<a href="${escapeHtml(accountUrl)}" style="color:#007ACC;">OpenSourceResume Account page</a>`
+      : 'OpenSourceResume Account page'
   }.</p>
-  <p>Best,<br/>OfferInsight</p>
+  <p>Best,<br/>OpenSourceResume</p>
 </body></html>`;
 
   return { subject, text, html };
