@@ -207,6 +207,30 @@ OpenSourceResume`;
   return { subject, text, html };
 }
 
+function instructorNoticeEmail(subject: string, paragraphs: string[]) {
+  const text = [...paragraphs, 'OpenSourceResume'].join('\n\n');
+  const html = `${EMAIL_WRAPPER_START}
+  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
+  ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('\n  ')}
+  <p>OpenSourceResume</p>
+</body></html>`;
+  return { subject, text, html };
+}
+
+/** e.g. "Wednesday, June 10, 2026 at 10:00 AM", with " PDT" when `withZone` */
+function firstMeetingLabel(slot: GeneratedSlot, withZone = false): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: slot.timezone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    ...(withZone ? { timeZoneName: 'short' as const } : {}),
+  }).format(new Date(slot.start));
+}
+
 /** To the instructor when a student moves one meeting (one time only), or undoes that move. */
 export function buildMeetingMoveInstructorEmail(input: {
   studentName: string;
@@ -220,15 +244,50 @@ export function buildMeetingMoveInstructorEmail(input: {
   const lead = input.undone
     ? `${input.studentName} undid their one-time move. Their 1:1 is back on ${input.originalLabel}.`
     : `${input.studentName} moved their 1:1 on ${input.originalLabel} to ${input.newLabel}, one time only. Their monthly series is otherwise unchanged.`;
+  return instructorNoticeEmail(subject, [lead, 'Your Google Calendar has been updated.']);
+}
 
-  const text = [lead, 'Your Google Calendar has been updated.', 'OpenSourceResume'].join('\n\n');
-  const html = `${EMAIL_WRAPPER_START}
-  <h2 style="color:#007ACC;">${escapeHtml(subject)}</h2>
-  <p>${escapeHtml(lead)}</p>
-  <p>Your Google Calendar has been updated.</p>
-  <p>OpenSourceResume</p>
-</body></html>`;
-  return { subject, text, html };
+/** To the instructor when a student books a monthly 1:1, or changes its regular time. */
+export function buildMeetingBookedInstructorEmail(input: {
+  studentName: string;
+  slot: GeneratedSlot;
+  isReschedule: boolean;
+  /** Whether the series was added to the instructor's Google Calendar */
+  calendarSynced: boolean;
+}): { subject: string; text: string; html: string } {
+  const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
+  const first = firstMeetingLabel(input.slot, true);
+
+  const subject = input.isReschedule
+    ? `${input.studentName} changed their monthly 1:1`
+    : `New monthly 1:1: ${input.studentName}`;
+  const lead = input.isReschedule
+    ? `${input.studentName} moved their monthly 1:1 with you to ${when}.`
+    : `${input.studentName} booked a monthly 1:1 with you: ${when}.`;
+  return instructorNoticeEmail(subject, [
+    lead,
+    `First meeting: ${first} (${MEETING_DURATION_MINUTES} minutes).`,
+    input.calendarSynced
+      ? 'It has been added to your Google Calendar.'
+      : "It couldn't be added to your Google Calendar. Connect or reconnect Google Calendar in the instructor dashboard so future bookings are added automatically.",
+  ]);
+}
+
+/** To the instructor when a student's monthly 1:1 series is cancelled. */
+export function buildMeetingCancelledInstructorEmail(input: {
+  studentName: string;
+  slot: GeneratedSlot;
+  /** Completes "...was cancelled because ..." */
+  because: string;
+  /** Whether the series was removed from the instructor's Google Calendar */
+  calendarUpdated: boolean;
+}): { subject: string; text: string; html: string } {
+  return instructorNoticeEmail(`Cancelled: ${input.studentName}'s monthly 1:1`, [
+    `${input.studentName}'s monthly 1:1 (${monthlyWhenLabel(input.slot)}) was cancelled because ${input.because}.`,
+    input.calendarUpdated
+      ? 'It has been removed from your Google Calendar.'
+      : 'If it is on your calendar, you can delete it.',
+  ]);
 }
 
 export function buildMonthlyMeetingEmail(input: {
@@ -239,15 +298,7 @@ export function buildMonthlyMeetingEmail(input: {
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
   const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
-  const first = new Intl.DateTimeFormat('en-US', {
-    timeZone: input.slot.timezone,
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(input.slot.start));
+  const first = firstMeetingLabel(input.slot);
   const action = input.isReschedule ? 'updated' : 'scheduled';
 
   const subject = input.isReschedule

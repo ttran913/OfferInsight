@@ -6,6 +6,7 @@ import {
   buildMeetingMoveStudentEmail,
   buildMovedOccurrenceIcs,
 } from '@/app/lib/calendar/ics';
+import { emailInstructor } from '@/app/lib/calendar/instructor-email';
 import { meetingPayload } from '@/app/lib/calendar/meeting-payload';
 import { oneTimeMoveTarget, type MoveFields } from '@/app/lib/calendar/moves';
 import { formatNextMeetingLabel, seriesAnchorSlot } from '@/app/lib/calendar/next-occurrence';
@@ -26,9 +27,7 @@ async function loadStudentMeeting() {
       monthlyMeeting: {
         include: {
           moves: { select: { originalStart: true, newStart: true } },
-          instructor: {
-            select: { displayName: true, googleCalendar: { select: { googleEmail: true } } },
-          },
+          instructor: { select: { displayName: true } },
         },
       },
     },
@@ -101,20 +100,15 @@ async function notifyMoveChange(
     console.error('Failed to send move email to student:', err);
   }
 
-  const instructorEmail = meeting.instructor.googleCalendar?.googleEmail;
-  if (instructorEmail) {
-    try {
-      const mail = buildMeetingMoveInstructorEmail({
-        studentName: user.name || user.email,
-        originalLabel,
-        newLabel,
-        undone,
-      });
-      await sendEmail({ to: instructorEmail, ...mail });
-    } catch (err) {
-      console.error('Failed to send move email to instructor:', err);
-    }
-  }
+  await emailInstructor(
+    meeting.instructorId,
+    buildMeetingMoveInstructorEmail({
+      studentName: user.name || user.email,
+      originalLabel,
+      newLabel,
+      undone,
+    })
+  );
 }
 
 /** The meeting that can be moved one time, and the open times it can move to. */

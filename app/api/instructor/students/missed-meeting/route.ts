@@ -10,6 +10,7 @@ import {
   bookByDate,
   CLEARED_BOOKING_CLOCK,
   deadlineLabel,
+  MUST_BOOK_WARNING_HOURS,
   startedBookingClock,
 } from "@/app/lib/must-book";
 import { prisma } from "@/db";
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     const instructorName = getInstructorDisplayName(meeting.instructor);
+    const missedLabel = formatNextMeetingLabel(missedStart.toISOString(), meeting.timezone);
     const { emailSent } = await unscheduleMonthlyMeeting({
       meeting,
       user,
@@ -94,9 +96,10 @@ export async function POST(request: NextRequest) {
       mail: buildMissedMeetingEmail({
         studentName: user.name,
         instructorName,
-        missedLabel: formatNextMeetingLabel(missedStart.toISOString(), meeting.timezone),
+        missedLabel,
         bookByLabel: deadlineLabel(bookByDate(now)),
       }),
+      cancelledBecause: `their 1:1 on ${missedLabel} was marked as missed. They have ${MUST_BOOK_WARNING_HOURS} hours to book a new time`,
     });
 
     return NextResponse.json({

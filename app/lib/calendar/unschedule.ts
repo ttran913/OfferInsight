@@ -1,19 +1,21 @@
 import { prisma } from '@/db';
 import { sendEmail } from '@/app/lib/email';
 import { deleteMonthlyMeetingEvent } from './google-calendar';
-import { buildMonthlyMeetingCancelIcs } from './ics';
+import { buildMeetingCancelledInstructorEmail, buildMonthlyMeetingCancelIcs } from './ics';
+import { emailInstructor } from './instructor-email';
 import { seriesAnchorSlot } from './next-occurrence';
 
 /**
  * Cancel a student's monthly 1:1 series everywhere: the instructor's Google event,
  * the series row (and its one-time moves), and the student's calendar via an
- * emailed cancel .ics attached to `mail`.
+ * emailed cancel .ics attached to `mail`. The instructor is emailed too.
  */
 export async function unscheduleMonthlyMeeting({
   meeting,
   user,
   instructorName,
   mail,
+  cancelledBecause,
 }: {
   meeting: {
     id: string;
@@ -29,11 +31,23 @@ export async function unscheduleMonthlyMeeting({
   /** Instructor of the series being cancelled (shown in the .ics) */
   instructorName: string;
   mail: { subject: string; text: string; html: string };
+  /** Why, for the instructor's email: completes "...was cancelled because ..." */
+  cancelledBecause: string;
 }): Promise<{ emailSent: boolean }> {
   if (meeting.googleEventId) {
     await deleteMonthlyMeetingEvent(meeting.instructorId, meeting.googleEventId);
   }
   await prisma.studentMonthlyMeeting.delete({ where: { id: meeting.id } });
+
+  await emailInstructor(
+    meeting.instructorId,
+    buildMeetingCancelledInstructorEmail({
+      studentName: user.name || user.email || 'A student',
+      slot: seriesAnchorSlot(meeting),
+      because: cancelledBecause,
+      calendarUpdated: Boolean(meeting.googleEventId),
+    })
+  );
 
   if (!user.email) return { emailSent: false };
   try {

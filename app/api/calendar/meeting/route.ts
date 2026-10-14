@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserIdForRequest } from '@/app/lib/api-user-helper';
-import { buildMonthlyMeetingEmail, buildMonthlyMeetingIcs } from '@/app/lib/calendar/ics';
+import {
+  buildMeetingBookedInstructorEmail,
+  buildMonthlyMeetingEmail,
+  buildMonthlyMeetingIcs,
+} from '@/app/lib/calendar/ics';
+import { emailInstructor } from '@/app/lib/calendar/instructor-email';
 import { meetingPayload } from '@/app/lib/calendar/meeting-payload';
 import {
   getInstructorDisplayName,
@@ -230,6 +235,16 @@ export async function PUT(request: NextRequest) {
       emailError =
         err instanceof Error ? err.message : 'Failed to send calendar invite email';
     }
+
+    await emailInstructor(
+      instructor.id,
+      buildMeetingBookedInstructorEmail({
+        studentName: user.name || user.email,
+        slot: match,
+        isReschedule,
+        calendarSynced: googleSynced,
+      })
+    );
 
     return NextResponse.json({
       meeting: meetingPayload(meeting),
