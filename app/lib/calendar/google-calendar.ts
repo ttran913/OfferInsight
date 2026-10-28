@@ -174,6 +174,9 @@ export type SyncMonthlyMeetingParams = {
   slot: GeneratedSlot;
   studentName: string | null;
   studentEmail: string;
+  /** Formatted location for the Google event, e.g. "Online: https://…". */
+  meetingLocation?: string | null;
+  contactEmail?: string | null;
 };
 
 /**
@@ -197,6 +200,8 @@ export async function syncMonthlyMeetingOnInstructorCalendar(
   const studentLabel = params.studentName || params.studentEmail;
   const endLocal = formatEndHhMm(params.slot.localTime, MEETING_DURATION_MINUTES);
   const rrule = buildMonthlyByDayRrule(params.slot.dayOfWeek, params.slot.localDate);
+  const location = params.meetingLocation?.trim() || undefined;
+  const contact = params.contactEmail?.trim();
 
   const created = await calendar.events.insert({
     calendarId: 'primary',
@@ -207,8 +212,11 @@ export async function syncMonthlyMeetingOnInstructorCalendar(
         `OpenSourceResume monthly 1:1 with ${studentLabel}.`,
         `Standing time: ${DAY_LABELS[params.slot.dayOfWeek]}s at ${params.slot.localTime} (${params.slot.timezone}).`,
         `Duration: ${MEETING_DURATION_MINUTES} minutes.`,
+        ...(location ? [`Where: ${location}`] : []),
+        ...(contact ? [`Contact: ${contact}`] : []),
         'Student can reschedule from their Account page.',
       ].join('\n'),
+      ...(location ? { location } : {}),
       start: {
         dateTime: localDateTime(params.slot, params.slot.localTime),
         timeZone: params.slot.timezone,

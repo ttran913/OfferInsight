@@ -9,8 +9,10 @@ import {
   weeklyKeysForWindows,
 } from '@/app/lib/calendar/constants';
 import type { BusyInterval } from '@/app/lib/calendar/conflicts';
+import type { MeetingLocationType } from '@/app/lib/calendar/meeting-details';
 import AvailabilityEditor from './calendar/AvailabilityEditor';
 import DisplayNameCard from './calendar/DisplayNameCard';
+import MeetingDetailsCard from './calendar/MeetingDetailsCard';
 import MonthCalendar from './calendar/MonthCalendar';
 import WeeklyScheduleView from './calendar/WeeklyScheduleView';
 import {
@@ -30,6 +32,9 @@ type CalendarStatus = {
   isDefaultScheduler: boolean;
   defaultInstructorLabel: string | null;
   isDefaultInstructor: boolean;
+  meetingLocationType: MeetingLocationType;
+  meetingLocation: string;
+  contactEmail: string;
   meetingDurationMinutes: number;
   defaultTimezone: string;
   google: { connected: boolean; email?: string | null };
@@ -194,6 +199,12 @@ export default function CalendarTab() {
           defaultInstructorLabel: status?.defaultInstructorLabel ?? null,
           isDefaultInstructor: status?.isDefaultInstructor ?? false,
         }}
+      />
+
+      <MeetingDetailsCard
+        initialType={status?.meetingLocationType ?? 'ONLINE'}
+        initialLocation={status?.meetingLocation ?? ''}
+        initialContactEmail={status?.contactEmail ?? ''}
       />
 
       <section className="border border-gray-200 rounded-lg bg-white px-5 py-4">

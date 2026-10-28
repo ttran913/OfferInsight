@@ -7,6 +7,7 @@ import {
   buildMonthlyMeetingIcs,
 } from '@/app/lib/calendar/ics';
 import { emailInstructor } from '@/app/lib/calendar/instructor-email';
+import { meetingDetailsPayload } from '@/app/lib/calendar/meeting-details';
 import { meetingPayload } from '@/app/lib/calendar/meeting-payload';
 import {
   getInstructorDisplayName,
@@ -44,7 +45,14 @@ export async function GET(request: NextRequest) {
         },
         monthlyMeeting: {
           include: {
-            instructor: { select: { displayName: true } },
+            instructor: {
+              select: {
+                displayName: true,
+                meetingLocationType: true,
+                meetingLocation: true,
+                contactEmail: true,
+              },
+            },
             moves: { select: { originalStart: true, newStart: true } },
           },
         },
@@ -54,9 +62,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const instructorName = getInstructorDisplayName(
-      user.monthlyMeeting?.instructor ?? (await resolveSchedulingInstructorForUser(user.id))
-    );
+    const instructor =
+      user.monthlyMeeting?.instructor ?? (await resolveSchedulingInstructorForUser(user.id));
+    const instructorName = getInstructorDisplayName(instructor);
+    const details = meetingDetailsPayload(instructor);
 
     const missed = user.missedMeetings[0]?.occurrenceStart;
     return NextResponse.json({
@@ -64,6 +73,8 @@ export async function GET(request: NextRequest) {
         ? meetingPayload(user.monthlyMeeting, user.monthlyMeeting.moves)
         : null,
       instructorName,
+      meetingLocation: details.location,
+      contactEmail: details.contactEmail,
       mustBook:
         user.mustBookSince && isMustBookReason(user.mustBookReason) && !user.monthlyMeeting
           ? {
@@ -140,6 +151,7 @@ export async function PUT(request: NextRequest) {
     const isReschedule = Boolean(user.monthlyMeeting);
     const previousGoogleEventId = user.monthlyMeeting?.googleEventId ?? null;
     const instructorName = getInstructorDisplayName(instructor);
+    const details = meetingDetailsPayload(instructor);
 
     const meeting = await prisma.$transaction(async (tx) => {
       const saved = await tx.studentMonthlyMeeting.upsert({
@@ -185,6 +197,8 @@ export async function PUT(request: NextRequest) {
         slot: match,
         studentName: user.name,
         studentEmail: user.email,
+        meetingLocation: details.location,
+        contactEmail: details.contactEmail,
       });
       if (eventId) {
         await prisma.studentMonthlyMeeting.update({
@@ -209,12 +223,16 @@ export async function PUT(request: NextRequest) {
         studentName: user.name,
         studentEmail: user.email,
         instructorName,
+        meetingLocation: details.location,
+        contactEmail: details.contactEmail,
       });
       const mail = buildMonthlyMeetingEmail({
         studentName: user.name,
         instructorName,
         slot: match,
         isReschedule,
+        meetingLocation: details.location,
+        contactEmail: details.contactEmail,
       });
       await sendEmail({
         to: user.email,

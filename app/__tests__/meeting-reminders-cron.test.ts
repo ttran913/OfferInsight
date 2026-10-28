@@ -31,7 +31,12 @@ function storedMeeting() {
     firstOccurrence: new Date('2026-06-10T17:00:00.000Z'),
     lastReminderFor: null as Date | null,
     user: { name: 'Sam', email: 'sam@example.com' },
-    instructor: { displayName: 'Coach Kim' },
+    instructor: {
+      displayName: 'Coach Kim',
+      meetingLocationType: 'ONLINE' as const,
+      meetingLocation: 'https://meet.example/x',
+      contactEmail: 'coach@school.edu',
+    },
     moves: [] as { originalStart: Date; newStart: Date }[],
   };
 }
@@ -78,6 +83,8 @@ describe('GET /api/cron/meeting-reminders', () => {
     expect(mail.to).toBe('sam@example.com');
     expect(mail.subject).toBe('Reminder: your 1:1 with Coach Kim is tomorrow');
     expect(mail.text).toContain('Open Source Contributions board');
+    expect(mail.text).toContain('Where: Online: https://meet.example/x');
+    expect(mail.text).toContain('Contact: coach@school.edu');
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: 'meeting-1' },
       data: { lastReminderFor: JULY_8 },

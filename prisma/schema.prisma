@@ -211,6 +211,12 @@ model Instructor {
   displayName       String?
   /// Unassigned students book with this instructor (at most one is true)
   isDefaultScheduler Boolean @default(false)
+  /// How students join the monthly 1:1 (shown with meetingLocation)
+  meetingLocationType MeetingLocationType @default(ONLINE)
+  /// Free-text join details: Meet/Zoom URL, phone, room, etc.
+  meetingLocation   String?
+  /// Preferred email for students to contact (may differ from Google Calendar email)
+  contactEmail      String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   googleCalendar    InstructorGoogleCalendar?
@@ -304,5 +310,11 @@ model InstructorAvailabilityWindow {
 enum InstructorRole {
   ADMIN
   READ_ONLY
+}
+
+enum MeetingLocationType {
+  ONLINE
+  PHONE
+  IN_PERSON
 }
 

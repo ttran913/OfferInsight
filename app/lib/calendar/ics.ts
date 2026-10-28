@@ -53,6 +53,10 @@ export type MonthlyInviteInput = {
   studentName: string | null;
   studentEmail: string;
   instructorName: string;
+  /** Formatted location line, e.g. "Online: https://…"; omitted from ICS when null. */
+  meetingLocation?: string | null;
+  /** Preferred student-facing contact email; omitted when null. */
+  contactEmail?: string | null;
 };
 
 /** Stable invite UID for a student's standing time; reused to cancel that invite. */
@@ -101,20 +105,35 @@ function buildIcsContent(
   return lines.join('\r\n') + '\r\n';
 }
 
+function inviteDetailsLines(input: Pick<MonthlyInviteInput, 'meetingLocation' | 'contactEmail'>): string[] {
+  const lines: string[] = [];
+  if (input.meetingLocation?.trim()) lines.push(`Where: ${input.meetingLocation.trim()}`);
+  if (input.contactEmail?.trim()) lines.push(`Contact: ${input.contactEmail.trim()}`);
+  return lines;
+}
+
 function buildMonthlyIcs(
   input: MonthlyInviteInput,
   method: IcsMethod
 ): { filename: string; content: string } {
   const { slot } = input;
   const cancel = method === 'CANCEL';
+  const detailLines = cancel ? [] : inviteDetailsLines(input);
   const description = cancel
     ? 'This standing monthly meeting has been cancelled. Pick a new time from your OpenSourceResume Account page.'
-    : `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes). Reschedule anytime from your OpenSourceResume Account page.`;
+    : [
+        `Standing monthly meeting (${monthlyWhenLabel(slot)}, ${MEETING_DURATION_MINUTES} minutes).`,
+        ...detailLines,
+        'Reschedule anytime from your OpenSourceResume Account page.',
+      ].join('\n');
+
+  const location = !cancel && input.meetingLocation?.trim() ? input.meetingLocation.trim() : null;
 
   const content = buildIcsContent(method, input, [
     `DTSTART:${formatIcsUtc(new Date(slot.start))}`,
     `DTEND:${formatIcsUtc(new Date(slot.end))}`,
     `RRULE:${buildMonthlyByDayRrule(slot.dayOfWeek, slot.localDate)}`,
+    ...(location ? [foldLine(`LOCATION:${escapeText(location)}`)] : []),
     foldLine(`DESCRIPTION:${escapeText(description)}`),
     `STATUS:${cancel ? 'CANCELLED' : 'CONFIRMED'}`,
     `SEQUENCE:${cancel ? 1 : 0}`,
@@ -296,11 +315,21 @@ export function buildMonthlyMeetingEmail(input: {
   instructorName: string;
   slot: GeneratedSlot;
   isReschedule: boolean;
+  meetingLocation?: string | null;
+  contactEmail?: string | null;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
   const when = `${monthlyWhenLabel(input.slot)} (${input.slot.timezone.replace(/_/g, ' ')})`;
   const first = firstMeetingLabel(input.slot);
   const action = input.isReschedule ? 'updated' : 'scheduled';
+  const details = inviteDetailsLines(input);
+  const textDetails = details.length ? `\n${details.join('\n')}\n` : '\n';
+  const htmlDetails = details
+    .map((line) => {
+      const [label, ...rest] = line.split(': ');
+      return `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(': '))}`;
+    })
+    .join('<br/>\n  ');
 
   const subject = input.isReschedule
     ? `Updated: Monthly 1:1 with ${input.instructorName}`
@@ -312,8 +341,7 @@ Your monthly 1:1 with ${input.instructorName} has been ${action}.
 
 Standing time: ${when}
 First upcoming meeting: ${first}
-Duration: ${MEETING_DURATION_MINUTES} minutes
-
+Duration: ${MEETING_DURATION_MINUTES} minutes${textDetails}
 A calendar invite (.ics) is attached — open it to add this series to your calendar.
 
 You can reschedule anytime from your OpenSourceResume Account page.
@@ -327,7 +355,9 @@ OpenSourceResume`;
   <p>Your monthly 1:1 has been <strong>${action}</strong>.</p>
   <p><strong>Standing time:</strong> ${escapeHtml(when)}<br/>
   <strong>First upcoming meeting:</strong> ${escapeHtml(first)}<br/>
-  <strong>Duration:</strong> ${MEETING_DURATION_MINUTES} minutes</p>
+  <strong>Duration:</strong> ${MEETING_DURATION_MINUTES} minutes${
+    htmlDetails ? `<br/>\n  ${htmlDetails}` : ''
+  }</p>
   <p>A calendar invite (<code>.ics</code>) is attached — open it to add this series to your calendar.</p>
   <p>You can reschedule anytime from your OpenSourceResume Account page.</p>
   <p>Best,<br/>OpenSourceResume</p>
@@ -342,10 +372,20 @@ export function buildMeetingReminderEmail(input: {
   instructorName: string;
   /** e.g. "Wednesday, June 10, 2026 at 10:00 AM PDT" */
   occurrenceLabel: string;
+  meetingLocation?: string | null;
+  contactEmail?: string | null;
 }): { subject: string; text: string; html: string } {
   const name = input.studentName || 'there';
   const boardUrl = appUrl('/dashboard?tab=opensource');
   const accountUrl = appUrl('/account');
+  const details = inviteDetailsLines(input);
+  const textDetails = details.length ? `\n${details.join('\n')}\n` : '\n';
+  const htmlDetails = details
+    .map((line) => {
+      const [label, ...rest] = line.split(': ');
+      return `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(': '))}`;
+    })
+    .join('<br/>\n  ');
 
   const subject = `Reminder: your 1:1 with ${input.instructorName} is tomorrow`;
   const when = `${input.occurrenceLabel} (${MEETING_DURATION_MINUTES} minutes)`;
@@ -355,8 +395,7 @@ export function buildMeetingReminderEmail(input: {
 
 This is a reminder that your monthly 1:1 with ${input.instructorName} is tomorrow.
 
-When: ${when}
-
+When: ${when}${textDetails}
 ${board}${boardUrl ? `\n${boardUrl}` : ''}
 
 Can't make it? Reschedule from your OpenSourceResume Account page${accountUrl ? `: ${accountUrl}` : '.'}
@@ -368,7 +407,9 @@ OpenSourceResume`;
   <h2 style="color:#007ACC;">Your 1:1 with ${escapeHtml(input.instructorName)} is tomorrow</h2>
   <p>Hi ${escapeHtml(name)},</p>
   <p>This is a reminder that your monthly 1:1 is tomorrow.</p>
-  <p><strong>When:</strong> ${escapeHtml(when)}</p>
+  <p><strong>When:</strong> ${escapeHtml(when)}${
+    htmlDetails ? `<br/>\n  ${htmlDetails}` : ''
+  }</p>
   <div style="background:#EFF6FF;border-left:4px solid #007ACC;padding:12px 16px;margin:16px 0;">
     <p style="margin:0;">${escapeHtml(board)}</p>
     <p style="margin:8px 0 0;">${linkHtml(boardUrl, 'Update my Open Source board')}</p>

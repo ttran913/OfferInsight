@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { meetingDetailsPayload } from '@/app/lib/calendar/meeting-details';
 import { getInstructorDisplayName } from '@/app/lib/calendar/scheduling-instructor';
 import { loadBookableDaysForUser } from '@/app/lib/calendar/student-booking';
 import { prisma } from '@/db';
@@ -20,9 +21,12 @@ export async function GET() {
     }
 
     const { instructor, timezone, days } = await loadBookableDaysForUser(user.id);
+    const details = meetingDetailsPayload(instructor);
 
     return NextResponse.json({
       instructorName: getInstructorDisplayName(instructor),
+      meetingLocation: details.location,
+      contactEmail: details.contactEmail,
       timezone,
       days: days.map((d) => ({
         localDate: d.localDate,
