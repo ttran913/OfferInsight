@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildMeetingReminderEmail } from '@/app/lib/calendar/ics';
+import { meetingDetailsPayload } from '@/app/lib/calendar/meeting-details';
 import { formatNextMeetingLabel } from '@/app/lib/calendar/next-occurrence';
 import { occurrenceNeedingReminder } from '@/app/lib/calendar/reminders';
 import { getInstructorDisplayName } from '@/app/lib/calendar/scheduling-instructor';
@@ -33,7 +34,14 @@ export async function GET(request: NextRequest) {
         firstOccurrence: true,
         lastReminderFor: true,
         user: { select: { name: true, email: true } },
-        instructor: { select: { displayName: true } },
+        instructor: {
+          select: {
+            displayName: true,
+            meetingLocationType: true,
+            meetingLocation: true,
+            contactEmail: true,
+          },
+        },
         moves: {
           where: { OR: [{ originalStart: { gt: now } }, { newStart: { gt: now } }] },
           select: { originalStart: true, newStart: true },
@@ -56,10 +64,13 @@ export async function GET(request: NextRequest) {
       };
       if (!dryRun) {
         try {
+          const details = meetingDetailsPayload(meeting.instructor);
           const mail = buildMeetingReminderEmail({
             studentName: meeting.user.name,
             instructorName: getInstructorDisplayName(meeting.instructor),
             occurrenceLabel: formatNextMeetingLabel(next.startIso, meeting.timezone),
+            meetingLocation: details.location,
+            contactEmail: details.contactEmail,
           });
           await sendEmail({ to: email, ...mail });
           await prisma.studentMonthlyMeeting.update({

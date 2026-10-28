@@ -11,6 +11,10 @@ import {
 import { isGoogleCalendarConfigured } from '@/app/lib/calendar/google-oauth';
 import { getInstructorBusyIntervals } from '@/app/lib/calendar/busy';
 import { nthWeekdayForLocalDate } from '@/app/lib/calendar/ics';
+import {
+  isMeetingLocationType,
+  parseMeetingDetailsPatch,
+} from '@/app/lib/calendar/meeting-details';
 import { loadSchedulingRoster } from '@/app/lib/calendar/scheduling-instructor';
 import {
   anchorLocalDateFromOccurrence,
@@ -46,7 +50,13 @@ export async function GET() {
     const [profile, connection, windows, meetings, defaultInfo] = await Promise.all([
       prisma.instructor.findUnique({
         where: { id: instructor.id },
-        select: { displayName: true, isDefaultScheduler: true },
+        select: {
+          displayName: true,
+          isDefaultScheduler: true,
+          meetingLocationType: true,
+          meetingLocation: true,
+          contactEmail: true,
+        },
       }),
       prisma.instructorGoogleCalendar.findUnique({
         where: { instructorId: instructor.id },
@@ -114,6 +124,11 @@ export async function GET() {
       canManageDefault: canInstructorAssignStudents(instructor),
       displayName: profile?.displayName ?? '',
       isDefaultScheduler: profile?.isDefaultScheduler ?? false,
+      meetingLocationType: isMeetingLocationType(profile?.meetingLocationType)
+        ? profile.meetingLocationType
+        : 'ONLINE',
+      meetingLocation: profile?.meetingLocation ?? '',
+      contactEmail: profile?.contactEmail ?? '',
       ...defaultInfo,
       meetingDurationMinutes: MEETING_DURATION_MINUTES,
       defaultTimezone: DEFAULT_AVAILABILITY_TIMEZONE,
@@ -138,7 +153,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = (await request.json().catch(() => null)) ?? {};
-    const data: { displayName?: string | null; isDefaultScheduler?: boolean } = {};
+    const data: {
+      displayName?: string | null;
+      isDefaultScheduler?: boolean;
+      meetingLocationType?: 'ONLINE' | 'PHONE' | 'IN_PERSON';
+      meetingLocation?: string | null;
+      contactEmail?: string | null;
+    } = {};
 
     if ('displayName' in body) {
       if (typeof body.displayName !== 'string') {
@@ -167,6 +188,12 @@ export async function PATCH(request: NextRequest) {
       data.isDefaultScheduler = body.isDefaultScheduler;
     }
 
+    const details = parseMeetingDetailsPatch(body as Record<string, unknown>);
+    if (!details.ok) {
+      return NextResponse.json({ error: details.error }, { status: 400 });
+    }
+    Object.assign(data, details.data);
+
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     }
@@ -181,13 +208,22 @@ export async function PATCH(request: NextRequest) {
       return tx.instructor.update({
         where: { id: instructor.id },
         data,
-        select: { displayName: true, isDefaultScheduler: true },
+        select: {
+          displayName: true,
+          isDefaultScheduler: true,
+          meetingLocationType: true,
+          meetingLocation: true,
+          contactEmail: true,
+        },
       });
     });
 
     return NextResponse.json({
       displayName: updated.displayName ?? '',
       isDefaultScheduler: updated.isDefaultScheduler,
+      meetingLocationType: updated.meetingLocationType,
+      meetingLocation: updated.meetingLocation ?? '',
+      contactEmail: updated.contactEmail ?? '',
       ...(await defaultSchedulerInfo(instructor.id)),
     });
   } catch (error) {

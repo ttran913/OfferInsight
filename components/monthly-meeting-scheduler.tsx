@@ -218,6 +218,8 @@ export default function MonthlyMeetingScheduler({
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<Mode>(collapsible ? 'closed' : 'regular');
   const [instructorName, setInstructorName] = useState(INSTRUCTOR_DISPLAY_NAME_FALLBACK);
+  const [meetingLocation, setMeetingLocation] = useState<string | null>(null);
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [timezone, setTimezone] = useState(DEFAULT_AVAILABILITY_TIMEZONE);
   const [days, setDays] = useState<BookableDayOption[]>([]);
   const [meeting, setMeeting] = useState<MeetingSummary | null>(null);
@@ -259,6 +261,8 @@ export default function MonthlyMeetingScheduler({
       setInstructorName(
         meetingData.instructorName || slotsData.instructorName || INSTRUCTOR_DISPLAY_NAME_FALLBACK
       );
+      setMeetingLocation(meetingData.meetingLocation || slotsData.meetingLocation || null);
+      setContactEmail(meetingData.contactEmail || slotsData.contactEmail || null);
       setMeeting(meetingData.meeting ?? null);
       setMustBook(meetingData.mustBook ?? null);
       setTimezone(slotsData.timezone || DEFAULT_AVAILABILITY_TIMEZONE);
@@ -465,6 +469,19 @@ export default function MonthlyMeetingScheduler({
               ? `Your ${MEETING_DURATION_MINUTES}-minute 1:1 is required every month. If you can't make a meeting, reschedule it — just that one, or your regular schedule going forward.`
               : `Pick a day for your first ${MEETING_DURATION_MINUTES}-minute meeting. It repeats on the same week and weekday every month (e.g. the 2nd Wednesday). We'll email you a calendar invite (.ics).`}
           </p>
+          {(meetingLocation || contactEmail) && (
+            <div className="text-sm text-gray-600 mt-2 space-y-0.5">
+              {meetingLocation && <p>Where: {meetingLocation}</p>}
+              {contactEmail && (
+                <p>
+                  Contact:{' '}
+                  <a href={`mailto:${contactEmail}`} className="text-electric-blue hover:underline">
+                    {contactEmail}
+                  </a>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
