@@ -3,6 +3,7 @@ import { prisma } from '@/db';
 import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
 import { createOAuth2Client } from './google-oauth';
 import { buildMonthlyByDayRrule, formatEndHhMm } from './ics';
+import { inviteDetailsLines } from './meeting-details';
 import type { GeneratedSlot } from './slots';
 import { decryptToken, encryptToken } from './token-crypto';
 
@@ -201,7 +202,6 @@ export async function syncMonthlyMeetingOnInstructorCalendar(
   const endLocal = formatEndHhMm(params.slot.localTime, MEETING_DURATION_MINUTES);
   const rrule = buildMonthlyByDayRrule(params.slot.dayOfWeek, params.slot.localDate);
   const location = params.meetingLocation?.trim() || undefined;
-  const contact = params.contactEmail?.trim();
 
   const created = await calendar.events.insert({
     calendarId: 'primary',
@@ -212,8 +212,7 @@ export async function syncMonthlyMeetingOnInstructorCalendar(
         `OpenSourceResume monthly 1:1 with ${studentLabel}.`,
         `Standing time: ${DAY_LABELS[params.slot.dayOfWeek]}s at ${params.slot.localTime} (${params.slot.timezone}).`,
         `Duration: ${MEETING_DURATION_MINUTES} minutes.`,
-        ...(location ? [`Where: ${location}`] : []),
-        ...(contact ? [`Contact: ${contact}`] : []),
+        ...inviteDetailsLines(params),
         'Student can reschedule from their Account page.',
       ].join('\n'),
       ...(location ? { location } : {}),

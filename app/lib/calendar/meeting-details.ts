@@ -75,6 +75,17 @@ export function meetingDetailsPayload(
   };
 }
 
+/** Plain-text Where/Contact lines for emails, .ics descriptions, and Google events. */
+export function inviteDetailsLines(input: {
+  meetingLocation?: string | null;
+  contactEmail?: string | null;
+}): string[] {
+  const lines: string[] = [];
+  if (input.meetingLocation?.trim()) lines.push(`Where: ${input.meetingLocation.trim()}`);
+  if (input.contactEmail?.trim()) lines.push(`Contact: ${input.contactEmail.trim()}`);
+  return lines;
+}
+
 /**
  * Parse PATCH fields for meeting location / contact email.
  * Only keys present on `body` are included in `data`.

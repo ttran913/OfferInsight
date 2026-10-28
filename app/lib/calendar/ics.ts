@@ -1,5 +1,6 @@
 import { appUrl, escapeHtml } from '@/app/lib/email-layout';
 import { DAY_LABELS, MEETING_DURATION_MINUTES } from './constants';
+import { inviteDetailsLines } from './meeting-details';
 import { formatTime12, nthOrdinalLabel } from './labels';
 import type { GeneratedSlot } from './slots';
 
@@ -105,11 +106,17 @@ function buildIcsContent(
   return lines.join('\r\n') + '\r\n';
 }
 
-function inviteDetailsLines(input: Pick<MonthlyInviteInput, 'meetingLocation' | 'contactEmail'>): string[] {
-  const lines: string[] = [];
-  if (input.meetingLocation?.trim()) lines.push(`Where: ${input.meetingLocation.trim()}`);
-  if (input.contactEmail?.trim()) lines.push(`Contact: ${input.contactEmail.trim()}`);
-  return lines;
+/** HTML fragment for Where/Contact lines; empty string when none. */
+function inviteDetailsHtml(input: {
+  meetingLocation?: string | null;
+  contactEmail?: string | null;
+}): string {
+  return inviteDetailsLines(input)
+    .map((line) => {
+      const [label, ...rest] = line.split(': ');
+      return `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(': '))}`;
+    })
+    .join('<br/>\n  ');
 }
 
 function buildMonthlyIcs(
@@ -324,12 +331,7 @@ export function buildMonthlyMeetingEmail(input: {
   const action = input.isReschedule ? 'updated' : 'scheduled';
   const details = inviteDetailsLines(input);
   const textDetails = details.length ? `\n${details.join('\n')}\n` : '\n';
-  const htmlDetails = details
-    .map((line) => {
-      const [label, ...rest] = line.split(': ');
-      return `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(': '))}`;
-    })
-    .join('<br/>\n  ');
+  const htmlDetails = inviteDetailsHtml(input);
 
   const subject = input.isReschedule
     ? `Updated: Monthly 1:1 with ${input.instructorName}`
@@ -380,12 +382,7 @@ export function buildMeetingReminderEmail(input: {
   const accountUrl = appUrl('/account');
   const details = inviteDetailsLines(input);
   const textDetails = details.length ? `\n${details.join('\n')}\n` : '\n';
-  const htmlDetails = details
-    .map((line) => {
-      const [label, ...rest] = line.split(': ');
-      return `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(': '))}`;
-    })
-    .join('<br/>\n  ');
+  const htmlDetails = inviteDetailsHtml(input);
 
   const subject = `Reminder: your 1:1 with ${input.instructorName} is tomorrow`;
   const when = `${input.occurrenceLabel} (${MEETING_DURATION_MINUTES} minutes)`;
