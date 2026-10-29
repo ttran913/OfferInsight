@@ -14,8 +14,7 @@ import { currentDeadline, isMustBookReason } from "@/app/lib/must-book";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
-const LINKEDIN_COMPLETION_STATUSES = ['prospects', 'sendFirstMessage', 'requestAccepted', 'followUp', 'coffeeChat', 'askForReferral'];
-const EVENT_COMPLETION_STATUSES = ['attended', 'sendLinkedInRequest', 'followUp'];
+const NETWORKING_COMPLETION_STATUSES = ['showUp', 'discover', 'offerValue', 'pitch'];
 
 export async function GET() {
   try {
@@ -157,40 +156,32 @@ export async function GET() {
           }),
         ]);
 
-        const [coffeeChatsLastMonth, coffeeChatsAllTime] = await Promise.all([
-          prisma.linkedin_Outreach.count({
+        const [networkingLastMonth, networkingAllTime] = await Promise.all([
+          prisma.networking.count({
             where: {
               userId: user.id,
-              status: { in: LINKEDIN_COMPLETION_STATUSES },
-              dateCreated: {
-                gte: firstDayOfMonth,
-                lte: lastDayOfMonth,
-              },
+              status: { in: NETWORKING_COMPLETION_STATUSES },
+              OR: [
+                {
+                  dateModified: {
+                    gte: firstDayOfMonth,
+                    lte: lastDayOfMonth,
+                  },
+                },
+                {
+                  dateModified: null,
+                  dateCreated: {
+                    gte: firstDayOfMonth,
+                    lte: lastDayOfMonth,
+                  },
+                },
+              ],
             },
           }),
-          prisma.linkedin_Outreach.count({
+          prisma.networking.count({
             where: {
               userId: user.id,
-              status: { in: LINKEDIN_COMPLETION_STATUSES },
-            },
-          }),
-        ]);
-
-        const [eventsLastMonth, eventsAllTime] = await Promise.all([
-          prisma.in_Person_Events.count({
-            where: {
-              userId: user.id,
-              status: { in: EVENT_COMPLETION_STATUSES },
-              date: {
-                gte: firstDayOfMonth,
-                lte: lastDayOfMonth,
-              },
-            },
-          }),
-          prisma.in_Person_Events.count({
-            where: {
-              userId: user.id,
-              status: { in: EVENT_COMPLETION_STATUSES },
+              status: { in: NETWORKING_COMPLETION_STATUSES },
             },
           }),
         ]);
@@ -262,13 +253,9 @@ export async function GET() {
             lastMonth: applicationsLastMonth,
             allTime: applicationsAllTime,
           },
-          coffeeChats: {
-            lastMonth: coffeeChatsLastMonth,
-            allTime: coffeeChatsAllTime,
-          },
-          events: {
-            lastMonth: eventsLastMonth,
-            allTime: eventsAllTime,
+          networking: {
+            lastMonth: networkingLastMonth,
+            allTime: networkingAllTime,
           },
         };
       })

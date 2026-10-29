@@ -45,9 +45,8 @@ type OverviewTabProps = {
     statusBarClass: string;
   };
   applicationsAllTimeCount: number;
-  eventsMetrics: {
+  networkingMetrics: {
     count: number;
-    totalCount: number;
     goal: number;
     percentage: number;
     statusText: string;
@@ -55,7 +54,7 @@ type OverviewTabProps = {
     statusDotClass: string;
     statusBarClass: string;
   };
-  eventsAllTimeCount: number;
+  networkingAllTimeCount: number;
   handleHabitCardClick: (cardId: string) => void;
   /** When set, show instructor-only Open Source activity log for this student */
   instructorViewUserId?: string | null;
@@ -116,8 +115,8 @@ export default function OverviewTab({
   leetCodeStats,
   applicationsMetrics,
   applicationsAllTimeCount,
-  eventsMetrics,
-  eventsAllTimeCount,
+  networkingMetrics,
+  networkingAllTimeCount,
   handleHabitCardClick,
   instructorViewUserId,
 }: OverviewTabProps) {
@@ -231,36 +230,36 @@ export default function OverviewTab({
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div
-          onClick={() => handleHabitCardClick('events')}
+          onClick={() => handleHabitCardClick('networking')}
           className="bg-white border border-gray-200 rounded-lg p-6 hover:border-electric-blue transition-colors cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Users className="text-electric-blue text-xl" />
-              <h4 className="text-gray-900 font-semibold">Events</h4>
+              <h4 className="text-gray-900 font-semibold">Networking</h4>
             </div>
-            <div className={`w-3 h-3 ${eventsMetrics.statusDotClass} rounded-full`}></div>
+            <div className={`w-3 h-3 ${networkingMetrics.statusDotClass} rounded-full`}></div>
           </div>
           <div className="flex items-end justify-between mb-1">
             <div>
-              <div className="text-3xl font-bold text-gray-900">{eventsMetrics.totalCount ?? eventsMetrics.count}</div>
+              <div className="text-3xl font-bold text-gray-900">{networkingMetrics.count}</div>
               <div className="text-sm text-gray-400">This month</div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-600">{eventsAllTimeCount}</div>
+              <div className="text-2xl font-bold text-gray-600">{networkingAllTimeCount}</div>
               <div className="text-xs text-gray-500">All Time</div>
             </div>
           </div>
           <div className="flex items-center justify-between text-sm mt-3">
-            <span className="text-gray-400">Goal: {eventsMetrics.goal || '—'}</span>
-            {eventsMetrics.goal > 0 && (
-              <span className={eventsMetrics.statusTextColor}>{eventsMetrics.statusText}</span>
+            <span className="text-gray-400">Goal: {networkingMetrics.goal || '—'}</span>
+            {networkingMetrics.goal > 0 && (
+              <span className={networkingMetrics.statusTextColor}>{networkingMetrics.statusText}</span>
             )}
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
             <div
-              className={`${eventsMetrics.statusBarClass} h-2 rounded-full`}
-              style={{ width: `${eventsMetrics.percentage}%` }}
+              className={`${networkingMetrics.statusBarClass} h-2 rounded-full`}
+              style={{ width: `${networkingMetrics.percentage}%` }}
             ></div>
           </div>
         </div>

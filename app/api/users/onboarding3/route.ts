@@ -12,9 +12,7 @@ export async function POST(request: Request) {
     const { 
       commitment, 
       appsWithOutreachPerWeek, 
-      linkedinOutreachPerWeek, 
-      inPersonEventsPerMonth,
-      careerFairsPerYear,
+      networkingPerMonth,
       targetOfferDate,
       resetStartDate,
     } = await request.json();
@@ -24,9 +22,7 @@ export async function POST(request: Request) {
       data: {
         commitment,
         appsWithOutreachPerWeek,
-        linkedinOutreachPerWeek,
-        inPersonEventsPerMonth,
-        careerFairsPerYear,
+        networkingPerMonth,
         targetOfferDate: targetOfferDate ? new Date(targetOfferDate) : undefined,
         resetStartDate: resetStartDate ? new Date(resetStartDate) : undefined,
         onboardingProgress: 3,

@@ -11,9 +11,7 @@ declare module "next-auth" {
       onboardingProgress?: number | null
       targetOfferDate?: Date | null
       appsWithOutreachPerWeek?: number | null
-      linkedinOutreachPerWeek?: number | null
-      inPersonEventsPerMonth?: number | null
-      careerFairsPerYear?: number | null
+      networkingPerMonth?: number | null
       resetStartDate?: Date | null
     }
   }

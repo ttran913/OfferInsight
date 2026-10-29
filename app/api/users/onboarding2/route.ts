@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
         monthsToSecureInternship: true,
         commitment: true,
         appsWithOutreachPerWeek: true,
-        linkedinOutreachPerWeek: true,
-        inPersonEventsPerMonth: true,
-        careerFairsPerYear: true,
+        networkingPerMonth: true,
         resetStartDate: true,
         onboardingProgress: true,
       },
@@ -50,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error || 'Not authenticated' }, { status: 401 });
     }
 
-    const { monthsToSecureInternship, commitment, appsWithOutreachPerWeek, linkedinOutreachPerWeek, inPersonEventsPerMonth, careerFairsPerYear } = await request.json();
+    const { monthsToSecureInternship, commitment, appsWithOutreachPerWeek, networkingPerMonth } = await request.json();
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -58,9 +56,7 @@ export async function POST(request: NextRequest) {
         monthsToSecureInternship,
         commitment,
         appsWithOutreachPerWeek,
-        linkedinOutreachPerWeek,
-        inPersonEventsPerMonth,
-        careerFairsPerYear,
+        networkingPerMonth,
         onboardingProgress: 2,
       },
     });

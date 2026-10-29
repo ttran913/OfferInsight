@@ -52,11 +52,7 @@ interface UserData {
     lastMonth: number;
     allTime: number;
   };
-  coffeeChats: {
-    lastMonth: number;
-    allTime: number;
-  };
-  events: {
+  networking: {
     lastMonth: number;
     allTime: number;
   };
@@ -163,8 +159,7 @@ function generateDebugUsers(): UserData[] {
     const progressStatus = hasGoodProgress ? 2 : (hasMediumProgress ? 1 : 0);
 
     const applicationsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 5) + 2 : (hasMediumProgress ? 1 : Math.floor(Math.random() * 2));
-    const eventsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 3) + 1 : (hasMediumProgress ? Math.floor(Math.random() * 2) : 0);
-    const coffeeChatsLastMonth = hasGoodProgress ? Math.floor(Math.random() * 6) + 4 : (hasMediumProgress ? Math.floor(Math.random() * 5) + 2 : Math.floor(Math.random() * 3));
+    const networkingLastMonth = hasGoodProgress ? Math.floor(Math.random() * 6) + 4 : (hasMediumProgress ? Math.floor(Math.random() * 5) + 2 : Math.floor(Math.random() * 3));
 
     const issuesCompleted = Math.floor(Math.random() * 5);
     const partnershipsCompleted = Math.floor(Math.random() * 4);
@@ -194,13 +189,9 @@ function generateDebugUsers(): UserData[] {
         lastMonth: applicationsLastMonth,
         allTime: applicationsLastMonth * 5 + Math.floor(Math.random() * 20)
       },
-      coffeeChats: {
-        lastMonth: coffeeChatsLastMonth,
-        allTime: coffeeChatsLastMonth * 4 + Math.floor(Math.random() * 30)
-      },
-      events: {
-        lastMonth: eventsLastMonth,
-        allTime: eventsLastMonth * 3 + Math.floor(Math.random() * 15)
+      networking: {
+        lastMonth: networkingLastMonth,
+        allTime: networkingLastMonth * 4 + Math.floor(Math.random() * 30)
       },
     };
   });
@@ -761,18 +752,10 @@ export default function UsersTab() {
                 </div>
 
                 <div className="w-[165px] min-w-[165px] shrink-0">
-                  <div className="text-gray-600 text-sm font-medium mb-1">Events</div>
+                  <div className="text-gray-600 text-sm font-medium mb-1">Networking</div>
                   <div className="text-gray-400 text-sm flex flex-col gap-2">
-                    <span>Last Month: <span className="text-gray-900 font-medium">{user.events.lastMonth}</span></span>
-                    <span>All Time: <span className="text-gray-900 font-medium">{user.events.allTime}</span></span>
-                  </div>
-                </div>
-
-                <div className="w-[165px] min-w-[165px] shrink-0">
-                  <div className="text-gray-600 text-sm font-medium mb-1">Coffee Chats</div>
-                  <div className="text-gray-400 text-sm flex flex-col gap-2">
-                    <span>Last Month: <span className="text-gray-900 font-medium">{user.coffeeChats.lastMonth}</span></span>
-                    <span>All Time: <span className="text-gray-900 font-medium">{user.coffeeChats.allTime}</span></span>
+                    <span>Last Month: <span className="text-gray-900 font-medium">{user.networking.lastMonth}</span></span>
+                    <span>All Time: <span className="text-gray-900 font-medium">{user.networking.allTime}</span></span>
                   </div>
                 </div>
 

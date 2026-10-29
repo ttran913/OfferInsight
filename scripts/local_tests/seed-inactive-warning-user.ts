@@ -89,8 +89,7 @@ async function main() {
 
   // Keep this seed deterministic by clearing prior board/test records.
   await prisma.applications_With_Outreach.deleteMany({ where: { userId: user.id } });
-  await prisma.linkedin_Outreach.deleteMany({ where: { userId: user.id } });
-  await prisma.in_Person_Events.deleteMany({ where: { userId: user.id } });
+  await prisma.networking.deleteMany({ where: { userId: user.id } });
   await prisma.openSourceEntry.deleteMany({ where: { userId: user.id } });
   await prisma.userPartnership.deleteMany({ where: { userId: user.id } });
 

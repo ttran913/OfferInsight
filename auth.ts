@@ -42,9 +42,7 @@ export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
           onboardingProgress: dbUser.onboardingProgress,
           targetOfferDate: dbUser.targetOfferDate,
           appsWithOutreachPerWeek: dbUser.appsWithOutreachPerWeek,
-          linkedinOutreachPerWeek: dbUser.linkedinOutreachPerWeek,
-          inPersonEventsPerMonth: dbUser.inPersonEventsPerMonth,
-          careerFairsPerYear: dbUser.careerFairsPerYear,
+          networkingPerMonth: dbUser.networkingPerMonth,
           resetStartDate: dbUser.resetStartDate,
         } as typeof session.user
       }

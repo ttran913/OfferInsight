@@ -78,9 +78,7 @@ const mockUser = {
   monthsToSecureInternship: null,
   commitment: null,
   appsWithOutreachPerWeek: null,
-  linkedinOutreachPerWeek: null,
-  inPersonEventsPerMonth: null,
-  careerFairsPerYear: null,
+  networkingPerMonth: null,
   resetStartDate: new Date('2024-01-01'),
 };
 
@@ -94,9 +92,7 @@ const mockSession = {
     onboardingProgress: 0,
     targetOfferDate: null,
     appsWithOutreachPerWeek: null,
-    linkedinOutreachPerWeek: null,
-    inPersonEventsPerMonth: null,
-    careerFairsPerYear: null,
+    networkingPerMonth: null,
     resetStartDate: new Date('2024-01-01'),
   },
   expires: new Date(Date.now() + 86400000).toISOString(),
@@ -182,9 +178,7 @@ describe('POST /api/users/onboarding2', () => {
     monthsToSecureInternship: 6,
     commitment: 10,
     appsWithOutreachPerWeek: 5,
-    linkedinOutreachPerWeek: 10,
-    inPersonEventsPerMonth: 2,
-    careerFairsPerYear: 3,
+    networkingPerMonth: 6,
   };
 
   function makeRequest(body: object): Request {
@@ -219,9 +213,7 @@ describe('POST /api/users/onboarding2', () => {
         monthsToSecureInternship: 6,
         commitment: 10,
         appsWithOutreachPerWeek: 5,
-        linkedinOutreachPerWeek: 10,
-        inPersonEventsPerMonth: 2,
-        careerFairsPerYear: 3,
+        networkingPerMonth: 6,
         onboardingProgress: 2,
       },
     });
@@ -234,9 +226,7 @@ describe('POST /api/users/onboarding3', () => {
   const validBody = {
     commitment: 10,
     appsWithOutreachPerWeek: 5,
-    linkedinOutreachPerWeek: 10,
-    inPersonEventsPerMonth: 2,
-    careerFairsPerYear: 3,
+    networkingPerMonth: 6,
     targetOfferDate: '2025-08-01',
     resetStartDate: '2024-01-01',
   };
@@ -272,9 +262,7 @@ describe('POST /api/users/onboarding3', () => {
       data: {
         commitment: 10,
         appsWithOutreachPerWeek: 5,
-        linkedinOutreachPerWeek: 10,
-        inPersonEventsPerMonth: 2,
-        careerFairsPerYear: 3,
+        networkingPerMonth: 6,
         targetOfferDate: new Date('2025-08-01'),
         resetStartDate: new Date('2024-01-01'),
         onboardingProgress: 3,

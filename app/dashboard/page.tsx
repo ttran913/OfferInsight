@@ -5,12 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
 import { PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, type DragOverEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Gauge, FileText, MessageCircle, Users, ArrowLeft, GitBranch } from 'lucide-react';
+import { Gauge, FileText, Users, ArrowLeft, GitBranch } from 'lucide-react';
 import Link from 'next/link';
 import OverviewTab from './components/OverviewTab';
 import ApplicationsTab from './components/ApplicationsTab';
-import CoffeeChatsTab from './components/CoffeeChatsTab';
-import EventsTab from './components/EventsTab';
+import NetworkingTab from './components/NetworkingTab';
 import OpenSourceTab from './components/OpenSourceTab';
 import { getApiHeaders } from '@/app/lib/api-helpers';
 import { getFilteredOpenSourceColumns } from './lib/open-source-filter';
@@ -29,12 +28,9 @@ import type {
   Application,
   ApplicationStatus,
   ApplicationColumnId,
-  LinkedinOutreach,
-  LinkedinOutreachStatus,
-  LinkedinOutreachColumnId,
-  InPersonEvent,
-  InPersonEventStatus,
-  EventColumnId,
+  Networking,
+  NetworkingStatus,
+  NetworkingColumnId,
   OpenSourceEntry,
   OpenSourceStatus,
   OpenSourceColumnId,
@@ -43,14 +39,12 @@ import type {
 import {
   applicationStatusToColumn,
   applicationColumnToStatus,
-  linkedinOutreachStatusToColumn,
-  linkedinOutreachColumnToStatus,
-  eventStatusToColumn,
-  eventColumnToStatus,
+  networkingStatusToColumn,
+  networkingColumnToStatus,
   openSourceStatusToColumn,
   openSourceColumnToStatus,
   APPLICATION_COMPLETION_COLUMNS,
-  EVENT_COMPLETION_COLUMNS,
+  NETWORKING_COMPLETION_COLUMNS,
 } from './components/types';
 
 // ===== MOCK DATA FEATURE TOGGLE START =====
@@ -58,7 +52,7 @@ import {
 const ENABLE_DASHBOARD_MOCKS = false;
 // ===== MOCK DATA FEATURE TOGGLE END =====
 
-const DASHBOARD_TABS = ['overview', 'opensource', 'applications', 'interviews', 'events'];
+const DASHBOARD_TABS = ['overview', 'opensource', 'applications', 'networking'];
 
 export default function Page() {
   const searchParams = useSearchParams();
@@ -67,7 +61,9 @@ export default function Page() {
   const [isInstructor, setIsInstructor] = useState(false);
   const [canEditViewedUser, setCanEditViewedUser] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
-    const tab = searchParams.get('tab');
+    const rawTab = searchParams.get('tab');
+    // Legacy tab names (coffee chats / events) now live under the Networking board
+    const tab = rawTab === 'interviews' || rawTab === 'events' ? 'networking' : rawTab;
     return tab && DASHBOARD_TABS.includes(tab) ? tab : 'overview';
   });
   const [leetCodeStats, setLeetCodeStats] = useState<{
@@ -281,344 +277,174 @@ export default function Page() {
     // No state updates here - just let the DroppableColumn handle visual feedback
   };
 
-  // dnd-kit: Linkedin outreach board (Linkedin_Outreach)
-
-const [linkedinOutreachColumns, setLinkedinOutreachColumns] = useState<Record<LinkedinOutreachColumnId, LinkedinOutreach[]>>({
-  prospects: [],
-  sendFirstMessage: [],
-  requestAccepted: [],
-  followUp: [],
-  coffeeChat: [],
-  askForReferral: [],
-});
-  const [activeLinkedinOutreachId, setActiveLinkedinOutreachId] = useState<string | null>(null);
-  const [isLinkedinOutreachModalOpen, setIsLinkedinOutreachModalOpen] = useState(false);
-  const [editingLinkedinOutreach, setEditingLinkedinOutreach] = useState<LinkedinOutreach | null>(null);
-  const [isDeletingLinkedinOutreach, setIsDeletingLinkedinOutreach] = useState<number | null>(null);
-  const [isLoadingLinkedinOutreach, setIsLoadingLinkedinOutreach] = useState(true);
-  const [linkedinOutreachFilter, setLinkedinOutreachFilter] = useState<BoardTimeFilter>('allTime');
-  const isFetchingLinkedinOutreachRef = useRef(false);
-  const isDraggingLinkedinOutreachRef = useRef(false);
-
-  const fetchLinkedinOutreach = useCallback(async () => {
-    // --- MOCK DATA BYPASS FOR OUTREACH FETCH START ---
-    if (ENABLE_DASHBOARD_MOCKS) return;
-    // --- MOCK DATA BYPASS FOR OUTREACH FETCH END ---
-    if (isFetchingLinkedinOutreachRef.current) return;
-
-    try {
-      isFetchingLinkedinOutreachRef.current = true;
-      setIsLoadingLinkedinOutreach(true);
-      const url = userIdParam ? `/api/linkedin_outreach?userId=${userIdParam}` : '/api/linkedin_outreach';
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch LinkedIn outreach entries');
-      const data = await response.json() as LinkedinOutreach[];
-
-      const grouped: Record<LinkedinOutreachColumnId, LinkedinOutreach[]> = {
-        prospects: [],
-        sendFirstMessage: [],
-        requestAccepted: [],
-        followUp: [],
-        coffeeChat: [],
-        askForReferral: [],
-      };
-
-      (data as LinkedinOutreach[]).forEach(chat => {
-        const column = linkedinOutreachStatusToColumn[chat.status] ?? 'prospects';
-        grouped[column].push(chat);
-      });
-
-      setLinkedinOutreachColumns(grouped);
-    } catch (error) {
-      console.error('Error fetching LinkedIn outreach entries:', error);
-    } finally {
-      setIsLoadingLinkedinOutreach(false);
-      isFetchingLinkedinOutreachRef.current = false;
-    }
-  }, [userIdParam]);
-
-  useEffect(() => {
-    // --- MOCK DATA BYPASS FOR OUTREACH EFFECT START ---
-    if (ENABLE_DASHBOARD_MOCKS) return;
-    // --- MOCK DATA BYPASS FOR OUTREACH EFFECT END ---
-    if (activeTab === 'interviews' && !isFetchingLinkedinOutreachRef.current) {
-      fetchLinkedinOutreach();
-    }
-  }, [activeTab, fetchLinkedinOutreach]);
-
-  const getLinkedinOutreachColumnOfItem = (id: string): LinkedinOutreachColumnId | null => {
-    const entry = (Object.keys(linkedinOutreachColumns) as LinkedinOutreachColumnId[]).find(col =>
-      linkedinOutreachColumns[col].some(chat => String(chat.id) === id)
-    );
-    return entry ?? null;
-  };
-
-  // Debounced function to update LinkedIn outreach status (prevents rapid-fire requests when dragging)
-  // Server will automatically set dateModified to current date on PATCH
-  const debouncedUpdateLinkedinOutreachStatus = useDebouncedCallback(
-    async (id: number, status: LinkedinOutreachStatus) => {
-      try {
-        const url = userIdParam ? `/api/linkedin_outreach?id=${id}&userId=${userIdParam}` : `/api/linkedin_outreach?id=${id}`;
-        const response = await fetch(url, {
-          method: 'PATCH',
-          headers: getApiHeaders(),
-          body: JSON.stringify({ status }),
-        });
-        if (!response.ok) throw new Error('Failed to update LinkedIn outreach status');
-      } catch (error) {
-        console.error('Error updating LinkedIn outreach status:', error);
-        fetchLinkedinOutreach();
-      }
-    },
-    300 // Wait 300ms after last change before sending request
-  );
-
-  const handleLinkedinOutreachDragEnd = async (event: DragEndEvent) => {
-    if (!canEditViewedUser && userIdParam) return;
-    const { active, over } = event;
-    if (!over) {
-      isDraggingLinkedinOutreachRef.current = false;
-      return;
-    }
-
-    const activeId = String(active.id);
-    const overId = String(over.id);
-
-    const fromCol = getLinkedinOutreachColumnOfItem(activeId);
-    const toCol = (['prospects', 'sendFirstMessage', 'requestAccepted', 'followUp', 'coffeeChat', 'askForReferral'] as LinkedinOutreachColumnId[]).includes(overId as LinkedinOutreachColumnId)
-      ? (overId as LinkedinOutreachColumnId)
-      : getLinkedinOutreachColumnOfItem(overId);
-    if (!fromCol || !toCol) {
-      setActiveLinkedinOutreachId(null);
-      isDraggingLinkedinOutreachRef.current = false;
-      return;
-    }
-
-    if (fromCol === toCol) {
-      const items = linkedinOutreachColumns[fromCol];
-      const oldIndex = items.findIndex(i => String(i.id) === activeId);
-      const newIndex = items.findIndex(i => String(i.id) === overId);
-      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
-        setActiveLinkedinOutreachId(null);
-        isDraggingLinkedinOutreachRef.current = false;
-        return;
-      }
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      setLinkedinOutreachColumns(prev => ({ ...prev, [fromCol]: newItems }));
-    } else {
-      const fromItems = linkedinOutreachColumns[fromCol];
-      const toItems = linkedinOutreachColumns[toCol];
-      const movingIndex = fromItems.findIndex(i => String(i.id) === activeId);
-      if (movingIndex === -1) {
-        setActiveLinkedinOutreachId(null);
-        isDraggingLinkedinOutreachRef.current = false;
-        return;
-      }
-      const movingItem = fromItems[movingIndex];
-      const overIndex = toItems.findIndex(i => String(i.id) === overId);
-      const insertIndex = overIndex === -1 ? toItems.length : overIndex;
-      const newStatus = linkedinOutreachColumnToStatus[toCol];
-      const updatedItem: LinkedinOutreach = {
-        ...movingItem,
-        status: newStatus,
-        // Optimistically update dateModified to current date (server will confirm on PATCH)
-        dateModified: new Date().toISOString(),
-      };
-      const newFrom = [...fromItems.slice(0, movingIndex), ...fromItems.slice(movingIndex + 1)];
-      const newTo = [...toItems.slice(0, insertIndex), updatedItem, ...toItems.slice(insertIndex)];
-      // Create new column arrays to ensure React detects the change
-      setLinkedinOutreachColumns(prev => ({
-        prospects: [...prev.prospects],
-        sendFirstMessage: [...prev.sendFirstMessage],
-        requestAccepted: [...prev.requestAccepted],
-        followUp: [...prev.followUp],
-        coffeeChat: [...prev.coffeeChat],
-        askForReferral: [...prev.askForReferral],
-        [fromCol]: newFrom,
-        [toCol]: newTo,
-      }));
-
-      // Update status in database (debounced to prevent rapid-fire requests)
-      // Server will automatically set dateModified to current date on PATCH
-      debouncedUpdateLinkedinOutreachStatus(movingItem.id, newStatus);
-    }
-    setActiveLinkedinOutreachId(null);
-    isDraggingLinkedinOutreachRef.current = false;
-  };
-
-  const handleLinkedinOutreachDragStart = (event: DragStartEvent) => {
-    setActiveLinkedinOutreachId(String(event.active.id));
-    isDraggingLinkedinOutreachRef.current = true;
-  };
-
-  const handleLinkedinOutreachDragOver = (event: DragOverEvent) => {
-    // onDragOver is only for visual feedback via DroppableColumn
-  };
-
-  // dnd-kit: Events board (In-Person Events)
-  const [eventColumns, setEventColumns] = useState<Record<EventColumnId, InPersonEvent[]>>({
-    plan: [],
-    attended: [],
-    sendLinkedInRequest: [],
-    followUp: [],
+  // dnd-kit: Networking board
+  const [networkingColumns, setNetworkingColumns] = useState<Record<NetworkingColumnId, Networking[]>>({
+    niche: [],
+    showUp: [],
+    discover: [],
+    offerValue: [],
+    pitch: [],
   });
-  const [activeEventId, setActiveEventId] = useState<string | null>(null);
-  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<InPersonEvent | null>(null);
-  const [isDeletingEvent, setIsDeletingEvent] = useState<number | null>(null);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [eventsFilter, setEventsFilter] = useState<BoardTimeFilter>('allTime');
-  const isFetchingEventsRef = useRef(false);
-  const isDraggingEventRef = useRef(false);
+  const [activeNetworkingId, setActiveNetworkingId] = useState<string | null>(null);
+  const [isNetworkingModalOpen, setIsNetworkingModalOpen] = useState(false);
+  const [editingNetworking, setEditingNetworking] = useState<Networking | null>(null);
+  const [isDeletingNetworking, setIsDeletingNetworking] = useState<number | null>(null);
+  const [isLoadingNetworking, setIsLoadingNetworking] = useState(true);
+  const [networkingFilter, setNetworkingFilter] = useState<BoardTimeFilter>('allTime');
+  const isFetchingNetworkingRef = useRef(false);
+  const isDraggingNetworkingRef = useRef(false);
 
-  const fetchEvents = useCallback(async () => {
-    // --- MOCK DATA BYPASS FOR EVENTS FETCH START ---
+  const fetchNetworking = useCallback(async () => {
+    // --- MOCK DATA BYPASS FOR NETWORKING FETCH START ---
     if (ENABLE_DASHBOARD_MOCKS) return;
-    // --- MOCK DATA BYPASS FOR EVENTS FETCH END ---
-    if (isFetchingEventsRef.current) return;
+    // --- MOCK DATA BYPASS FOR NETWORKING FETCH END ---
+    if (isFetchingNetworkingRef.current) return;
 
     try {
-      isFetchingEventsRef.current = true;
-      setIsLoadingEvents(true);
-      const url = userIdParam ? `/api/in_person_events?userId=${userIdParam}` : '/api/in_person_events';
+      isFetchingNetworkingRef.current = true;
+      setIsLoadingNetworking(true);
+      const url = userIdParam ? `/api/networking?userId=${userIdParam}` : '/api/networking';
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch in-person events');
-      const data = await response.json() as InPersonEvent[];
+      if (!response.ok) throw new Error('Failed to fetch networking entries');
+      const data = await response.json() as Networking[];
 
-      const grouped: Record<EventColumnId, InPersonEvent[]> = {
-        plan: [],
-        attended: [],
-        sendLinkedInRequest: [],
-        followUp: [],
+      const grouped: Record<NetworkingColumnId, Networking[]> = {
+        niche: [],
+        showUp: [],
+        discover: [],
+        offerValue: [],
+        pitch: [],
       };
 
-      data.forEach((event: InPersonEvent) => {
-        const column = eventStatusToColumn[event.status] ?? 'plan';
-        grouped[column].push(event);
+      data.forEach((entry: Networking) => {
+        const column = networkingStatusToColumn[entry.status] ?? 'niche';
+        grouped[column].push(entry);
       });
 
-      setEventColumns(grouped);
+      setNetworkingColumns(grouped);
     } catch (error) {
-      console.error('Error fetching in-person events:', error);
+      console.error('Error fetching networking entries:', error);
     } finally {
-      setIsLoadingEvents(false);
-      isFetchingEventsRef.current = false;
+      setIsLoadingNetworking(false);
+      isFetchingNetworkingRef.current = false;
     }
   }, [userIdParam]);
 
+  // Fetch networking entries (needed for both overview metrics and networking tab)
   useEffect(() => {
-    // --- MOCK DATA BYPASS FOR EVENTS EFFECT START ---
+    // --- MOCK DATA BYPASS FOR NETWORKING EFFECT START ---
     if (ENABLE_DASHBOARD_MOCKS) return;
-    // --- MOCK DATA BYPASS FOR EVENTS EFFECT END ---
-    if ((activeTab === 'events' || activeTab === 'overview') && !isFetchingEventsRef.current) {
-      fetchEvents();
+    // --- MOCK DATA BYPASS FOR NETWORKING EFFECT END ---
+    if ((activeTab === 'networking' || activeTab === 'overview') && !isFetchingNetworkingRef.current) {
+      fetchNetworking();
     }
-  }, [activeTab, fetchEvents]);
+  }, [activeTab, fetchNetworking]);
 
-  const getEventColumnOfItem = (id: string): EventColumnId | null => {
-    const entry = (Object.keys(eventColumns) as EventColumnId[]).find(col =>
-      eventColumns[col].some(event => String(event.id) === id)
+  const getNetworkingColumnOfItem = (id: string): NetworkingColumnId | null => {
+    const entry = (Object.keys(networkingColumns) as NetworkingColumnId[]).find(col =>
+      networkingColumns[col].some(card => String(card.id) === id)
     );
     return entry ?? null;
   };
 
-  // Debounced function to update event status (prevents rapid-fire requests when dragging)
+  // Debounced function to update networking status (prevents rapid-fire requests when dragging)
   // Server will automatically set dateModified to current date on PATCH
-  const debouncedUpdateEventStatus = useDebouncedCallback(
-    async (id: number, status: InPersonEventStatus) => {
+  const debouncedUpdateNetworkingStatus = useDebouncedCallback(
+    async (id: number, status: NetworkingStatus) => {
       try {
-        const url = userIdParam ? `/api/in_person_events?id=${id}&userId=${userIdParam}` : `/api/in_person_events?id=${id}`;
+        const url = userIdParam ? `/api/networking?id=${id}&userId=${userIdParam}` : `/api/networking?id=${id}`;
         const response = await fetch(url, {
           method: 'PATCH',
           headers: getApiHeaders(),
           body: JSON.stringify({ status }),
         });
-        if (!response.ok) throw new Error('Failed to update event status');
+        if (!response.ok) throw new Error('Failed to update networking status');
       } catch (error) {
-        console.error('Error updating event status:', error);
-        fetchEvents();
+        console.error('Error updating networking status:', error);
+        fetchNetworking();
       }
     },
     300 // Wait 300ms after last change before sending request
   );
 
-  const handleEventsDragEnd = async (event: DragEndEvent) => {
+  const handleNetworkingDragEnd = async (event: DragEndEvent) => {
     if (!canEditViewedUser && userIdParam) return;
     const { active, over } = event;
     if (!over) {
-      isDraggingEventRef.current = false;
+      isDraggingNetworkingRef.current = false;
       return;
     }
 
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    const fromCol = getEventColumnOfItem(activeId);
-    const toCol = (['plan', 'attended', 'sendLinkedInRequest', 'followUp'] as EventColumnId[]).includes(overId as EventColumnId)
-      ? (overId as EventColumnId)
-      : getEventColumnOfItem(overId);
+    const fromCol = getNetworkingColumnOfItem(activeId);
+    const toCol = (['niche', 'showUp', 'discover', 'offerValue', 'pitch'] as NetworkingColumnId[]).includes(overId as NetworkingColumnId)
+      ? (overId as NetworkingColumnId)
+      : getNetworkingColumnOfItem(overId);
     if (!fromCol || !toCol) {
-      setActiveEventId(null);
-      isDraggingEventRef.current = false;
+      setActiveNetworkingId(null);
+      isDraggingNetworkingRef.current = false;
       return;
     }
 
     if (fromCol === toCol) {
-      const items = eventColumns[fromCol];
+      const items = networkingColumns[fromCol];
       const oldIndex = items.findIndex(i => String(i.id) === activeId);
       const newIndex = items.findIndex(i => String(i.id) === overId);
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
-        setActiveEventId(null);
-        isDraggingEventRef.current = false;
+        setActiveNetworkingId(null);
+        isDraggingNetworkingRef.current = false;
         return;
       }
       const newItems = arrayMove(items, oldIndex, newIndex);
-      setEventColumns(prev => ({ ...prev, [fromCol]: newItems }));
+      setNetworkingColumns(prev => ({ ...prev, [fromCol]: newItems }));
     } else {
-      const fromItems = eventColumns[fromCol];
-      const toItems = eventColumns[toCol];
+      const fromItems = networkingColumns[fromCol];
+      const toItems = networkingColumns[toCol];
       const movingIndex = fromItems.findIndex(i => String(i.id) === activeId);
       if (movingIndex === -1) {
-        setActiveEventId(null);
-        isDraggingEventRef.current = false;
+        setActiveNetworkingId(null);
+        isDraggingNetworkingRef.current = false;
         return;
       }
       const movingItem = fromItems[movingIndex];
       const overIndex = toItems.findIndex(i => String(i.id) === overId);
       const insertIndex = overIndex === -1 ? toItems.length : overIndex;
-      const newFrom = [...fromItems.slice(0, movingIndex), ...fromItems.slice(movingIndex + 1)];
-      const newStatus = eventColumnToStatus[toCol] ?? 'plan';
-      const updatedItem: InPersonEvent = {
+      const newStatus = networkingColumnToStatus[toCol];
+      const updatedItem: Networking = {
         ...movingItem,
         status: newStatus,
         // Optimistically update dateModified to current date (server will confirm on PATCH)
         dateModified: new Date().toISOString(),
       };
+      const newFrom = [...fromItems.slice(0, movingIndex), ...fromItems.slice(movingIndex + 1)];
       const newTo = [...toItems.slice(0, insertIndex), updatedItem, ...toItems.slice(insertIndex)];
       // Create new column arrays to ensure React detects the change
-      setEventColumns(prev => ({
-        plan: [...prev.plan],
-        attended: [...prev.attended],
-        sendLinkedInRequest: [...prev.sendLinkedInRequest],
-        followUp: [...prev.followUp],
+      setNetworkingColumns(prev => ({
+        niche: [...prev.niche],
+        showUp: [...prev.showUp],
+        discover: [...prev.discover],
+        offerValue: [...prev.offerValue],
+        pitch: [...prev.pitch],
         [fromCol]: newFrom,
         [toCol]: newTo,
       }));
 
       // Update status in database (debounced to prevent rapid-fire requests)
       // Server will automatically set dateModified to current date on PATCH
-      debouncedUpdateEventStatus(movingItem.id, newStatus);
+      debouncedUpdateNetworkingStatus(movingItem.id, newStatus);
     }
-    setActiveEventId(null);
-    isDraggingEventRef.current = false;
+    setActiveNetworkingId(null);
+    isDraggingNetworkingRef.current = false;
   };
 
-  const handleEventsDragStart = (event: DragStartEvent) => {
-    setActiveEventId(String(event.active.id));
-    isDraggingEventRef.current = true;
+  const handleNetworkingDragStart = (event: DragStartEvent) => {
+    setActiveNetworkingId(String(event.active.id));
+    isDraggingNetworkingRef.current = true;
   };
 
-  const handleEventsDragOver = (event: DragOverEvent) => {
+  const handleNetworkingDragOver = (event: DragOverEvent) => {
     // onDragOver is only for visual feedback via DroppableColumn
   };
 
@@ -973,9 +799,7 @@ const hasSeededMockDataRef = useRef(false);
 
   const [userData, setUserData] = useState<{
     appsWithOutreachPerWeek?: number | null;
-    linkedinOutreachPerWeek?: number | null;
-    inPersonEventsPerMonth?: number | null;
-    careerFairsPerYear?: number | null;
+    networkingPerMonth?: number | null;
   } | null>(null);
 
   // <<<<< MOCK DATA SEEDING EFFECT START >>>>>
@@ -1065,143 +889,74 @@ const hasSeededMockDataRef = useRef(false);
       ],
     };
 
-    const mockLinkedinOutreach: Record<LinkedinOutreachColumnId, LinkedinOutreach[]> = {
-      prospects: [
+    const mockNetworking: Record<NetworkingColumnId, Networking[]> = {
+      niche: [
         {
           id: 2000,
-          name: 'Alex Morgan',
-          company: 'TechStart',
-          status: 'prospects',
+          nicheType: 'techEvent',
+          nicheName: 'Local AI Meetup',
+          status: 'niche',
           dateCreated: isoWithDelta({ months: 0, days: -2, hour: 10 }),
-          recievedReferral: false,
           userId: 'mock-user',
         },
       ],
-      sendFirstMessage: [
+      showUp: [
         {
           id: 2001,
-          name: 'Priya Patel',
-          company: 'Globex',
-          firstMessage: 'Introduced myself and shared interest in the team.',
-          status: 'sendFirstMessage',
+          nicheType: 'openSource',
+          nicheName: 'Open Source Sprint',
+          status: 'showUp',
           dateCreated: isoWithDelta({ months: 0, days: -8, hour: 12 }),
-          recievedReferral: false,
           userId: 'mock-user',
         },
       ],
-      requestAccepted: [
+      discover: [
         {
           id: 2002,
-          name: 'Leo Johnson',
-          company: 'Initech',
-          status: 'requestAccepted',
+          nicheType: 'alumni',
+          nicheName: 'University Alumni Network',
+          contactName: 'Priya Patel',
+          takeaway: 'Learned about the team structure.',
+          status: 'discover',
           dateCreated: isoWithDelta({ months: -3, days: -10, hour: 15 }),
-          recievedReferral: false,
           userId: 'mock-user',
         },
       ],
-      followUp: [
+      offerValue: [
         {
           id: 2003,
-          name: 'Mia Garcia',
-          company: 'Acme Corp',
-          status: 'followUp',
+          nicheType: 'hobby',
+          nicheName: 'Climbing Gym',
+          contactName: 'Leo Johnson',
+          artifact: 'Shared a project walkthrough.',
+          status: 'offerValue',
           dateCreated: isoWithDelta({ months: -6, days: -5, hour: 9 }),
-          recievedReferral: false,
           userId: 'mock-user',
         },
       ],
-      coffeeChat: [
+      pitch: [
         {
           id: 2004,
-          name: 'Noah Kim',
-          company: 'Wayne Enterprises',
-          status: 'coffeeChat',
+          nicheType: 'techEvent',
+          nicheName: 'Startup Expo',
+          contactName: 'Noah Kim',
+          pitchAsk: 'Asked for an intro to the hiring manager.',
+          pitchResult: 'Intro made.',
+          status: 'pitch',
           dateCreated: isoWithDelta({ months: -8, days: -11, hour: 10 }),
-          recievedReferral: true,
-          userId: 'mock-user',
-        },
-      ],
-      askForReferral: [
-        {
-          id: 2002.5,
-          name: 'Sarah Chen',
-          company: 'TechCorp',
-          status: 'askForReferral',
-          dateCreated: isoWithDelta({ months: -4, days: -8, hour: 11 }),
-          recievedReferral: false,
-          userId: 'mock-user',
-        },
-      ],
-    };
-
-    const mockEvents: Record<EventColumnId, InPersonEvent[]> = {
-      plan: [
-        {
-          id: 3001,
-          event: 'ProductCon',
-          date: isoWithDelta({ months: 1, days: 5, hour: 9, minute: 30 }),
-          location: 'San Francisco',
-          status: 'plan',
-          sentLinkedInRequest: false,
-          careerFair: false,
-          userId: 'mock-user',
-        },
-      ],
-      attended: [
-        {
-          id: 3003,
-          event: 'AI Hiring Fair',
-          date: isoWithDelta({ months: -5, days: -7, hour: 13 }),
-          location: 'Virtual',
-          status: 'attended',
-          nameOfPersonSpokenTo: 'John Smith',
-          sentLinkedInRequest: true,
-          careerFair: true,
-          userId: 'mock-user',
-        },
-      ],
-      sendLinkedInRequest: [
-        {
-          id: 3002,
-          event: 'Tech Mixer',
-          date: isoWithDelta({ months: -2, days: -2, hour: 18 }),
-          location: 'Seattle',
-          status: 'sendLinkedInRequest',
-          nameOfPersonSpokenTo: 'Jane Doe',
-          sentLinkedInRequest: true,
-          careerFair: false,
-          userId: 'mock-user',
-        },
-      ],
-      followUp: [
-        {
-          id: 3004,
-          event: 'Startup Expo',
-          date: isoWithDelta({ months: -9, days: -3, hour: 15 }),
-          location: 'Austin',
-          status: 'followUp',
-          nameOfPersonSpokenTo: 'Mike Johnson',
-          sentLinkedInRequest: false,
-          followUpMessage: 'Followed up with thank you message.',
-          careerFair: false,
           userId: 'mock-user',
         },
       ],
     };
 
     setAppColumns(mockApplications);
-    setLinkedinOutreachColumns(mockLinkedinOutreach);
-    setEventColumns(mockEvents);
+    setNetworkingColumns(mockNetworking);
     setIsLoading(false);
-    setIsLoadingLinkedinOutreach(false);
-    setIsLoadingEvents(false);
+    setIsLoadingNetworking(false);
     setActiveTab('overview');
     setUserData({
       appsWithOutreachPerWeek: 6,
-      linkedinOutreachPerWeek: 8,
-      inPersonEventsPerMonth: 3,
-      careerFairsPerYear: 2,
+      networkingPerMonth: 6,
     });
   }, []);
   // <<<<< MOCK DATA SEEDING EFFECT END >>>>>
@@ -1421,45 +1176,36 @@ const hasSeededMockDataRef = useRef(false);
     };
   }, [appColumns, userData, metricsMonth, metricsMonthEnd, getHabitStatusStyles]);
 
-  const careerFairPlanGoal = userData?.careerFairsPerYear ?? 0;
+  const networkingMetrics = useMemo(() => {
+    // Count cards in completion columns whose dateModified (fallback dateCreated) is in the current month
+    let count = 0;
 
-  const eventsMetrics = useMemo(() => {
-    let eventCount = 0;
-    let careerFairCount = 0;
-
-    EVENT_COMPLETION_COLUMNS.forEach(col => {
-      eventColumns[col].forEach(event => {
-        const eventDate = new Date(event.date);
-        if (!Number.isNaN(eventDate.getTime()) && eventDate >= metricsMonth && eventDate < metricsMonthEnd) {
-          if (event.careerFair) {
-            careerFairCount++;
-          } else {
-            eventCount++;
-          }
+    NETWORKING_COMPLETION_COLUMNS.forEach(col => {
+      networkingColumns[col].forEach(card => {
+        const dateValue = card.dateModified ?? card.dateCreated;
+        const cardDate = new Date(dateValue);
+        if (!Number.isNaN(cardDate.getTime()) && cardDate >= metricsMonth && cardDate < metricsMonthEnd) {
+          count++;
         }
       });
     });
 
-    const baseGoal = userData?.inPersonEventsPerMonth ?? 0;
-    const fairGoalAnnual = careerFairPlanGoal > 0 ? careerFairPlanGoal : 0;
-    const combinedGoal = baseGoal + fairGoalAnnual;
-    const combinedCount = eventCount + careerFairCount;
-    const rawPercentage = combinedGoal > 0 ? (combinedCount / combinedGoal) * 100 : 0;
+    const goal = userData?.networkingPerMonth ?? 0;
+    const rawPercentage = goal > 0 ? (count / goal) * 100 : 0;
     const clampedPercentage = Math.min(Math.max(rawPercentage, 0), 100);
-    const styles = getHabitStatusStyles(combinedCount, combinedGoal, clampedPercentage);
+    const styles = getHabitStatusStyles(count, goal, clampedPercentage);
     const statusText = `${Math.round(clampedPercentage)}%`;
 
     return {
-      count: eventCount,
-      totalCount: combinedCount,
-      goal: combinedGoal,
+      count,
+      goal,
       percentage: clampedPercentage,
       statusText,
       statusTextColor: styles.textClass,
       statusDotClass: styles.dotClass,
       statusBarClass: styles.barClass,
     };
-  }, [eventColumns, userData, metricsMonth, metricsMonthEnd, getHabitStatusStyles, careerFairPlanGoal]);
+  }, [networkingColumns, userData, metricsMonth, metricsMonthEnd, getHabitStatusStyles]);
 
   // Calculate all-time counts for each metric
   const applicationsAllTimeCount = useMemo(() => {
@@ -1470,13 +1216,13 @@ const hasSeededMockDataRef = useRef(false);
     return count;
   }, [appColumns]);
 
-  const eventsAllTimeCount = useMemo(() => {
+  const networkingAllTimeCount = useMemo(() => {
     let count = 0;
-    EVENT_COMPLETION_COLUMNS.forEach(col => {
-      count += eventColumns[col].length;
+    NETWORKING_COMPLETION_COLUMNS.forEach(col => {
+      count += networkingColumns[col].length;
     });
     return count;
-  }, [eventColumns]);
+  }, [networkingColumns]);
 
   const isWithinCurrentMonth = useCallback(
     (value?: string | null) => {
@@ -1538,43 +1284,24 @@ const hasSeededMockDataRef = useRef(false);
     return filtered;
   }, [appColumns, applicationsFilter, isWithinCurrentMonth]);
 
-  const filteredLinkedinOutreachColumns = useMemo(() => {
-    if (linkedinOutreachFilter === 'allTime') return linkedinOutreachColumns;
-    const filtered: Record<LinkedinOutreachColumnId, LinkedinOutreach[]> = {
-      prospects: [],
-      sendFirstMessage: [],
-      requestAccepted: [],
-      followUp: [],
-      coffeeChat: [],
-      askForReferral: [],
+  const filteredNetworkingColumns = useMemo(() => {
+    if (networkingFilter === 'allTime') return networkingColumns;
+    const filtered: Record<NetworkingColumnId, Networking[]> = {
+      niche: [],
+      showUp: [],
+      discover: [],
+      offerValue: [],
+      pitch: [],
     };
-    (Object.keys(linkedinOutreachColumns) as LinkedinOutreachColumnId[]).forEach(columnId => {
-      if (linkedinOutreachFilter === 'modifiedThisMonth') {
-        filtered[columnId] = linkedinOutreachColumns[columnId].filter(entry =>
-          isWithinCurrentMonth(entry.dateModified)
+    (Object.keys(networkingColumns) as NetworkingColumnId[]).forEach(columnId => {
+      if (networkingFilter === 'modifiedThisMonth') {
+        filtered[columnId] = networkingColumns[columnId].filter(card =>
+          isWithinCurrentMonth(card.dateModified)
         );
       }
     });
     return filtered;
-  }, [linkedinOutreachColumns, linkedinOutreachFilter, isWithinCurrentMonth]);
-
-  const filteredEventColumns = useMemo(() => {
-    if (eventsFilter === 'allTime') return eventColumns;
-    const filtered: Record<EventColumnId, InPersonEvent[]> = {
-      plan: [],
-      attended: [],
-      sendLinkedInRequest: [],
-      followUp: [],
-    };
-    (Object.keys(eventColumns) as EventColumnId[]).forEach(columnId => {
-      if (eventsFilter === 'modifiedThisMonth') {
-        filtered[columnId] = eventColumns[columnId].filter(event =>
-          isWithinCurrentMonth(event.dateModified)
-        );
-      }
-    });
-    return filtered;
-  }, [eventColumns, eventsFilter, isWithinCurrentMonth]);
+  }, [networkingColumns, networkingFilter, isWithinCurrentMonth]);
 
   const filteredOpenSourceColumns = useMemo(() => {
     return getFilteredOpenSourceColumns({
@@ -1672,24 +1399,14 @@ const hasSeededMockDataRef = useRef(false);
                 <FileText className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Applications
               </button>
               <button 
-                onClick={() => selectTab('interviews')}
+                onClick={() => selectTab('networking')}
                 className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
-                  activeTab === 'interviews' 
+                  activeTab === 'networking' 
                     ? 'bg-electric-blue text-white' 
                     : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
-                <MessageCircle className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Coffee Chats
-              </button>
-              <button 
-                onClick={() => selectTab('events')}
-                className={`main-tab-btn flex-1 py-3 sm:py-4 px-3 sm:px-6 text-center font-semibold border-r border-gray-200 transition-colors whitespace-nowrap ${
-                  activeTab === 'events' 
-                    ? 'bg-electric-blue text-white' 
-                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Events
+                <Users className="inline mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />Networking
               </button>
             </div>
           </div>
@@ -1702,8 +1419,8 @@ const hasSeededMockDataRef = useRef(false);
             leetCodeStats={leetCodeStats}
             applicationsMetrics={applicationsMetrics}
             applicationsAllTimeCount={applicationsAllTimeCount}
-            eventsMetrics={eventsMetrics}
-            eventsAllTimeCount={eventsAllTimeCount}
+            networkingMetrics={networkingMetrics}
+            networkingAllTimeCount={networkingAllTimeCount}
             handleHabitCardClick={selectTab}
             instructorViewUserId={userIdParam}
           />
@@ -1737,57 +1454,29 @@ const hasSeededMockDataRef = useRef(false);
           />
         )}
 
-        {/* Coffee Chats Content */}
-        {activeTab === 'interviews' && (
-          <CoffeeChatsTab
-            filteredLinkedinOutreachColumns={filteredLinkedinOutreachColumns}
-            linkedinOutreachColumns={linkedinOutreachColumns}
-            setLinkedinOutreachColumns={setLinkedinOutreachColumns}
-            isLoadingLinkedinOutreach={isLoadingLinkedinOutreach}
-            linkedinOutreachFilter={linkedinOutreachFilter}
-            setLinkedinOutreachFilter={setLinkedinOutreachFilter}
-            setIsLinkedinOutreachModalOpen={setIsLinkedinOutreachModalOpen}
-            setEditingLinkedinOutreach={setEditingLinkedinOutreach}
+        {/* Networking Content */}
+        {activeTab === 'networking' && (
+          <NetworkingTab
+            filteredNetworkingColumns={filteredNetworkingColumns}
+            networkingColumns={networkingColumns}
+            setNetworkingColumns={setNetworkingColumns}
+            isLoadingNetworking={isLoadingNetworking}
+            networkingFilter={networkingFilter}
+            setNetworkingFilter={setNetworkingFilter}
+            setIsNetworkingModalOpen={setIsNetworkingModalOpen}
+            setEditingNetworking={setEditingNetworking}
             sensors={sensors}
-            handleLinkedinOutreachDragStart={handleLinkedinOutreachDragStart}
-            handleLinkedinOutreachDragOver={handleLinkedinOutreachDragOver}
-            handleLinkedinOutreachDragEnd={handleLinkedinOutreachDragEnd}
-            activeLinkedinOutreachId={activeLinkedinOutreachId}
-            getLinkedinOutreachColumnOfItem={getLinkedinOutreachColumnOfItem}
-            isLinkedinOutreachModalOpen={isLinkedinOutreachModalOpen}
-            editingLinkedinOutreach={editingLinkedinOutreach}
-            setIsDeletingLinkedinOutreach={setIsDeletingLinkedinOutreach}
-            isDeletingLinkedinOutreach={isDeletingLinkedinOutreach}
-            fetchLinkedinOutreach={fetchLinkedinOutreach}
-            isDraggingLinkedinOutreachRef={isDraggingLinkedinOutreachRef}
-            userIdParam={userIdParam}
-            readOnly={!canEditViewedUser && !!userIdParam}
-          />
-        )}
-
-        {/* Events Content */}
-        {activeTab === 'events' && (
-          <EventsTab
-            filteredEventColumns={filteredEventColumns}
-            eventColumns={eventColumns}
-            setEventColumns={setEventColumns}
-            isLoadingEvents={isLoadingEvents}
-            eventsFilter={eventsFilter}
-            setEventsFilter={setEventsFilter}
-            setIsEventModalOpen={setIsEventModalOpen}
-            setEditingEvent={setEditingEvent}
-            sensors={sensors}
-            handleEventsDragStart={handleEventsDragStart}
-            handleEventsDragOver={handleEventsDragOver}
-            handleEventsDragEnd={handleEventsDragEnd}
-            activeEventId={activeEventId}
-            getEventColumnOfItem={getEventColumnOfItem}
-            isEventModalOpen={isEventModalOpen}
-            editingEvent={editingEvent}
-            setIsDeletingEvent={setIsDeletingEvent}
-            isDeletingEvent={isDeletingEvent}
-            fetchEvents={fetchEvents}
-            isDraggingEventRef={isDraggingEventRef}
+            handleNetworkingDragStart={handleNetworkingDragStart}
+            handleNetworkingDragOver={handleNetworkingDragOver}
+            handleNetworkingDragEnd={handleNetworkingDragEnd}
+            activeNetworkingId={activeNetworkingId}
+            getNetworkingColumnOfItem={getNetworkingColumnOfItem}
+            isNetworkingModalOpen={isNetworkingModalOpen}
+            editingNetworking={editingNetworking}
+            setIsDeletingNetworking={setIsDeletingNetworking}
+            isDeletingNetworking={isDeletingNetworking}
+            fetchNetworking={fetchNetworking}
+            isDraggingNetworkingRef={isDraggingNetworkingRef}
             userIdParam={userIdParam}
             readOnly={!canEditViewedUser && !!userIdParam}
           />
