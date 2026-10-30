@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       buildTrust,
       summary,
       artifact,
+      feedback,
       pitchAsk,
       pitchResult,
       status,
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
         buildTrust: buildTrust || null,
         summary: summary || null,
         artifact: artifact || null,
+        feedback: feedback || null,
         pitchAsk: pitchAsk || null,
         pitchResult: pitchResult || null,
         status: status || "niche",
@@ -195,6 +197,7 @@ export async function PUT(request: NextRequest) {
       buildTrust,
       summary,
       artifact,
+      feedback,
       pitchAsk,
       pitchResult,
       status,
@@ -247,6 +250,10 @@ export async function PUT(request: NextRequest) {
     }
     if (artifact !== undefined && artifact !== existing.artifact) {
       updateData.artifact = artifact || null;
+      hasChanges = true;
+    }
+    if (feedback !== undefined && feedback !== existing.feedback) {
+      updateData.feedback = feedback || null;
       hasChanges = true;
     }
     if (pitchAsk !== undefined && pitchAsk !== existing.pitchAsk) {

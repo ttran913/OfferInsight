@@ -41,6 +41,7 @@ model Networking {
   buildTrust         String?
   summary            String?
   artifact           String?
+  feedback           String?
   pitchAsk           String?
   pitchResult        String?
   status             String    @default("niche")

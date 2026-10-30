@@ -37,6 +37,7 @@ export type Networking = {
   buildTrust?: string | null;
   summary?: string | null;
   artifact?: string | null;
+  feedback?: string | null;
   pitchAsk?: string | null;
   pitchResult?: string | null;
   status: NetworkingStatus;

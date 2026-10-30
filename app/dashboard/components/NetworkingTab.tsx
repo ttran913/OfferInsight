@@ -196,6 +196,7 @@ function SortableNetworkingCard(props: {
         props.card.buildTrust ||
         props.card.summary ||
         props.card.artifact ||
+        props.card.feedback ||
         props.card.pitchAsk ||
         props.card.pitchResult) && (
         <div className="text-green-600 text-xs mb-2 flex flex-col">
@@ -203,6 +204,7 @@ function SortableNetworkingCard(props: {
           {props.card.buildTrust && <span>✓ Build trust</span>}
           {props.card.summary && <span>✓ Summary</span>}
           {props.card.artifact && <span>✓ Artifact</span>}
+          {props.card.feedback && <span>✓ Feedback</span>}
           {(props.card.pitchAsk || props.card.pitchResult) && <span>✓ Pitch</span>}
         </div>
       )}
@@ -233,6 +235,7 @@ function NetworkingModal({
     buildTrust: string;
     summary: string;
     artifact: string;
+    feedback: string;
     pitchAsk: string;
     pitchResult: string;
     status: NetworkingStatus;
@@ -248,6 +251,7 @@ function NetworkingModal({
     buildTrust: card?.buildTrust || '',
     summary: card?.summary || '',
     artifact: card?.artifact || '',
+    feedback: card?.feedback || '',
     pitchAsk: card?.pitchAsk || '',
     pitchResult: card?.pitchResult || '',
     status: card?.status ?? (defaultStatus || 'niche'),
@@ -264,6 +268,7 @@ function NetworkingModal({
       buildTrust: card?.buildTrust || '',
       summary: card?.summary || '',
       artifact: card?.artifact || '',
+      feedback: card?.feedback || '',
       pitchAsk: card?.pitchAsk || '',
       pitchResult: card?.pitchResult || '',
       status: card?.status ?? (defaultStatus || 'niche'),
@@ -300,6 +305,7 @@ function NetworkingModal({
       buildTrust: formData.buildTrust.trim() || null,
       summary: formData.summary.trim() || null,
       artifact: formData.artifact.trim() || null,
+      feedback: formData.feedback.trim() || null,
       pitchAsk: formData.pitchAsk.trim() || null,
       pitchResult: formData.pitchResult.trim() || null,
     };
@@ -510,13 +516,23 @@ function NetworkingModal({
               locked(
                 <>
                   <p className="text-sm text-gray-500 mb-3">What did you create?</p>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Artifact</label>
-                    <textarea
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="Link, demo video, proposal, etc."
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block font-semibold mb-2 text-gray-900">Artifact</label>
+                      <textarea
+                        disabled
+                        className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
+                        placeholder="Link, demo video, proposal, etc."
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-2 text-gray-900">Feedback</label>
+                      <textarea
+                        disabled
+                        className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
+                        placeholder="What feedback did you get?"
+                      />
+                    </div>
                   </div>
                 </>
               )
@@ -524,14 +540,25 @@ function NetworkingModal({
           ) : (
             <div className={sectionClass('offerValue')}>
               <p className="text-sm text-gray-500 mb-3">What did you create?</p>
-              <div>
-                <label className="block text-gray-900 font-semibold mb-2">Artifact</label>
-                <textarea
-                  value={formData.artifact}
-                  onChange={(e) => setFormData({ ...formData, artifact: e.target.value })}
-                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                  placeholder="Link, demo video, proposal, etc."
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-900 font-semibold mb-2">Artifact</label>
+                  <textarea
+                    value={formData.artifact}
+                    onChange={(e) => setFormData({ ...formData, artifact: e.target.value })}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+                    placeholder="Link, demo video, proposal, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-900 font-semibold mb-2">Feedback</label>
+                  <textarea
+                    value={formData.feedback}
+                    onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+                    placeholder="What feedback did you get?"
+                  />
+                </div>
               </div>
               {isCurrent('offerValue') && <HelperMessage status={currentStatus} />}
             </div>
