@@ -61,9 +61,7 @@ export default function Page() {
   const [isInstructor, setIsInstructor] = useState(false);
   const [canEditViewedUser, setCanEditViewedUser] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
-    const rawTab = searchParams.get('tab');
-    // Legacy tab names (coffee chats / events) now live under the Networking board
-    const tab = rawTab === 'interviews' || rawTab === 'events' ? 'networking' : rawTab;
+    const tab = searchParams.get('tab');
     return tab && DASHBOARD_TABS.includes(tab) ? tab : 'overview';
   });
   const [leetCodeStats, setLeetCodeStats] = useState<{

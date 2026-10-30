@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { getApiHeaders } from '@/app/lib/api-helpers';
 
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -48,11 +48,22 @@ const STATUS_ORDER: NetworkingStatus[] = [
   'pitch',
 ];
 
+const STAGE_META: Record<
+  NetworkingStatus,
+  { title: string; subtitle: string }
+> = {
+  niche: { title: 'Niche', subtitle: 'Where are you showing up?' },
+  vibe: { title: 'Vibe', subtitle: 'Vibe with Someone / Build Trust' },
+  discover: { title: 'Discover', subtitle: "What 'need' did you hear?" },
+  offerValue: { title: 'Offer Value', subtitle: 'What did you create?' },
+  pitch: { title: 'Pitch', subtitle: 'What did you ask for, and what happened?' },
+};
+
 function statusIndex(status: NetworkingStatus): number {
   return STATUS_ORDER.indexOf(status);
 }
 
-function HelperMessage({ status: _status }: { status?: NetworkingStatus | null }) {
+function HelperMessage() {
   return (
     <div className="text-center py-3">
       <p className="text-gray-500 font-medium">Helper video is coming soon...</p>
@@ -156,8 +167,10 @@ function SortableNetworkingCard(props: {
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
-            {typeLabel}
+          <div className="flex flex-wrap gap-1 mb-1">
+            <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-300 font-bold uppercase tracking-wider">
+              {typeLabel}
+            </span>
           </div>
           <div className="text-gray-900 font-medium mb-1">{props.card.nicheName}</div>
           {props.card.contactName && (
@@ -259,6 +272,8 @@ function NetworkingModal({
     dateModified: card?.dateModified ? toLocalDateString(card.dateModified) : '',
   });
 
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     setFormData({
       nicheType: card?.nicheType || 'openSource',
@@ -285,6 +300,21 @@ function NetworkingModal({
   const showBlurredPreview = (minStatus: NetworkingStatus) =>
     !card || idx === statusIndex(minStatus) - 1;
   const hideLater = (minStatus: NetworkingStatus) => idx < statusIndex(minStatus) - 1;
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    STATUS_ORDER.forEach((stage) => {
+      next[stage] = stage !== currentStatus;
+    });
+    setCollapsedSections(next);
+  }, [card?.id, currentStatus]);
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,15 +364,233 @@ function NetworkingModal({
     onSave(submitData);
   };
 
-  const locked = (children: React.ReactNode) => (
-    <div className="relative group py-4">
-      <div className="blur-sm space-y-4 pointer-events-none">{children}</div>
-      <LockTooltip />
+  const renderStageShell = ({
+    stage,
+    blurred = false,
+    chevronDisabled = false,
+    children,
+  }: {
+    stage: NetworkingStatus;
+    blurred?: boolean;
+    chevronDisabled?: boolean;
+    children: React.ReactNode;
+  }) => {
+    const meta = STAGE_META[stage];
+    const isCollapsed = collapsedSections[stage] ?? false;
+    return (
+      <div className={blurred ? 'relative group' : undefined}>
+        <div
+          className={`${blurred ? 'blur-sm pointer-events-none' : ''} bg-gray-100 rounded-lg border border-gray-300`}
+        >
+          <button
+            type="button"
+            onClick={() => !chevronDisabled && toggleSection(stage)}
+            disabled={chevronDisabled}
+            className={`w-full flex items-center justify-between p-4 transition-colors rounded-t-lg text-left ${
+              chevronDisabled
+                ? 'cursor-not-allowed'
+                : 'hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex flex-col items-start">
+              <span className="text-electric-blue font-bold uppercase tracking-wider text-xs">
+                {meta.title}
+              </span>
+              <p className="text-xs text-gray-400 italic mt-0.5">{meta.subtitle}</p>
+            </div>
+            {!chevronDisabled &&
+              (isCollapsed ? (
+                <ChevronDown className="w-4 h-4 text-electric-blue flex-shrink-0 ml-4" />
+              ) : (
+                <ChevronUp className="w-4 h-4 text-electric-blue flex-shrink-0 ml-4" />
+              ))}
+          </button>
+          {(!isCollapsed || blurred) && (
+            <div className="space-y-4 p-4 pt-0">{children}</div>
+          )}
+        </div>
+        {blurred && <LockTooltip />}
+      </div>
+    );
+  };
+
+  const nicheFields = (_disabled = false) => (
+    <>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Type *</label>
+        <select
+          value={formData.nicheType}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              nicheType: e.target.value as NetworkingNicheType,
+            })
+          }
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
+          required
+        >
+          {NICHE_TYPE_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {NETWORKING_NICHE_TYPE_LABELS[opt]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Name *</label>
+        <input
+          type="text"
+          value={formData.nicheName}
+          onChange={(e) => setFormData({ ...formData, nicheName: e.target.value })}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
+          placeholder="Name of the project, event, hobby, alumni group, etc."
+          required
+        />
+      </div>
+    </>
+  );
+
+  const vibeFields = (disabled = false) => (
+    <>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Person</label>
+        <input
+          type="text"
+          value={disabled ? '' : formData.contactName}
+          onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
+          placeholder="Name of one person you spoke to"
+        />
+      </div>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">LinkedIn</label>
+        <input
+          type="text"
+          value={disabled ? '' : formData.contactLinkedInUrl}
+          onChange={(e) => setFormData({ ...formData, contactLinkedInUrl: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
+          placeholder="linkedin.com/in/... or https://..."
+        />
+      </div>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">
+          How you tried to vibe / build trust
+        </label>
+        <textarea
+          value={disabled ? '' : formData.buildTrust}
+          onChange={(e) => setFormData({ ...formData, buildTrust: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+          placeholder="What did you do to vibe or build trust?"
+        />
+      </div>
+    </>
+  );
+
+  const discoverFields = (disabled = false) => (
+    <div>
+      <label className="block text-gray-900 font-semibold mb-2">Summary</label>
+      <textarea
+        value={disabled ? '' : formData.summary}
+        onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+        disabled={disabled}
+        className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+        placeholder="Quick summary (what 'need' did you discover?)"
+      />
     </div>
   );
 
-  const sectionClass = (s: NetworkingStatus) =>
-    isCurrent(s) ? 'border border-yellow-500 rounded-lg p-4 bg-yellow-500/10' : '';
+  const offerValueFields = (disabled = false) => (
+    <>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Artifact</label>
+        <textarea
+          value={disabled ? '' : formData.artifact}
+          onChange={(e) => setFormData({ ...formData, artifact: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+          placeholder="Link, demo video, proposal, etc."
+        />
+      </div>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Feedback</label>
+        <textarea
+          value={disabled ? '' : formData.feedback}
+          onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+          placeholder="What feedback did you get?"
+        />
+      </div>
+    </>
+  );
+
+  const pitchFields = (disabled = false) => (
+    <>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Ask for Investment</label>
+        <textarea
+          value={disabled ? '' : formData.pitchAsk}
+          onChange={(e) => setFormData({ ...formData, pitchAsk: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+          placeholder="What was your pitch? What did you ask for?"
+        />
+      </div>
+      <div>
+        <label className="block text-gray-900 font-semibold mb-2">Result</label>
+        <textarea
+          value={disabled ? '' : formData.pitchResult}
+          onChange={(e) => setFormData({ ...formData, pitchResult: e.target.value })}
+          disabled={disabled}
+          className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+          placeholder="What was the result?"
+        />
+      </div>
+    </>
+  );
+
+  const renderStage = (stage: NetworkingStatus) => {
+    if (hideLater(stage)) return null;
+
+    const fieldsForStage = {
+      niche: nicheFields,
+      vibe: vibeFields,
+      discover: discoverFields,
+      offerValue: offerValueFields,
+      pitch: pitchFields,
+    }[stage];
+
+    if (stage !== 'niche' && !unlocked(stage)) {
+      if (!showBlurredPreview(stage)) return null;
+      return (
+        <React.Fragment key={stage}>
+          {renderStageShell({
+            stage,
+            blurred: true,
+            chevronDisabled: true,
+            children: fieldsForStage(true),
+          })}
+        </React.Fragment>
+      );
+    }
+
+    return (
+      <React.Fragment key={stage}>
+        {renderStageShell({
+          stage,
+          children: (
+            <>
+              {fieldsForStage(false)}
+              {isCurrent(stage) && <HelperMessage />}
+            </>
+          ),
+        })}
+      </React.Fragment>
+    );
+  };
 
   return (
     <ModalOverlay onClose={onClose}>
@@ -360,265 +608,7 @@ function NetworkingModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className={sectionClass('niche')}>
-            <p className="text-sm text-gray-500 mb-3">Where are you showing up?</p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-900 font-semibold mb-2">Type *</label>
-                <select
-                  value={formData.nicheType}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      nicheType: e.target.value as NetworkingNicheType,
-                    })
-                  }
-                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900"
-                  required
-                >
-                  {NICHE_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {NETWORKING_NICHE_TYPE_LABELS[opt]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-900 font-semibold mb-2">Name *</label>
-                <input
-                  type="text"
-                  value={formData.nicheName}
-                  onChange={(e) => setFormData({ ...formData, nicheName: e.target.value })}
-                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
-                  placeholder="Name of the project, event, hobby, alumni group, etc."
-                  required
-                />
-              </div>
-            </div>
-            {isCurrent('niche') && <HelperMessage status={currentStatus} />}
-          </div>
-
-          {/* Vibe */}
-          {hideLater('vibe') ? null : !unlocked('vibe') ? (
-            showBlurredPreview('vibe') ? (
-              locked(
-                <>
-                  <p className="text-sm text-gray-500 mb-3">Vibe with Someone / Build Trust</p>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Person</label>
-                    <input
-                      type="text"
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="Name of one person you spoke to"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">LinkedIn</label>
-                    <input
-                      type="text"
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="linkedin.com/in/..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">
-                      How you tried to vibe / build trust
-                    </label>
-                    <textarea
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="What did you do to vibe or build trust?"
-                    />
-                  </div>
-                </>
-              )
-            ) : null
-          ) : (
-            <div className={sectionClass('vibe')}>
-              <p className="text-sm text-gray-500 mb-3">Vibe with Someone / Build Trust</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Person</label>
-                  <input
-                    type="text"
-                    value={formData.contactName}
-                    onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
-                    placeholder="Name of one person you spoke to"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">LinkedIn</label>
-                  <input
-                    type="text"
-                    value={formData.contactLinkedInUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, contactLinkedInUrl: e.target.value })
-                    }
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
-                    placeholder="linkedin.com/in/... or https://..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">
-                    How you tried to vibe / build trust
-                  </label>
-                  <textarea
-                    value={formData.buildTrust}
-                    onChange={(e) => setFormData({ ...formData, buildTrust: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                    placeholder="What did you do to vibe or build trust?"
-                  />
-                </div>
-              </div>
-              {isCurrent('vibe') && <HelperMessage status={currentStatus} />}
-            </div>
-          )}
-
-          {/* Discover */}
-          {hideLater('discover') ? null : !unlocked('discover') ? (
-            showBlurredPreview('discover') ? (
-              locked(
-                <>
-                  <p className="text-sm text-gray-500 mb-3">What 'need' did you hear?</p>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Summary</label>
-                    <textarea
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="Quick summary (what 'need' did you discover?)"
-                    />
-                  </div>
-                </>
-              )
-            ) : null
-          ) : (
-            <div className={sectionClass('discover')}>
-              <p className="text-sm text-gray-500 mb-3">What 'need' did you hear?</p>
-              <div>
-                <label className="block text-gray-900 font-semibold mb-2">Summary</label>
-                <textarea
-                  value={formData.summary}
-                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                  className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                  placeholder="Quick summary (what 'need' did you discover?)"
-                />
-              </div>
-              {isCurrent('discover') && <HelperMessage status={currentStatus} />}
-            </div>
-          )}
-
-          {/* Offer Value */}
-          {hideLater('offerValue') ? null : !unlocked('offerValue') ? (
-            showBlurredPreview('offerValue') ? (
-              locked(
-                <>
-                  <p className="text-sm text-gray-500 mb-3">What did you create?</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block font-semibold mb-2 text-gray-900">Artifact</label>
-                      <textarea
-                        disabled
-                        className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                        placeholder="Link, demo video, proposal, etc."
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold mb-2 text-gray-900">Feedback</label>
-                      <textarea
-                        disabled
-                        className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                        placeholder="What feedback did you get?"
-                      />
-                    </div>
-                  </div>
-                </>
-              )
-            ) : null
-          ) : (
-            <div className={sectionClass('offerValue')}>
-              <p className="text-sm text-gray-500 mb-3">What did you create?</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Artifact</label>
-                  <textarea
-                    value={formData.artifact}
-                    onChange={(e) => setFormData({ ...formData, artifact: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                    placeholder="Link, demo video, proposal, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Feedback</label>
-                  <textarea
-                    value={formData.feedback}
-                    onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                    placeholder="What feedback did you get?"
-                  />
-                </div>
-              </div>
-              {isCurrent('offerValue') && <HelperMessage status={currentStatus} />}
-            </div>
-          )}
-
-          {/* Pitch */}
-          {hideLater('pitch') ? null : !unlocked('pitch') ? (
-            showBlurredPreview('pitch') ? (
-              locked(
-                <>
-                  <p className="text-sm text-gray-500 mb-3">
-                    What did you ask, and what happened?
-                  </p>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Ask</label>
-                    <textarea
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="What was your pitch? What did you ask for?"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Result</label>
-                    <textarea
-                      disabled
-                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="What was the result?"
-                    />
-                  </div>
-                </>
-              )
-            ) : null
-          ) : (
-            <div className={sectionClass('pitch')}>
-              <p className="text-sm text-gray-500 mb-3">
-                What did you ask, and what happened?
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Ask</label>
-                  <textarea
-                    value={formData.pitchAsk}
-                    onChange={(e) => setFormData({ ...formData, pitchAsk: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                    placeholder="What was your pitch? What did you ask for?"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Result</label>
-                  <textarea
-                    value={formData.pitchResult}
-                    onChange={(e) => setFormData({ ...formData, pitchResult: e.target.value })}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                    placeholder="What was the result?"
-                  />
-                </div>
-              </div>
-              {isCurrent('pitch') && <HelperMessage status={currentStatus} />}
-            </div>
-          )}
+          {STATUS_ORDER.map((stage) => renderStage(stage))}
 
           {ENABLE_DATE_FIELD_EDITING && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -656,20 +646,23 @@ function NetworkingModal({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-between sm:justify-end gap-3 pt-4">
-            {!readOnly && card && onDelete && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onDelete();
-                }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors md:hidden order-3 sm:order-1"
-              >
-                <Trash2 className="inline mr-2 w-4 h-4" />
-                Delete
-              </button>
-            )}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-200">
+            <div className="order-2 sm:order-1">
+              {!readOnly && card && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Delete this card? This cannot be undone.')) {
+                      onDelete();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg font-semibold transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              )}
+            </div>
             <div className="flex gap-3 order-1 sm:order-2">
               <button
                 type="button"
@@ -691,19 +684,20 @@ function NetworkingModal({
   );
 }
 
-type ColumnDef = {
-  id: NetworkingColumnId;
-  label: string;
-  dot: string;
+const COLUMN_DOTS: Record<NetworkingColumnId, string> = {
+  niche: 'bg-yellow-500',
+  vibe: 'bg-purple-500',
+  discover: 'bg-blue-500',
+  offerValue: 'bg-green-500',
+  pitch: 'bg-pink-500',
 };
 
-const COLUMNS: ColumnDef[] = [
-  { id: 'niche', label: 'Niche', dot: 'bg-yellow-500' },
-  { id: 'vibe', label: 'Vibe', dot: 'bg-purple-500' },
-  { id: 'discover', label: 'Discover', dot: 'bg-blue-500' },
-  { id: 'offerValue', label: 'Offer Value', dot: 'bg-green-500' },
-  { id: 'pitch', label: 'Pitch', dot: 'bg-pink-500' },
-];
+const COLUMNS: { id: NetworkingColumnId; label: string; dot: string }[] =
+  STATUS_ORDER.map((id) => ({
+    id,
+    label: STAGE_META[id].title,
+    dot: COLUMN_DOTS[id],
+  }));
 
 export default function NetworkingTab({
   filteredNetworkingColumns,
@@ -847,8 +841,10 @@ export default function NetworkingTab({
                       className="bg-white border border-gray-200 rounded-lg p-3"
                       style={{ touchAction: 'none' }}
                     >
-                      <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
-                        {NETWORKING_NICHE_TYPE_LABELS[card.nicheType] ?? card.nicheType}
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-300 font-bold uppercase tracking-wider">
+                          {NETWORKING_NICHE_TYPE_LABELS[card.nicheType] ?? card.nicheType}
+                        </span>
                       </div>
                       <div className="text-gray-900 font-medium mb-1">{card.nicheName}</div>
                       {card.contactName && (

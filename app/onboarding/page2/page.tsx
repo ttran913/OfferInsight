@@ -11,13 +11,11 @@ const CALCULATOR_DATA: Record<TimelineKey, {
   commitment: string;
   apps: string;
   networking: string;
-  interviews: number;
-  offers: number;
 }> = {
-  '3': { range: '1-3 Months', commitment: '15 Hours', apps: '5 Weekly', networking: '8 Monthly', interviews: 10, offers: 1 },
-  '6': { range: '4-6 Months', commitment: '10 Hours', apps: '3 Weekly', networking: '6 Monthly', interviews: 15, offers: 1 },
-  '9': { range: '7-9 Months', commitment: '8 Hours', apps: '1 Weekly', networking: '4 Monthly', interviews: 20, offers: 1 },
-  '12': { range: '10-12 Months', commitment: '5 Hours', apps: '1 Weekly', networking: '2 Monthly', interviews: 25, offers: 1 },
+  '3': { range: '1-3 Months', commitment: '15 Hours', apps: '5 Weekly', networking: '8 Monthly' },
+  '6': { range: '4-6 Months', commitment: '10 Hours', apps: '3 Weekly', networking: '6 Monthly' },
+  '9': { range: '7-9 Months', commitment: '8 Hours', apps: '1 Weekly', networking: '4 Monthly' },
+  '12': { range: '10-12 Months', commitment: '5 Hours', apps: '1 Weekly', networking: '2 Monthly' },
 };
 
 export default function Page2() {
