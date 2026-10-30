@@ -35,7 +35,7 @@ export type Networking = {
   contactName?: string | null;
   contactLinkedInUrl?: string | null;
   buildTrust?: string | null;
-  takeaway?: string | null;
+  summary?: string | null;
   artifact?: string | null;
   pitchAsk?: string | null;
   pitchResult?: string | null;

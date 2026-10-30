@@ -916,7 +916,7 @@ const hasSeededMockDataRef = useRef(false);
           nicheType: 'alumni',
           nicheName: 'University Alumni Network',
           contactName: 'Priya Patel',
-          takeaway: 'Learned about the team structure.',
+          summary: 'Learned about the team structure.',
           status: 'discover',
           dateCreated: isoWithDelta({ months: -3, days: -10, hour: 15 }),
           userId: 'mock-user',

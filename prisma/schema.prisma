@@ -39,7 +39,7 @@ model Networking {
   contactName        String?
   contactLinkedInUrl String?
   buildTrust         String?
-  takeaway           String?
+  summary            String?
   artifact           String?
   pitchAsk           String?
   pitchResult        String?

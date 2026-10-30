@@ -194,14 +194,14 @@ function SortableNetworkingCard(props: {
       </div>
       {(props.card.contactName ||
         props.card.buildTrust ||
-        props.card.takeaway ||
+        props.card.summary ||
         props.card.artifact ||
         props.card.pitchAsk ||
         props.card.pitchResult) && (
         <div className="text-green-600 text-xs mb-2 flex flex-col">
           {props.card.contactName && <span>✓ Contact</span>}
           {props.card.buildTrust && <span>✓ Build trust</span>}
-          {props.card.takeaway && <span>✓ Takeaway</span>}
+          {props.card.summary && <span>✓ Summary</span>}
           {props.card.artifact && <span>✓ Artifact</span>}
           {(props.card.pitchAsk || props.card.pitchResult) && <span>✓ Pitch</span>}
         </div>
@@ -231,7 +231,7 @@ function NetworkingModal({
     contactName: string;
     contactLinkedInUrl: string;
     buildTrust: string;
-    takeaway: string;
+    summary: string;
     artifact: string;
     pitchAsk: string;
     pitchResult: string;
@@ -246,7 +246,7 @@ function NetworkingModal({
     contactName: card?.contactName || '',
     contactLinkedInUrl: card?.contactLinkedInUrl || '',
     buildTrust: card?.buildTrust || '',
-    takeaway: card?.takeaway || '',
+    summary: card?.summary || '',
     artifact: card?.artifact || '',
     pitchAsk: card?.pitchAsk || '',
     pitchResult: card?.pitchResult || '',
@@ -262,7 +262,7 @@ function NetworkingModal({
       contactName: card?.contactName || '',
       contactLinkedInUrl: card?.contactLinkedInUrl || '',
       buildTrust: card?.buildTrust || '',
-      takeaway: card?.takeaway || '',
+      summary: card?.summary || '',
       artifact: card?.artifact || '',
       pitchAsk: card?.pitchAsk || '',
       pitchResult: card?.pitchResult || '',
@@ -298,7 +298,7 @@ function NetworkingModal({
       contactName: formData.contactName.trim() || null,
       contactLinkedInUrl: normalizeUrl(formData.contactLinkedInUrl) || null,
       buildTrust: formData.buildTrust.trim() || null,
-      takeaway: formData.takeaway.trim() || null,
+      summary: formData.summary.trim() || null,
       artifact: formData.artifact.trim() || null,
       pitchAsk: formData.pitchAsk.trim() || null,
       pitchResult: formData.pitchResult.trim() || null,
@@ -476,13 +476,13 @@ function NetworkingModal({
             showBlurredPreview('discover') ? (
               locked(
                 <>
-                  <p className="text-sm text-gray-500 mb-3">What need did you hear?</p>
+                  <p className="text-sm text-gray-500 mb-3">What 'need' did you hear?</p>
                   <div>
-                    <label className="block font-semibold mb-2 text-gray-900">Takeaway</label>
+                    <label className="block font-semibold mb-2 text-gray-900">Summary</label>
                     <textarea
                       disabled
                       className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
-                      placeholder="One takeaway (what need did you discover?)"
+                      placeholder="Quick summary (what 'need' did you discover?)"
                     />
                   </div>
                 </>
@@ -490,14 +490,14 @@ function NetworkingModal({
             ) : null
           ) : (
             <div className={sectionClass('discover')}>
-              <p className="text-sm text-gray-500 mb-3">What need did you hear?</p>
+              <p className="text-sm text-gray-500 mb-3">What 'need' did you hear?</p>
               <div>
-                <label className="block text-gray-900 font-semibold mb-2">Takeaway</label>
+                <label className="block text-gray-900 font-semibold mb-2">Summary</label>
                 <textarea
-                  value={formData.takeaway}
-                  onChange={(e) => setFormData({ ...formData, takeaway: e.target.value })}
+                  value={formData.summary}
+                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                   className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
-                  placeholder="One takeaway (what need did you discover?)"
+                  placeholder="Quick summary (what 'need' did you discover?)"
                 />
               </div>
               {isCurrent('discover') && <HelperMessage status={currentStatus} />}
