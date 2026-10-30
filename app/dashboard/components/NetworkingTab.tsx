@@ -84,7 +84,6 @@ type NetworkingTabProps = {
   setEditingNetworking: (card: Networking | null) => void;
   sensors: any;
   handleNetworkingDragStart: (event: any) => void;
-  handleNetworkingDragOver: (event: any) => void;
   handleNetworkingDragEnd: (event: any) => void;
   activeNetworkingId: string | null;
   getNetworkingColumnOfItem: (id: string) => NetworkingColumnId | null;
@@ -710,7 +709,6 @@ export default function NetworkingTab({
   setEditingNetworking,
   sensors,
   handleNetworkingDragStart,
-  handleNetworkingDragOver,
   handleNetworkingDragEnd,
   activeNetworkingId,
   getNetworkingColumnOfItem,
@@ -781,7 +779,6 @@ export default function NetworkingTab({
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleNetworkingDragStart}
-          onDragOver={handleNetworkingDragOver}
           onDragEnd={handleNetworkingDragEnd}
         >
           <div className="overflow-x-auto -mx-4 px-4">

@@ -27,7 +27,6 @@ type ApplicationsTabProps = {
   setEditingApp: (app: Application | null) => void;
   sensors: any;
   handleApplicationsDragStart: (event: any) => void;
-  handleApplicationsDragOver: (event: any) => void;
   handleApplicationsDragEnd: (event: any) => void;
   activeAppId: string | null;
   getApplicationColumnOfItem: (id: string) => ApplicationColumnId | null;
@@ -518,7 +517,6 @@ export default function ApplicationsTab({
   setEditingApp,
   sensors,
   handleApplicationsDragStart,
-  handleApplicationsDragOver,
   handleApplicationsDragEnd,
   activeAppId,
   getApplicationColumnOfItem,
@@ -571,7 +569,7 @@ export default function ApplicationsTab({
       {isLoading ? (
         <div className="text-center py-8 text-gray-400">Loading applications...</div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleApplicationsDragStart} onDragOver={handleApplicationsDragOver} onDragEnd={handleApplicationsDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleApplicationsDragStart} onDragEnd={handleApplicationsDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-5 gap-3 min-w-[700px]">
             <div className="bg-gray-100 rounded-lg p-2">

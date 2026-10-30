@@ -40,7 +40,6 @@ type OpenSourceTabProps = {
   setEditingEntry: React.Dispatch<React.SetStateAction<OpenSourceEntry | null>>;
   sensors: any;
   handleOpenSourceDragStart: (event: any) => void;
-  handleOpenSourceDragOver: (event: any) => void;
   handleOpenSourceDragEnd: (event: any) => void;
   activeOpenSourceId: string | null;
   getOpenSourceColumnOfItem: (id: string) => OpenSourceColumnId | null;
@@ -1042,7 +1041,6 @@ export default function OpenSourceTab({
   setEditingEntry,
   sensors,
   handleOpenSourceDragStart,
-  handleOpenSourceDragOver,
   handleOpenSourceDragEnd,
   activeOpenSourceId,
   getOpenSourceColumnOfItem,
@@ -1947,7 +1945,7 @@ export default function OpenSourceTab({
           {isLoading ? (
         <div className="text-center py-8 text-gray-400">Loading open source entries...</div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleOpenSourceDragStart} onDragOver={handleOpenSourceDragOver} onDragEnd={handleOpenSourceDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleOpenSourceDragStart} onDragEnd={handleOpenSourceDragEnd}>
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-5 gap-3 min-w-[800px] items-stretch">
               <div className="bg-gray-100 rounded-lg p-2 flex flex-col">

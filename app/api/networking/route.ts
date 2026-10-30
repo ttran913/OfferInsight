@@ -139,12 +139,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Networking card ID is required" }, { status: 400 });
     }
 
+    const cardId = parseInt(id, 10);
+    if (Number.isNaN(cardId)) {
+      return NextResponse.json({ error: "Invalid networking card ID" }, { status: 400 });
+    }
+
     if (status === undefined || !VALID_STATUSES.has(status)) {
       return NextResponse.json({ error: "Valid status is required" }, { status: 400 });
     }
 
     const existing = await prisma.networking.findFirst({
-      where: { id: parseInt(id), userId },
+      where: { id: cardId, userId },
     });
 
     if (!existing) {
@@ -156,7 +161,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updated = await prisma.networking.update({
-      where: { id: parseInt(id) },
+      where: { id: cardId },
       data: {
         status,
         dateModified: new Date(),
@@ -228,9 +233,12 @@ export async function PUT(request: NextRequest) {
       updateData.nicheType = nicheType;
       hasChanges = true;
     }
-    if (nicheName !== undefined && nicheName !== existing.nicheName) {
-      updateData.nicheName = nicheName;
-      hasChanges = true;
+    if (nicheName !== undefined) {
+      const trimmedName = typeof nicheName === "string" ? nicheName.trim() : nicheName;
+      if (trimmedName !== existing.nicheName) {
+        updateData.nicheName = trimmedName;
+        hasChanges = true;
+      }
     }
     if (contactName !== undefined && contactName !== existing.contactName) {
       updateData.contactName = contactName || null;
@@ -328,8 +336,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Networking card ID is required" }, { status: 400 });
     }
 
+    const cardId = parseInt(id, 10);
+    if (Number.isNaN(cardId)) {
+      return NextResponse.json({ error: "Invalid networking card ID" }, { status: 400 });
+    }
+
     const card = await prisma.networking.findFirst({
-      where: { id: parseInt(id), userId },
+      where: { id: cardId, userId },
     });
 
     if (!card) {
@@ -337,7 +350,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.networking.delete({
-      where: { id: parseInt(id) },
+      where: { id: cardId },
     });
 
     return NextResponse.json({ success: true });

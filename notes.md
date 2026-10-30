@@ -15,10 +15,7 @@
 ### 3. Review Documentation Files
 - `HYDRATION_FIXES.md` - Documentation (might be outdated, check if still relevant)
 
-### 4. Review Utility Scripts
-- `resetIdSequence.js` - Database utility script (might be obsolete if not used)
-
-### 5. Review Potentially Unused Onboarding Page
+### 4. Review Potentially Unused Onboarding Page
 - `app/onboarding/page.tsx` - Simple navigation page that might not be needed if users go directly to page1/page2/page3
 
 ---

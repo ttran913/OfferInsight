@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
-import { PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, type DragOverEvent } from '@dnd-kit/core';
+import { PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Gauge, FileText, Users, ArrowLeft, GitBranch } from 'lucide-react';
 import Link from 'next/link';
@@ -269,12 +269,6 @@ export default function Page() {
     isDraggingAppRef.current = true;
   };
 
-  const handleApplicationsDragOver = (event: DragOverEvent) => {
-    // onDragOver is only for visual feedback via DroppableColumn
-    // State updates should only happen in onDragEnd to prevent infinite loops
-    // No state updates here - just let the DroppableColumn handle visual feedback
-  };
-
   // dnd-kit: Networking board
   const [networkingColumns, setNetworkingColumns] = useState<Record<NetworkingColumnId, Networking[]>>({
     niche: [],
@@ -440,10 +434,6 @@ export default function Page() {
   const handleNetworkingDragStart = (event: DragStartEvent) => {
     setActiveNetworkingId(String(event.active.id));
     isDraggingNetworkingRef.current = true;
-  };
-
-  const handleNetworkingDragOver = (event: DragOverEvent) => {
-    // onDragOver is only for visual feedback via DroppableColumn
   };
 
   // ----- MOCK DATA SEED TRACKER START -----
@@ -789,10 +779,6 @@ const hasSeededMockDataRef = useRef(false);
   const handleOpenSourceDragStart = (event: DragStartEvent) => {
     setActiveOpenSourceId(String(event.active.id));
     isDraggingOpenSourceRef.current = true;
-  };
-
-  const handleOpenSourceDragOver = (event: DragOverEvent) => {
-    // onDragOver is only for visual feedback via DroppableColumn
   };
 
   const [userData, setUserData] = useState<{
@@ -1437,7 +1423,6 @@ const hasSeededMockDataRef = useRef(false);
             setEditingApp={setEditingApp}
             sensors={sensors}
             handleApplicationsDragStart={handleApplicationsDragStart}
-            handleApplicationsDragOver={handleApplicationsDragOver}
             handleApplicationsDragEnd={handleApplicationsDragEnd}
             activeAppId={activeAppId}
             getApplicationColumnOfItem={getApplicationColumnOfItem}
@@ -1465,7 +1450,6 @@ const hasSeededMockDataRef = useRef(false);
             setEditingNetworking={setEditingNetworking}
             sensors={sensors}
             handleNetworkingDragStart={handleNetworkingDragStart}
-            handleNetworkingDragOver={handleNetworkingDragOver}
             handleNetworkingDragEnd={handleNetworkingDragEnd}
             activeNetworkingId={activeNetworkingId}
             getNetworkingColumnOfItem={getNetworkingColumnOfItem}
@@ -1493,7 +1477,6 @@ const hasSeededMockDataRef = useRef(false);
             setEditingEntry={setEditingOpenSource}
             sensors={sensors}
             handleOpenSourceDragStart={handleOpenSourceDragStart}
-            handleOpenSourceDragOver={handleOpenSourceDragOver}
             handleOpenSourceDragEnd={handleOpenSourceDragEnd}
             activeOpenSourceId={activeOpenSourceId}
             getOpenSourceColumnOfItem={getOpenSourceColumnOfItem}

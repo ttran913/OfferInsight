@@ -197,33 +197,6 @@ export function toLocalDateString(value: string): string {
   }
 }
 
-// Helper function to get local date parts (month, day, year) from ISO date string
-export function getLocalDateParts(value: string): { year: number; month: number; day: number } {
-  try {
-    const date = new Date(value);
-    return {
-      year: date.getFullYear(),
-      month: date.getMonth(),
-      day: date.getDate(),
-    };
-  } catch {
-    return { year: 0, month: 0, day: 0 };
-  }
-}
-
-// Helper function to get local time parts (hours, minutes) from ISO date string
-export function getLocalTimeParts(value: string): { hours: number; minutes: number } {
-  try {
-    const date = new Date(value);
-    return {
-      hours: date.getHours(),
-      minutes: date.getMinutes(),
-    };
-  } catch {
-    return { hours: 0, minutes: 0 };
-  }
-}
-
 // Helper function to format date with full month name (e.g., "January 15, 2024")
 export function formatDateWithFullMonth(value: string | Date): string {
   try {
@@ -265,69 +238,11 @@ export function LockTooltip() {
   );
 }
 
-// Video Modal Component - displays YouTube video in a modal overlay
-export function VideoModal({ videoUrl, isOpen, onClose }: { videoUrl: string; isOpen: boolean; onClose: () => void }) {
-  // Convert YouTube watch URL to embed format
-  const getEmbedUrl = (url: string) => {
-    // Extract video ID from various YouTube URL formats
-    const videoIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-    if (videoIdMatch && videoIdMatch[1]) {
-      return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
-    }
-    return url; // Fallback to original URL if extraction fails
-  };
-
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <ModalOverlay onClose={onClose} backdropClassName="bg-black/80">
-      <div
-        className="relative w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
-          aria-label="Close video"
-        >
-          <X size={24} />
-        </button>
-        <iframe
-          src={getEmbedUrl(videoUrl)}
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          title="YouTube video player"
-        />
-      </div>
-    </ModalOverlay>
-  );
-}
-
-export function DroppableColumn(props: { id: string; children: React.ReactNode; onAddCard?: () => void; showLockIcon?: boolean; hasCardsToRight?: boolean }) {
+export function DroppableColumn(props: { id: string; children: React.ReactNode; onAddCard?: () => void; hasCardsToRight?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: props.id });
   const [showTooltip, setShowTooltip] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const showLock = props.showLockIcon !== false; // Default to true if not specified
-  
+
   // Detect if device is primarily touch-based (mobile/tablet)
   // We check for touch AND small screen to avoid false positives on touchscreen laptops
   useEffect(() => {
@@ -342,11 +257,11 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
     mediaQuery.addEventListener('change', checkTouchDevice);
     return () => mediaQuery.removeEventListener('change', checkTouchDevice);
   }, []);
-  
+
   // Check if column is empty (no cards, only potentially the Add Card button)
   const childrenArray = React.Children.toArray(props.children);
   const isEmpty = childrenArray.length === 0;
-  
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Only toggle on touch devices; on desktop, hover handles it
@@ -354,9 +269,9 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
       setShowTooltip(prev => !prev);
     }
   };
-  
+
   // Don't show lock if there are cards in columns to the right (progress indication)
-  const shouldShowLock = isEmpty && !props.onAddCard && showLock && !props.hasCardsToRight;
+  const shouldShowLock = isEmpty && !props.onAddCard && !props.hasCardsToRight;
   
   return (
     <div ref={setNodeRef} className={`space-y-3 min-h-64 relative ${isOver ? 'outline outline-2 outline-electric-blue/60 outline-offset-2 bg-gray-50/40' : ''}`}>
@@ -374,7 +289,7 @@ export function DroppableColumn(props: { id: string; children: React.ReactNode; 
         </button>
       )}
       
-      {/* Lock icon and tooltip for empty columns (but not for first column, and only if showLockIcon is true, and no cards to the right) */}
+      {/* Lock icon and tooltip for empty columns (but not for first column, and no cards to the right) */}
       {shouldShowLock && (
         <div className="absolute inset-x-0 top-[40%] flex justify-center">
           <div 
