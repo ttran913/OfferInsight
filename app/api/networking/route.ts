@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       nicheName,
       contactName,
       contactLinkedInUrl,
+      buildTrust,
       takeaway,
       artifact,
       pitchAsk,
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
         nicheName: nicheName.trim(),
         contactName: contactName || null,
         contactLinkedInUrl: contactLinkedInUrl || null,
+        buildTrust: buildTrust || null,
         takeaway: takeaway || null,
         artifact: artifact || null,
         pitchAsk: pitchAsk || null,
@@ -190,6 +192,7 @@ export async function PUT(request: NextRequest) {
       nicheName,
       contactName,
       contactLinkedInUrl,
+      buildTrust,
       takeaway,
       artifact,
       pitchAsk,
@@ -232,6 +235,10 @@ export async function PUT(request: NextRequest) {
     }
     if (contactLinkedInUrl !== undefined && contactLinkedInUrl !== existing.contactLinkedInUrl) {
       updateData.contactLinkedInUrl = contactLinkedInUrl || null;
+      hasChanges = true;
+    }
+    if (buildTrust !== undefined && buildTrust !== existing.buildTrust) {
+      updateData.buildTrust = buildTrust || null;
       hasChanges = true;
     }
     if (takeaway !== undefined && takeaway !== existing.takeaway) {

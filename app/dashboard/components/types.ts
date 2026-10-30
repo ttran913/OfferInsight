@@ -34,6 +34,7 @@ export type Networking = {
   nicheName: string;
   contactName?: string | null;
   contactLinkedInUrl?: string | null;
+  buildTrust?: string | null;
   takeaway?: string | null;
   artifact?: string | null;
   pitchAsk?: string | null;

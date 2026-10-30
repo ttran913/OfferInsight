@@ -193,12 +193,14 @@ function SortableNetworkingCard(props: {
         )}
       </div>
       {(props.card.contactName ||
+        props.card.buildTrust ||
         props.card.takeaway ||
         props.card.artifact ||
         props.card.pitchAsk ||
         props.card.pitchResult) && (
         <div className="text-green-600 text-xs mb-2 flex flex-col">
           {props.card.contactName && <span>✓ Contact</span>}
+          {props.card.buildTrust && <span>✓ Build trust</span>}
           {props.card.takeaway && <span>✓ Takeaway</span>}
           {props.card.artifact && <span>✓ Artifact</span>}
           {(props.card.pitchAsk || props.card.pitchResult) && <span>✓ Pitch</span>}
@@ -228,6 +230,7 @@ function NetworkingModal({
     nicheName: string;
     contactName: string;
     contactLinkedInUrl: string;
+    buildTrust: string;
     takeaway: string;
     artifact: string;
     pitchAsk: string;
@@ -242,6 +245,7 @@ function NetworkingModal({
     nicheName: card?.nicheName || '',
     contactName: card?.contactName || '',
     contactLinkedInUrl: card?.contactLinkedInUrl || '',
+    buildTrust: card?.buildTrust || '',
     takeaway: card?.takeaway || '',
     artifact: card?.artifact || '',
     pitchAsk: card?.pitchAsk || '',
@@ -257,6 +261,7 @@ function NetworkingModal({
       nicheName: card?.nicheName || '',
       contactName: card?.contactName || '',
       contactLinkedInUrl: card?.contactLinkedInUrl || '',
+      buildTrust: card?.buildTrust || '',
       takeaway: card?.takeaway || '',
       artifact: card?.artifact || '',
       pitchAsk: card?.pitchAsk || '',
@@ -292,6 +297,7 @@ function NetworkingModal({
       nicheName: formData.nicheName.trim(),
       contactName: formData.contactName.trim() || null,
       contactLinkedInUrl: normalizeUrl(formData.contactLinkedInUrl) || null,
+      buildTrust: formData.buildTrust.trim() || null,
       takeaway: formData.takeaway.trim() || null,
       artifact: formData.artifact.trim() || null,
       pitchAsk: formData.pitchAsk.trim() || null,
@@ -391,7 +397,7 @@ function NetworkingModal({
             showBlurredPreview('vibe') ? (
               locked(
                 <>
-                  <p className="text-sm text-gray-500 mb-3">Become a familiar face</p>
+                  <p className="text-sm text-gray-500 mb-3">Vibe with Someone / Build Trust</p>
                   <div>
                     <label className="block font-semibold mb-2 text-gray-900">Person</label>
                     <input
@@ -410,12 +416,22 @@ function NetworkingModal({
                       placeholder="linkedin.com/in/..."
                     />
                   </div>
+                  <div>
+                    <label className="block font-semibold mb-2 text-gray-900">
+                      How you tried to vibe / build trust
+                    </label>
+                    <textarea
+                      disabled
+                      className="w-full border rounded-lg px-4 py-2 min-h-[80px] bg-gray-100 border-gray-200 text-gray-900"
+                      placeholder="What did you do to vibe or build trust?"
+                    />
+                  </div>
                 </>
               )
             ) : null
           ) : (
             <div className={sectionClass('vibe')}>
-              <p className="text-sm text-gray-500 mb-3">Become a familiar face</p>
+              <p className="text-sm text-gray-500 mb-3">Vibe with Someone / Build Trust</p>
               <div className="space-y-4">
                 <div>
                   <label className="block text-gray-900 font-semibold mb-2">Person</label>
@@ -437,6 +453,17 @@ function NetworkingModal({
                     }
                     className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400"
                     placeholder="linkedin.com/in/... or https://..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-900 font-semibold mb-2">
+                    How you tried to vibe / build trust
+                  </label>
+                  <textarea
+                    value={formData.buildTrust}
+                    onChange={(e) => setFormData({ ...formData, buildTrust: e.target.value })}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 min-h-[80px]"
+                    placeholder="What did you do to vibe or build trust?"
                   />
                 </div>
               </div>

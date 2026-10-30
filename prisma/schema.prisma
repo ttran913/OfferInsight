@@ -38,6 +38,7 @@ model Networking {
   nicheName          String
   contactName        String?
   contactLinkedInUrl String?
+  buildTrust         String?
   takeaway           String?
   artifact           String?
   pitchAsk           String?
