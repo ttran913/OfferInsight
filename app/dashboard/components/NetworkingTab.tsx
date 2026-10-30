@@ -42,7 +42,7 @@ const NICHE_TYPE_OPTIONS: NetworkingNicheType[] = [
 
 const STATUS_ORDER: NetworkingStatus[] = [
   'niche',
-  'showUp',
+  'vibe',
   'discover',
   'offerValue',
   'pitch',
@@ -90,7 +90,7 @@ type NetworkingTabProps = {
 function emptyColumns(): Record<NetworkingColumnId, Networking[]> {
   return {
     niche: [],
-    showUp: [],
+    vibe: [],
     discover: [],
     offerValue: [],
     pitch: [],
@@ -386,9 +386,9 @@ function NetworkingModal({
             {isCurrent('niche') && <HelperMessage status={currentStatus} />}
           </div>
 
-          {/* Show Up */}
-          {hideLater('showUp') ? null : !unlocked('showUp') ? (
-            showBlurredPreview('showUp') ? (
+          {/* Vibe */}
+          {hideLater('vibe') ? null : !unlocked('vibe') ? (
+            showBlurredPreview('vibe') ? (
               locked(
                 <>
                   <p className="text-sm text-gray-500 mb-3">Become a familiar face</p>
@@ -414,7 +414,7 @@ function NetworkingModal({
               )
             ) : null
           ) : (
-            <div className={sectionClass('showUp')}>
+            <div className={sectionClass('vibe')}>
               <p className="text-sm text-gray-500 mb-3">Become a familiar face</p>
               <div className="space-y-4">
                 <div>
@@ -440,7 +440,7 @@ function NetworkingModal({
                   />
                 </div>
               </div>
-              {isCurrent('showUp') && <HelperMessage status={currentStatus} />}
+              {isCurrent('vibe') && <HelperMessage status={currentStatus} />}
             </div>
           )}
 
@@ -645,7 +645,7 @@ type ColumnDef = {
 
 const COLUMNS: ColumnDef[] = [
   { id: 'niche', label: 'Niche', dot: 'bg-yellow-500' },
-  { id: 'showUp', label: 'Show Up', dot: 'bg-purple-500' },
+  { id: 'vibe', label: 'Vibe', dot: 'bg-purple-500' },
   { id: 'discover', label: 'Discover', dot: 'bg-blue-500' },
   { id: 'offerValue', label: 'Offer Value', dot: 'bg-green-500' },
   { id: 'pitch', label: 'Pitch', dot: 'bg-pink-500' },

@@ -280,7 +280,7 @@ export default function Page() {
   // dnd-kit: Networking board
   const [networkingColumns, setNetworkingColumns] = useState<Record<NetworkingColumnId, Networking[]>>({
     niche: [],
-    showUp: [],
+    vibe: [],
     discover: [],
     offerValue: [],
     pitch: [],
@@ -310,7 +310,7 @@ export default function Page() {
 
       const grouped: Record<NetworkingColumnId, Networking[]> = {
         niche: [],
-        showUp: [],
+        vibe: [],
         discover: [],
         offerValue: [],
         pitch: [],
@@ -379,7 +379,7 @@ export default function Page() {
     const overId = String(over.id);
 
     const fromCol = getNetworkingColumnOfItem(activeId);
-    const toCol = (['niche', 'showUp', 'discover', 'offerValue', 'pitch'] as NetworkingColumnId[]).includes(overId as NetworkingColumnId)
+    const toCol = (['niche', 'vibe', 'discover', 'offerValue', 'pitch'] as NetworkingColumnId[]).includes(overId as NetworkingColumnId)
       ? (overId as NetworkingColumnId)
       : getNetworkingColumnOfItem(overId);
     if (!fromCol || !toCol) {
@@ -423,7 +423,7 @@ export default function Page() {
       // Create new column arrays to ensure React detects the change
       setNetworkingColumns(prev => ({
         niche: [...prev.niche],
-        showUp: [...prev.showUp],
+        vibe: [...prev.vibe],
         discover: [...prev.discover],
         offerValue: [...prev.offerValue],
         pitch: [...prev.pitch],
@@ -900,12 +900,12 @@ const hasSeededMockDataRef = useRef(false);
           userId: 'mock-user',
         },
       ],
-      showUp: [
+      vibe: [
         {
           id: 2001,
           nicheType: 'openSource',
           nicheName: 'Open Source Sprint',
-          status: 'showUp',
+          status: 'vibe',
           dateCreated: isoWithDelta({ months: 0, days: -8, hour: 12 }),
           userId: 'mock-user',
         },
@@ -1288,7 +1288,7 @@ const hasSeededMockDataRef = useRef(false);
     if (networkingFilter === 'allTime') return networkingColumns;
     const filtered: Record<NetworkingColumnId, Networking[]> = {
       niche: [],
-      showUp: [],
+      vibe: [],
       discover: [],
       offerValue: [],
       pitch: [],

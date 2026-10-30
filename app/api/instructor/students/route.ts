@@ -14,7 +14,7 @@ import { currentDeadline, isMustBookReason } from "@/app/lib/must-book";
 
 // Status values that count as "completed" for display counts (matches dashboard completion columns)
 const APPLICATION_COMPLETION_STATUSES = ['messageHiringManager', 'messageRecruiter', 'followUp', 'interview'];
-const NETWORKING_COMPLETION_STATUSES = ['showUp', 'discover', 'offerValue', 'pitch'];
+const NETWORKING_COMPLETION_STATUSES = ['vibe', 'discover', 'offerValue', 'pitch'];
 
 export async function GET() {
   try {

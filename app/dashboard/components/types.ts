@@ -3,8 +3,8 @@
 export type ApplicationStatus = 'apply' | 'messageRecruiter' | 'messageHiringManager' | 'followUp' | 'interview';
 export type ApplicationColumnId = 'apply' | 'messageRecruiter' | 'messageHiringManager' | 'followUp' | 'interview';
 
-export type NetworkingStatus = 'niche' | 'showUp' | 'discover' | 'offerValue' | 'pitch';
-export type NetworkingColumnId = 'niche' | 'showUp' | 'discover' | 'offerValue' | 'pitch';
+export type NetworkingStatus = 'niche' | 'vibe' | 'discover' | 'offerValue' | 'pitch';
+export type NetworkingColumnId = 'niche' | 'vibe' | 'discover' | 'offerValue' | 'pitch';
 
 export type NetworkingNicheType = 'openSource' | 'techEvent' | 'hobby' | 'alumni' | 'other';
 
@@ -70,7 +70,7 @@ export const APPLICATION_COMPLETION_COLUMNS: ApplicationColumnId[] = [
 ];
 
 export const NETWORKING_COMPLETION_COLUMNS: NetworkingColumnId[] = [
-  'showUp',
+  'vibe',
   'discover',
   'offerValue',
   'pitch',
@@ -102,7 +102,7 @@ export const applicationColumnToStatus: Record<ApplicationColumnId, ApplicationS
 
 export const networkingStatusToColumn: Record<NetworkingStatus, NetworkingColumnId> = {
   niche: 'niche',
-  showUp: 'showUp',
+  vibe: 'vibe',
   discover: 'discover',
   offerValue: 'offerValue',
   pitch: 'pitch',
@@ -110,7 +110,7 @@ export const networkingStatusToColumn: Record<NetworkingStatus, NetworkingColumn
 
 export const networkingColumnToStatus: Record<NetworkingColumnId, NetworkingStatus> = {
   niche: 'niche',
-  showUp: 'showUp',
+  vibe: 'vibe',
   discover: 'discover',
   offerValue: 'offerValue',
   pitch: 'pitch',

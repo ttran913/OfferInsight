@@ -12,7 +12,7 @@ const VALID_NICHE_TYPES = new Set([
 
 const VALID_STATUSES = new Set([
   "niche",
-  "showUp",
+  "vibe",
   "discover",
   "offerValue",
   "pitch",
