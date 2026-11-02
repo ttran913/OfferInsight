@@ -7,6 +7,7 @@ const VALID_NICHE_TYPES = new Set([
   "techEvent",
   "hobby",
   "alumni",
+  "partTimeJob",
   "other",
 ]);
 

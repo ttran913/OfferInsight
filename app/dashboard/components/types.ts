@@ -6,7 +6,7 @@ export type ApplicationColumnId = 'apply' | 'messageRecruiter' | 'messageHiringM
 export type NetworkingStatus = 'niche' | 'vibe' | 'discover' | 'offerValue' | 'pitch';
 export type NetworkingColumnId = 'niche' | 'vibe' | 'discover' | 'offerValue' | 'pitch';
 
-export type NetworkingNicheType = 'openSource' | 'techEvent' | 'hobby' | 'alumni' | 'other';
+export type NetworkingNicheType = 'openSource' | 'techEvent' | 'hobby' | 'alumni' | 'partTimeJob' | 'other';
 
 export type OpenSourceStatus = 'plan' | 'babyStep' | 'inProgress' | 'done';
 export type OpenSourceColumnId = 'plan' | 'babyStep' | 'inProgress' | 'done';
@@ -83,6 +83,7 @@ export const NETWORKING_NICHE_TYPE_LABELS: Record<NetworkingNicheType, string> =
   techEvent: 'Tech Conference / Event',
   hobby: 'Non-tech Hobby',
   alumni: 'Alumni',
+  partTimeJob: 'Part-time Job',
   other: 'Other',
 };
 

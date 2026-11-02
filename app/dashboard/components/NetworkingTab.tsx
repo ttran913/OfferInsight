@@ -37,6 +37,7 @@ const NICHE_TYPE_OPTIONS: NetworkingNicheType[] = [
   'techEvent',
   'hobby',
   'alumni',
+  'partTimeJob',
   'other',
 ];
 
