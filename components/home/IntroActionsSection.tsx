@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties, RefObject } from 'react';
+import Link from 'next/link';
 import { HIRING_MANAGER_CALENDLY_URL } from './homeCtas';
 
 const ACCENT_CORAL = '#F57360';
@@ -157,6 +158,24 @@ export function IntroActionsSection({
               </a>
             </div>
           </div>
+
+          <p
+            className={
+              compactLayout
+                ? 'mt-4 text-center text-xs text-gray-500'
+                : 'mt-8 text-center text-sm text-gray-500 sm:mt-10'
+            }
+          >
+            <Link href="/privacy" className="hover:text-gray-800 hover:underline">
+              Privacy Policy
+            </Link>
+            <span className="mx-2 text-gray-300" aria-hidden>
+              ·
+            </span>
+            <Link href="/terms" className="hover:text-gray-800 hover:underline">
+              Terms of Service
+            </Link>
+          </p>
         </div>
       </div>
     </section>
