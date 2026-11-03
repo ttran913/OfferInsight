@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Lock, X, PlayCircle, BookOpen } from 'lucide-react';
+import { Plus, Lock, PlayCircle, BookOpen } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import React, { useState, useEffect } from 'react';
 

@@ -30,8 +30,6 @@ model Applications_With_Outreach {
   user                  User      @relation(fields: [userId], references: [id])
 }
 
-// Linkedin_Outreach and In_Person_Events removed – consolidated into Networking
-
 model Networking {
   id                 Int       @id @default(autoincrement())
   nicheType          String

@@ -8,10 +8,6 @@ import {
   logOpenSourceFieldEdits,
 } from "@/app/lib/open-source-status-log";
 import { isUserManagedCriteriaType } from "@/app/lib/open-source-user-managed";
-import {
-  ECOSYSTEM_CONVERSATION_TYPE,
-  ensureEcosystemConversationCard,
-} from "@/app/lib/open-source-ecosystem-conversation";
 import type { OpenSourceEntry, OpenSourceStatus } from "@/app/dashboard/components/types";
 import {
   collectClickedHelperUrlsFromEntries,
@@ -104,22 +100,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    // Backfill mandatory conversation card if the user has an active partnership.
-    const activePartnership = await prisma.userPartnership.findFirst({
-      where: { userId, status: "active" },
-      include: { partnership: true },
+    // Networking replaced the mandatory conversation card — drop any leftovers.
+    await prisma.openSourceEntry.deleteMany({
+      where: { userId, criteriaType: "ecosystem_conversation" },
     });
-    if (activePartnership?.partnership?.name) {
-      try {
-        await ensureEcosystemConversationCard(
-          prisma,
-          userId,
-          activePartnership.partnership.name
-        );
-      } catch (ensureError) {
-        console.error("Error ensuring ecosystem conversation card:", ensureError);
-      }
-    }
 
     const entries = await prisma.openSourceEntry.findMany({
       where: { userId },
@@ -169,16 +153,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-
-    if (data.criteriaType === ECOSYSTEM_CONVERSATION_TYPE) {
-      return NextResponse.json(
-        {
-          error:
-            "Conversation cards are created automatically. Only one is allowed per partnership.",
-        },
-        { status: 400 }
-      );
-    }
 
     const entry = await prisma.openSourceEntry.create({
       data: {

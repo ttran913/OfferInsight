@@ -12,10 +12,6 @@
                     "count": 6
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "receive_feedback",
                     "count": 2
                 },
@@ -35,10 +31,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "blog_post",
@@ -72,10 +64,6 @@
                 {
                     "type": "issue",
                     "count": 6
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "give_feedback",
@@ -113,10 +101,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "above_and_beyond",
@@ -165,10 +149,6 @@
                     "count": 6
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "above_and_beyond",
                     "count": 2
                 },
@@ -196,10 +176,6 @@
                 {
                     "type": "issue",
                     "count": 4
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "blog_post",
@@ -238,10 +214,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "outside_comfort_zone",
@@ -290,10 +262,6 @@
                     "count": 3
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "give_feedback",
                     "count": 2
                 },
@@ -336,10 +304,6 @@
                     "count": 6
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "outside_comfort_zone",
                     "count": 1
                 },
@@ -369,10 +333,6 @@
                     "count": 6
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "multiple_approaches",
                     "count": 2
                 },
@@ -396,10 +356,6 @@
                 {
                     "type": "issue",
                     "count": 6
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 },
                 {
                     "type": "initiative",
@@ -459,10 +415,6 @@
                     "count": 6
                 },
                 {
-                    "type": "ecosystem_conversation",
-                    "count": 1
-                },
-                {
                     "type": "impact_video_demo",
                     "count": 1
                 }
@@ -498,10 +450,6 @@
                 {
                     "type": "issue",
                     "count": 5
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -531,10 +479,6 @@
                 {
                     "type": "issue",
                     "count": 10
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -564,10 +508,6 @@
                 {
                     "type": "issue",
                     "count": 6
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -597,10 +537,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -626,10 +562,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -667,10 +599,6 @@
                 {
                     "type": "issue",
                     "count": 5
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -714,10 +642,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -751,10 +675,6 @@
                 {
                     "type": "issue",
                     "count": 3
-                },
-                {
-                    "type": "ecosystem_conversation",
-                    "count": 1
                 }
             ]
         },
@@ -765,21 +685,56 @@
             "company": "DMDC",
             "role": "",
             "criteria": [
-                { "type": "multiple_choice", "choices": [
-                    { "type": "ecosystem_comments", "count": 1 },
-                    { "type": "live_coding", "count": 1 }
-                ]},
-                { "type": "teach_new_proposal", "count": 1 },
-                { "type": "documentation_gap", "count": 1 },
-                { "type": "multiple_choice", "choices": [
-                    { "type": "above_and_beyond", "count": 1 },
-                    { "type": "help_onboarding", "count": 2 }
-                ]},
-                { "type": "outside_comfort_zone", "count": 1 },
-                { "type": "blog_post", "count": 1 },
-                { "type": "system_design", "count": 1 },
-                { "type": "issue", "count": 3 },
-                { "type": "ecosystem_conversation", "count": 1 }
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "ecosystem_comments",
+                            "count": 1
+                        },
+                        {
+                            "type": "live_coding",
+                            "count": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "teach_new_proposal",
+                    "count": 1
+                },
+                {
+                    "type": "documentation_gap",
+                    "count": 1
+                },
+                {
+                    "type": "multiple_choice",
+                    "choices": [
+                        {
+                            "type": "above_and_beyond",
+                            "count": 1
+                        },
+                        {
+                            "type": "help_onboarding",
+                            "count": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "outside_comfort_zone",
+                    "count": 1
+                },
+                {
+                    "type": "blog_post",
+                    "count": 1
+                },
+                {
+                    "type": "system_design",
+                    "count": 1
+                },
+                {
+                    "type": "issue",
+                    "count": 3
+                }
             ]
         }
     ]

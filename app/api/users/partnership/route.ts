@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/db";
 import { canMutateUserDataForRequest, getUserIdForRequest } from "@/app/lib/api-user-helper";
 import { getInstructorSession } from "@/app/lib/instructor-auth";
-import {
-  ECOSYSTEM_CONVERSATION_TYPE,
-  ensureEcosystemConversationCard,
-} from "@/app/lib/open-source-ecosystem-conversation";
 import { buildCriteria } from "@/app/lib/partnership-criteria";
 import partnershipsData from "@/partnerships/partnerships.json";
 import typesData from "@/partnerships/types.json";
@@ -348,9 +344,6 @@ export async function POST(request: NextRequest) {
             }
           }
           mcBlockIndex++;
-        } else if (criteria.type === ECOSYSTEM_CONVERSATION_TYPE) {
-          // Created once via ensureEcosystemConversationCard after the loop
-          continue;
         } else {
           // Normal criteria
           const typeDef = (typesData.types as any)[criteria.type];
@@ -379,8 +372,6 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-
-      await ensureEcosystemConversationCard(tx, userId, partnershipDef.name);
 
       return newPartnership;
     });

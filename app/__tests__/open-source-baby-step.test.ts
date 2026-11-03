@@ -17,7 +17,7 @@ const ISSUE_HELPER_FIELD = {
   helper_video: "https://youtu.be/TPqPsoahzOQ",
 };
 
-const ECOSYSTEM_CHECKBOX = {
+const GUIDE_CHECKBOX = {
   type: "checkbox",
   text: "Read this guide on reaching out to a user of your open source project.",
   helper_video: "https://docs.google.com/document/d/example",
@@ -47,8 +47,8 @@ const partnershipCriteria = [
     baby_step_column_fields: [ISSUE_HELPER_FIELD],
   },
   {
-    type: "ecosystem_conversation",
-    baby_step_column_fields: [ECOSYSTEM_CHECKBOX],
+    type: "guide_checkbox",
+    baby_step_column_fields: [GUIDE_CHECKBOX],
   },
   {
     type: "receive_feedback",
@@ -223,16 +223,16 @@ describe("isBabyStepComplete", () => {
 
   it("still requires checkbox Done even when helper click is shared", () => {
     const entry = makeEntry({
-      criteriaType: "ecosystem_conversation",
-      babyStepFields: [ECOSYSTEM_CHECKBOX],
+      criteriaType: "guide_checkbox",
+      babyStepFields: [GUIDE_CHECKBOX],
     });
-    const shared = new Set([normalizeHelperVideoUrl(ECOSYSTEM_CHECKBOX.helper_video)]);
+    const shared = new Set([normalizeHelperVideoUrl(GUIDE_CHECKBOX.helper_video)]);
     expect(isBabyStepComplete(entry, partnershipCriteria, shared)).toBe(false);
     expect(
       isBabyStepComplete(
         {
           ...entry,
-          babyStepResponses: { [ECOSYSTEM_CHECKBOX.text]: true },
+          babyStepResponses: { [GUIDE_CHECKBOX.text]: true },
         },
         partnershipCriteria,
         shared
@@ -279,8 +279,8 @@ describe("isBabyStepComplete", () => {
 
   it("requires checkbox and helper click when both exist", () => {
     const entry = makeEntry({
-      criteriaType: "ecosystem_conversation",
-      babyStepFields: [ECOSYSTEM_CHECKBOX],
+      criteriaType: "guide_checkbox",
+      babyStepFields: [GUIDE_CHECKBOX],
     });
 
     expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);
@@ -290,7 +290,7 @@ describe("isBabyStepComplete", () => {
         {
           ...entry,
           babyStepResponses: {
-            [helperClickKey(ECOSYSTEM_CHECKBOX.text)]: true,
+            [helperClickKey(GUIDE_CHECKBOX.text)]: true,
           },
         },
         partnershipCriteria
@@ -302,8 +302,8 @@ describe("isBabyStepComplete", () => {
         {
           ...entry,
           babyStepResponses: {
-            [helperClickKey(ECOSYSTEM_CHECKBOX.text)]: true,
-            [ECOSYSTEM_CHECKBOX.text]: true,
+            [helperClickKey(GUIDE_CHECKBOX.text)]: true,
+            [GUIDE_CHECKBOX.text]: true,
           },
         },
         partnershipCriteria
@@ -313,10 +313,10 @@ describe("isBabyStepComplete", () => {
 
   it("does not share checkbox Done across fields", () => {
     const entry = makeEntry({
-      criteriaType: "ecosystem_conversation",
-      babyStepFields: [ECOSYSTEM_CHECKBOX],
+      criteriaType: "guide_checkbox",
+      babyStepFields: [GUIDE_CHECKBOX],
       babyStepResponses: {
-        [helperClickKeyForUrl(ECOSYSTEM_CHECKBOX.helper_video)]: true,
+        [helperClickKeyForUrl(GUIDE_CHECKBOX.helper_video)]: true,
       },
     });
     expect(isBabyStepComplete(entry, partnershipCriteria)).toBe(false);

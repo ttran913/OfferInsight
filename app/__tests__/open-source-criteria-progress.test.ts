@@ -11,19 +11,17 @@ describe("computeOpenSourceCriteriaProgress", () => {
   it("counts required totals and caps completed per criteria type", () => {
     const criteria = [
       { type: "issue", count: 2 },
-      { type: "ecosystem_conversation", count: 1 },
       { type: "blog", count: 1 },
     ];
     const doneEntries = [
       { criteriaType: "issue", selectedExtras: ["blog"] },
       { criteriaType: "issue", selectedExtras: [] },
       { criteriaType: "issue", selectedExtras: [] },
-      { criteriaType: "ecosystem_conversation", selectedExtras: [] },
     ];
 
     expect(computeOpenSourceCriteriaProgress(criteria, doneEntries)).toEqual({
-      completed: 4,
-      total: 4,
+      completed: 3,
+      total: 3,
     });
   });
 
