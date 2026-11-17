@@ -21,6 +21,6 @@ export default {
     colorScheme: "dark",
     brandColor: "#007ACC", // electric-blue
     buttonText: "#ffffff", // white text on buttons
-    // logo: "/logo.png", // Optional: add your logo URL here if you have one
+    logo: "/images/brand/osr-tree-on-dark.png",
   }
 } satisfies NextAuthConfig
