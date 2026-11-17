@@ -3,7 +3,7 @@
  * Run: node scripts/process-brand-logo.mjs
  */
 import { existsSync } from 'node:fs';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -17,14 +17,9 @@ const sharp = require(
 
 const brandDir = path.join(root, 'public/images/brand');
 const sourceOut = path.join(brandDir, 'five-leaf-tree-source.png');
-// Prefer the normalized source; fall back to the original spaced filename if present.
-const sourceInCandidates = [
-  sourceOut,
-  path.join(root, 'public/images/Five-Leaf Tree Logo.png'),
-];
-const sourceIn = sourceInCandidates.find((p) => existsSync(p));
-if (!sourceIn) {
-  throw new Error('No five-leaf tree source PNG found under public/images/');
+const sourceIn = sourceOut;
+if (!existsSync(sourceIn)) {
+  throw new Error(`Missing brand source: ${sourceIn}`);
 }
 
 /** Near-white → transparent; keep logo colors. */
@@ -67,9 +62,6 @@ function lightenNavy(rgba) {
 
 async function main() {
   await mkdir(brandDir, { recursive: true });
-  if (sourceIn !== sourceOut) {
-    await copyFile(sourceIn, sourceOut);
-  }
 
   const { data, info } = await sharp(sourceIn).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const knocked = knockoutWhite(data, info.width, info.height);
