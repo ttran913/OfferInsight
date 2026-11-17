@@ -2323,11 +2323,11 @@ export default function OpenSourceTab({
             Based on all Done cards (any partnership), including extras on issue cards.
           </p>
           <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden bg-white">
-            {crossPartnershipProgress.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm"
-              >
+                {crossPartnershipProgress.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-blue-50"
+                  >
                 <span className="text-gray-900 truncate">{row.name}</span>
                 <span className="shrink-0 tabular-nums text-gray-900 font-medium">
                   {row.percent}%
