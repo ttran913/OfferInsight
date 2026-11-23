@@ -467,8 +467,12 @@ const hasSeededMockDataRef = useRef(false);
     }>
   >([]);
   const [viewingCompletedPartnershipName, setViewingCompletedPartnershipName] = useState<string | null>(null);
-  const [availablePartnerships, setAvailablePartnerships] = useState<Array<{ id: number; name: string; spotsRemaining: number }>>([]);
-  const [fullPartnerships, setFullPartnerships] = useState<Array<{ id: number; name: string }>>([]);
+  const [availablePartnerships, setAvailablePartnerships] = useState<
+    Array<{ id: number; name: string; spotsRemaining: number; criteria?: any[] }>
+  >([]);
+  const [fullPartnerships, setFullPartnerships] = useState<
+    Array<{ id: number; name: string; criteria?: any[] }>
+  >([]);
   const isFetchingOpenSourceRef = useRef(false);
   const isFetchingPartnershipRef = useRef(false);
   const isFetchingAvailablePartnershipsRef = useRef(false);

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { X } from 'lucide-react';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { ModalOverlay, ModalPanel } from '@/app/dashboard/components/shared';
 import { DEFAULT_AVAILABILITY_TIMEZONE } from '@/app/lib/calendar/constants';
+import type { CrossPartnershipProgressRow } from '@/app/lib/open-source-criteria-progress';
 import type { StatusColor } from '@/app/lib/student-status';
 import FilterDropdown, { type FilterOption } from './FilterDropdown';
 
@@ -217,6 +218,16 @@ export default function UsersTab() {
   const [missedConfirmUser, setMissedConfirmUser] = useState<UserData | null>(null);
   const [meetingBusyUserId, setMeetingBusyUserId] = useState<string | null>(null);
   const [meetingResult, setMeetingResult] = useState<AssignResult | null>(null);
+  const [expandedSharedProgressIds, setExpandedSharedProgressIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [sharedProgressByUser, setSharedProgressByUser] = useState<
+    Record<string, CrossPartnershipProgressRow[]>
+  >({});
+  const [sharedProgressLoadingIds, setSharedProgressLoadingIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [sharedProgressErrors, setSharedProgressErrors] = useState<Record<string, string>>({});
   const [cancelConfirmUser, setCancelConfirmUser] = useState<UserData | null>(null);
   const [cancelEmailStudent, setCancelEmailStudent] = useState(true);
 
@@ -301,6 +312,55 @@ export default function UsersTab() {
 
   function instructorLabelFor(id: string | null | undefined): string {
     return instructors.find((i) => i.id === id)?.label ?? 'None';
+  }
+
+  async function toggleSharedProgress(userId: string) {
+    const isExpanded = expandedSharedProgressIds.has(userId);
+    if (isExpanded) {
+      setExpandedSharedProgressIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      return;
+    }
+
+    setExpandedSharedProgressIds((prev) => new Set(prev).add(userId));
+
+    if (sharedProgressByUser[userId] || sharedProgressLoadingIds.has(userId)) {
+      return;
+    }
+
+    setSharedProgressLoadingIds((prev) => new Set(prev).add(userId));
+    setSharedProgressErrors((prev) => {
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
+
+    try {
+      const response = await fetch(`/api/instructor/students/${userId}/shared-progress`);
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to load shared progress');
+      }
+      setSharedProgressByUser((prev) => ({
+        ...prev,
+        [userId]: Array.isArray(data?.progress) ? data.progress : [],
+      }));
+    } catch (error) {
+      console.error('Error loading shared progress:', error);
+      setSharedProgressErrors((prev) => ({
+        ...prev,
+        [userId]: error instanceof Error ? error.message : 'Failed to load shared progress',
+      }));
+    } finally {
+      setSharedProgressLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
   }
 
   async function handleAssignInstructor(user: UserData, value: string) {
@@ -606,11 +666,17 @@ export default function UsersTab() {
       )}
 
       <div className="flex flex-col gap-3">
-        {filteredAndSortedUsers.map((user) => (
-          <div
-            key={user.id}
-            className="bg-white border border-gray-200 rounded-lg px-6 py-4 hover:border-electric-blue transition-colors w-full"
-          >
+        {filteredAndSortedUsers.map((user) => {
+          const sharedProgressExpanded = expandedSharedProgressIds.has(user.id);
+          const sharedProgressRows = sharedProgressByUser[user.id];
+          const sharedProgressLoading = sharedProgressLoadingIds.has(user.id);
+          const sharedProgressError = sharedProgressErrors[user.id];
+
+          return (
+            <div
+              key={user.id}
+              className="bg-white border border-gray-200 rounded-lg px-6 py-4 hover:border-electric-blue transition-colors w-full"
+            >
             <div className="flex gap-4 xl:gap-6 items-start">
               <div className="w-[140px] min-w-[140px] shrink-0">
                 <Link
@@ -871,9 +937,68 @@ export default function UsersTab() {
                   </div>
                 </div>
               </div>
+
+              <div className="shrink-0 ml-auto self-start">
+                <button
+                  type="button"
+                  onClick={() => toggleSharedProgress(user.id)}
+                  aria-expanded={sharedProgressExpanded}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-colors ${
+                    sharedProgressExpanded
+                      ? 'border-electric-blue bg-blue-50 text-electric-blue'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-electric-blue hover:text-electric-blue'
+                  }`}
+                >
+                  Shared Progress
+                  {sharedProgressExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+
+            {sharedProgressExpanded && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <p className="text-xs text-gray-500 mb-3">
+                  Progress toward each partnership from all Done cards (any partnership).
+                </p>
+                {sharedProgressLoading && (
+                  <div className="text-sm text-gray-500 py-2">Loading shared progress…</div>
+                )}
+                {!sharedProgressLoading && sharedProgressError && (
+                  <div className="text-sm text-red-700 py-2">{sharedProgressError}</div>
+                )}
+                {!sharedProgressLoading && !sharedProgressError && sharedProgressRows && (
+                  <>
+                    {sharedProgressRows.length === 0 ? (
+                      <div className="text-sm text-gray-500 py-2">No partnerships found.</div>
+                    ) : (
+                      <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden bg-white">
+                        {sharedProgressRows.map((row) => (
+                          <li
+                            key={row.id}
+                            className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-blue-50"
+                          >
+                            <span className="text-gray-900 truncate">{row.name}</span>
+                            <span className="shrink-0 tabular-nums text-gray-900 font-medium">
+                              {row.percent}%
+                              <span className="ml-2 text-xs font-normal text-gray-400">
+                                {row.completed}/{row.total}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            </div>
+          );
+        })}
       </div>
 
       {filteredAndSortedUsers.length === 0 && (
