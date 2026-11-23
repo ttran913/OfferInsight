@@ -24,7 +24,10 @@ import {
   HELPER_CLICK_PREFIX,
 } from '../lib/open-source-baby-step';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
-import { computeOpenSourceCriteriaProgress } from '@/app/lib/open-source-criteria-progress';
+import {
+  computeCrossPartnershipProgressList,
+  computeOpenSourceCriteriaProgress,
+} from '@/app/lib/open-source-criteria-progress';
 
 // Debug: set to true to show date created/modified fields in the open source modal
 const ENABLE_DATE_FIELD_EDITING = false;
@@ -1233,6 +1236,34 @@ export default function OpenSourceTab({
     [availablePartnerships, completedPartnerships]
   );
 
+  // After finishing at least one partnership, show reusable progress % in the choose-next dropdown.
+  const showSelectionSharedProgress = completedPartnerships.length > 0;
+
+  const selectionSharedProgressById = useMemo(() => {
+    if (!showSelectionSharedProgress) return new Map<number, number>();
+
+    const knownCriteriaByPartnershipId = new Map<number, any[]>();
+    for (const p of completedPartnerships) {
+      if (p.partnershipId && Array.isArray(p.criteria) && p.criteria.length > 0) {
+        knownCriteriaByPartnershipId.set(p.partnershipId, p.criteria);
+      }
+    }
+
+    const rows = computeCrossPartnershipProgressList(
+      [...availablePartnerships, ...fullPartnerships],
+      openSourceColumns.done,
+      knownCriteriaByPartnershipId
+    );
+
+    return new Map(rows.map((row) => [row.id, row.percent]));
+  }, [
+    showSelectionSharedProgress,
+    completedPartnerships,
+    availablePartnerships,
+    fullPartnerships,
+    openSourceColumns.done,
+  ]);
+
   // Overall criteria progress: total = sum of ALL criteria counts (primaries + extras) from partnership definition
   const totalCriteriaProgress = useMemo(
     () =>
@@ -1379,19 +1410,20 @@ export default function OpenSourceTab({
     }
   };
 
-  const resetToSelectionScreen = () => {
+  const resetToSelectionScreen = async () => {
     setSelectedPartnership(null);
     setSelectedPartnershipId(null);
     setActivePartnershipDbId(null);
     setActivePartnershipCriteria([]);
     setViewingCompletedPartnershipName?.(null);
-    refreshCompletedPartnerships?.();
+    // Await so post-completion dropdown can show shared progress immediately.
+    await refreshCompletedPartnerships?.();
   };
 
   const handleCompletePartnership = async (resetToSelection: boolean = false) => {
     if (!activePartnershipDbId) {
       setShowCongratsModal(false);
-      if (resetToSelection) resetToSelectionScreen();
+      if (resetToSelection) await resetToSelectionScreen();
       return;
     }
     if (isCompletingPartnership) return;
@@ -1413,7 +1445,7 @@ export default function OpenSourceTab({
 
       setShowCongratsModal(false);
       if (resetToSelection) {
-        resetToSelectionScreen();
+        await resetToSelectionScreen();
       } else {
         fetchOpenSourceEntries();
       }
@@ -1539,8 +1571,19 @@ export default function OpenSourceTab({
                           tempSelection === partnership.name ? 'bg-blue-50 text-electric-blue' : 'text-gray-900'
                         }`}
                       >
-                        <span>{partnership.name}</span>
-                        <span className="text-gray-400 text-sm ml-2">({partnership.spotsRemaining} spot{partnership.spotsRemaining !== 1 ? 's' : ''} left)</span>
+                        <span className="flex items-center justify-between gap-3">
+                          <span>
+                            <span>{partnership.name}</span>
+                            <span className="text-gray-400 text-sm ml-2">
+                              ({partnership.spotsRemaining} spot{partnership.spotsRemaining !== 1 ? 's' : ''} left)
+                            </span>
+                          </span>
+                          {showSelectionSharedProgress && (
+                            <span className="shrink-0 text-sm font-semibold tabular-nums text-electric-blue">
+                              {selectionSharedProgressById.get(partnership.id) ?? 0}%
+                            </span>
+                          )}
+                        </span>
                       </button>
                     ))}
                     {fullPartnerships.map(partnership => (
@@ -1548,8 +1591,17 @@ export default function OpenSourceTab({
                         key={partnership.id}
                         className="w-full text-left px-4 py-2 text-gray-500 cursor-not-allowed"
                       >
-                        <span>{partnership.name}</span>
-                        <span className="text-gray-600 text-sm ml-2">(Not available)</span>
+                        <span className="flex items-center justify-between gap-3">
+                          <span>
+                            <span>{partnership.name}</span>
+                            <span className="text-gray-600 text-sm ml-2">(Not available)</span>
+                          </span>
+                          {showSelectionSharedProgress && (
+                            <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-400">
+                              {selectionSharedProgressById.get(partnership.id) ?? 0}%
+                            </span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
