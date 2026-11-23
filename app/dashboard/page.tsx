@@ -1469,7 +1469,6 @@ const hasSeededMockDataRef = useRef(false);
           <OpenSourceTab
             filteredOpenSourceColumns={filteredOpenSourceColumns}
             openSourceColumns={openSourceColumns}
-            allDoneOpenSourceEntries={openSourceColumns.done}
             setOpenSourceColumns={setOpenSourceColumns}
             isLoading={isLoadingOpenSource}
             openSourceFilter={openSourceFilter}

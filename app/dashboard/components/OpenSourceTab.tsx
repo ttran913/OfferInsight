@@ -24,10 +24,7 @@ import {
   HELPER_CLICK_PREFIX,
 } from '../lib/open-source-baby-step';
 import { isUserManagedCriteriaType } from '@/app/lib/open-source-user-managed';
-import {
-  computeCrossPartnershipProgressList,
-  computeOpenSourceCriteriaProgress,
-} from '@/app/lib/open-source-criteria-progress';
+import { computeOpenSourceCriteriaProgress } from '@/app/lib/open-source-criteria-progress';
 
 // Debug: set to true to show date created/modified fields in the open source modal
 const ENABLE_DATE_FIELD_EDITING = false;
@@ -35,8 +32,6 @@ const ENABLE_DATE_FIELD_EDITING = false;
 type OpenSourceTabProps = {
   filteredOpenSourceColumns: Record<OpenSourceColumnId, OpenSourceEntry[]>;
   openSourceColumns: Record<OpenSourceColumnId, OpenSourceEntry[]>;
-  /** Unfiltered Done cards (any partnership / time) for instructor cross-partner %. */
-  allDoneOpenSourceEntries?: OpenSourceEntry[];
   setOpenSourceColumns: React.Dispatch<React.SetStateAction<Record<OpenSourceColumnId, OpenSourceEntry[]>>>;
   isLoading: boolean;
   openSourceFilter: BoardTimeFilter;
@@ -1031,7 +1026,6 @@ const formatDisplayName = (name: string): string => {
 export default function OpenSourceTab({
   filteredOpenSourceColumns,
   openSourceColumns,
-  allDoneOpenSourceEntries,
   setOpenSourceColumns,
   isLoading,
   openSourceFilter,
@@ -1248,52 +1242,6 @@ export default function OpenSourceTab({
       ),
     [activePartnershipCriteria, filteredOpenSourceColumns.done]
   );
-
-  const donePoolForCrossPartner = allDoneOpenSourceEntries ?? openSourceColumns.done;
-
-  const knownCriteriaByPartnershipId = useMemo(() => {
-    const map = new Map<number, any[]>();
-    for (const p of completedPartnerships) {
-      if (p.partnershipId && Array.isArray(p.criteria) && p.criteria.length > 0) {
-        map.set(p.partnershipId, p.criteria);
-      }
-    }
-    if (
-      selectedPartnership &&
-      Array.isArray(activePartnershipCriteria) &&
-      activePartnershipCriteria.length > 0
-    ) {
-      const activeDef =
-        availablePartnerships.find((p) => p.name === selectedPartnership) ||
-        fullPartnerships.find((p) => p.name === selectedPartnership);
-      if (activeDef?.id) {
-        map.set(activeDef.id, activePartnershipCriteria);
-      }
-    }
-    return map;
-  }, [
-    completedPartnerships,
-    selectedPartnership,
-    activePartnershipCriteria,
-    availablePartnerships,
-    fullPartnerships,
-  ]);
-
-  const crossPartnershipProgress = useMemo(() => {
-    if (!isInstructor || !userIdParam) return [];
-    return computeCrossPartnershipProgressList(
-      [...availablePartnerships, ...fullPartnerships],
-      donePoolForCrossPartner,
-      knownCriteriaByPartnershipId
-    );
-  }, [
-    isInstructor,
-    userIdParam,
-    availablePartnerships,
-    fullPartnerships,
-    donePoolForCrossPartner,
-    knownCriteriaByPartnershipId,
-  ]);
 
   const showPartnershipCompleteButton =
     !isInstructor &&
@@ -2314,33 +2262,6 @@ export default function OpenSourceTab({
         </>
       )}
 
-      {isInstructor && userIdParam && crossPartnershipProgress.length > 0 && (
-        <div className="mt-8 border-t border-gray-200 pt-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">
-            Progress toward other partnerships
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Based on all Done cards (any partnership), including extras on issue cards.
-          </p>
-          <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden bg-white">
-                {crossPartnershipProgress.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-blue-50"
-                  >
-                <span className="text-gray-900 truncate">{row.name}</span>
-                <span className="shrink-0 tabular-nums text-gray-900 font-medium">
-                  {row.percent}%
-                  <span className="ml-2 text-xs font-normal text-gray-400">
-                    {row.completed}/{row.total}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <OpenSourceModal
